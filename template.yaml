@@ -113,3 +113,4 @@ Resources:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
           TABLE_NAME: !Ref NullCheckTable
           MODEL_ID: anthropic.claude-sonnet-4-5-20250929-v1:0
+          BUCKET_NAME: !Ref TranscriptBucket
