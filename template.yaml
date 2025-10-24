@@ -108,6 +108,10 @@ Resources:
               Action: bedrock:InvokeModel
               Resource:
                 - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/transcripts/*
       Environment:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
