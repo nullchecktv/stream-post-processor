@@ -6,7 +6,7 @@ Description: >
 Metadata:
   esbuild-properties: &esbuild-properties
     Format: esm
-    Minify: true
+    Minify: false
     OutExtension:
       - .js=.mjs
     Target: es2020
