@@ -23,12 +23,10 @@ jobs:
           role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
 
       - name: Validate runtime template
-        working-directory: backend
         run: |
           sam validate -t template.yaml
 
       - name: Deploy runtime stack
-        working-directory: backend
         run: |
           sam build \
             --template-file template.yaml
