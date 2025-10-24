@@ -86,7 +86,7 @@ Think like a YouTube growth editor, not a stenographer.
 `;
 
     const userPrompt = `
-transcriptId: ${transcriptId}
+transcriptId: ${transcriptKey}
 transcript:
 ${transcript}
 `;
