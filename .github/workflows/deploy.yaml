@@ -32,12 +32,9 @@ jobs:
 
           npm ci
 
-          sam build \
-            --template-file template.yaml
+          sam build
 
           sam deploy \
-            --template-file template.yaml \
-            --config-file samconfig.yaml \
             --config-env dev \
             --s3-bucket "${{ secrets.ARTIFACTS_BUCKET_NAME }}" \
             --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
