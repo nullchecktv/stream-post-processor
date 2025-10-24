@@ -28,6 +28,8 @@ jobs:
 
       - name: Deploy runtime stack
         run: |
+          npm install -g esbuild
+          
           sam build \
             --template-file template.yaml
 
