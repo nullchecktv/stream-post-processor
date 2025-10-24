@@ -1,0 +1,12 @@
+dev:
+  deploy:
+    parameters:
+      stack_name: stream-post-processor
+      s3_prefix: stream-post-processor
+      region: us-east-1
+      capabilities: CAPABILITY_IAM
+      image_repositories: []
+  global:
+    parameters:
+      region: us-east-1
+version: 0.1

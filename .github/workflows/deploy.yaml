@@ -1,0 +1,42 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
+
+      - name: Validate runtime template
+        working-directory: backend
+        run: |
+          sam validate -t template.yaml
+
+      - name: Deploy runtime stack
+        working-directory: backend
+        run: |
+          sam build \
+            --template-file template.yaml
+
+          sam deploy \
+            --template-file template.yaml \
+            --config-file samconfig.yaml \
+            --config-env dev \
+            --s3-bucket "${{ secrets.ARTIFACTS_BUCKET_NAME }}" \
+            --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
+            --no-fail-on-empty-changeset
