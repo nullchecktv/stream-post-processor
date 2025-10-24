@@ -22,11 +22,11 @@ jobs:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
 
-      - name: Validate runtime template
+      - name: Validate template
         run: |
           sam validate -t template.yaml
 
-      - name: Deploy runtime stack
+      - name: Deploy stack
         run: |
           npm install -g esbuild
 
