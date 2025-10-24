@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Autonomous AI Agent that processes livestream transcripts
+
+Metadata:
+  esbuild-properties: &esbuild-properties
+    Format: esm
+    Minify: true
+    OutExtension:
+      - .js=.mjs
+    Target: es2020
+    Sourcemap: false
+    EntryPoints:
+      - index.mjs
+    Banner:
+      - js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);
+    External:
+      - "@aws-sdk/*"
+    Loader: []
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    CodeUri: functions
+    Architectures:
+      - arm64
+    Tracing: Active
+    Timeout: 25
+    MemorySize: 1024
+    Environment:
+      Variables:
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+
+Resources:
+  NullCheckTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  TranscriptBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteRule
+            Status: Enabled
+            ExpirationInDays: 7
+      VersioningConfiguration:
+        Status: Enabled
+
+  AgentMemory:
+    Type: AWS::BedrockAgentCore::Memory
+    Properties:
+      Name: clipAgentMemory
+      EventExpiryDuration: 90
+      MemoryStrategies:
+        - SummaryMemoryStrategy:
+            Name: summaryMemory
+            Description: The summarization of an entire transcription file
+            Namespaces:
+              - "{sessionId}-transcription"
+        - SemanticMemoryStrategy:
+            Name: semanticMemory
+            Description: The topics and high-level coverage of content from the actor
+            Namespaces:
+              - "{actorId}-topics"
+
+  ClipDetectorAgent:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - agents/clip-detector.mjs
+    Properties:
+      Handler: agents/clip-detector.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock-agentcore:CreateEvent
+                - bedrock-agentcore:ListEvents
+              Resource: !GetAtt AgentMemory.MemoryArn
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt NullCheckTable.Arn
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0
+      Environment:
+        Variables:
+          MEMORY_ID: !GetAtt AgentMemory.MemoryId
+          TABLE_NAME: !Ref NullCheckTable
+          MODEL_ID: anthropic.claude-sonnet-4-5-20250929-v1:0
