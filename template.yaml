@@ -107,7 +107,14 @@ Resources:
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:::${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
                 - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0
+              Condition:
+                StringLike:
+                  bedrock:InferenceProfileArn: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0
             - Effect: Allow
               Action:
                 - s3:GetObject
@@ -117,5 +124,5 @@ Resources:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
           TABLE_NAME: !Ref NullCheckTable
-          MODEL_ID: anthropic.claude-sonnet-4-5-20250929-v1:0
+          MODEL_ID: us.anthropic.claude-sonnet-4-5-20250929-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
