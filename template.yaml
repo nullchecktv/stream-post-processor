@@ -6,7 +6,7 @@ Description: >
 Metadata:
   esbuild-properties: &esbuild-properties
     Format: esm
-    Minify: true
+    Minify: false
     OutExtension:
       - .js=.mjs
     Target: es2020
@@ -108,8 +108,14 @@ Resources:
               Action: bedrock:InvokeModel
               Resource:
                 - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource:
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
       Environment:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
           TABLE_NAME: !Ref NullCheckTable
           MODEL_ID: anthropic.claude-sonnet-4-5-20250929-v1:0
+          BUCKET_NAME: !Ref TranscriptBucket

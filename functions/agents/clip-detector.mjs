@@ -10,12 +10,12 @@ const tools = convertToBedrockTools([createClipTool]);
 const AGENT_ID = 'clipforge';
 export const handler = async (event) => {
   try {
-    const { tenantId, sessionId, transcriptId, transcriptKey } = event;
-    const actorId = `${AGENT_ID}/${tenantId}/${contentId}`;
+    const { tenantId, sessionId, transcriptId, transcriptKey } = event.detail;
+    const actorId = `${AGENT_ID}/${tenantId}/${transcriptId}`;
     const transcript = await loadTranscript(transcriptKey);
     if (!transcript) {
       console.error(`Could not find transcript with provided key ${transcriptKey}`);
-      throw Error('Could not find transcript');
+      throw new Error('Could not find transcript');
     }
 
     const systemPrompt = `
