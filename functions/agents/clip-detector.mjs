@@ -1,8 +1,11 @@
+import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
 import { loadTranscript } from "../utils/transcripts.mjs";
+import { marshall } from "@aws-sdk/util-dynamodb";
 
+const ddb = new DynamoDBClient();
 const tools = convertToBedrockTools([createClipTool]);
 const AGENT_ID = 'clipforge';
 export const handler = async (event) => {
@@ -10,7 +13,7 @@ export const handler = async (event) => {
     const { tenantId, sessionId, transcriptId, transcriptKey } = event;
     const actorId = `${AGENT_ID}/${tenantId}/${contentId}`;
     const transcript = await loadTranscript(transcriptKey);
-    if(!transcript){
+    if (!transcript) {
       console.error(`Could not find transcript with provided key ${transcriptKey}`);
       throw Error('Could not find transcript');
     }
@@ -83,6 +86,10 @@ Think like a YouTube growth editor, not a stenographer.
 1. Call **createClip** exactly once with your full list of recommended clips.
 2. Return a short confirmation message indicating how many clips were created.
 3. Do not include raw transcript text or clip details in your message body.
+
+### Response
+
+Your response to this message should be a summary of the transcript in at most 3 sentences. Do not include additional verbiage, only respond with the summary. Do not mention the amount of clips or anything else besides the summary of what the transcript is about.
 `;
 
     const userPrompt = `
@@ -95,6 +102,22 @@ ${transcript}
       sessionId,
       actorId
     });
+
+    await ddb.send(new UpdateItemCommand({
+      Key: marshall({
+        pk: `${tenantId}#${transcriptId}`,
+        sk: 'episode'
+      }),
+      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt',
+      ExpressionAttributeNames: {
+        '#summary': 'summary',
+        "#updatedAt": 'updatedAt'
+      },
+      ExpressionAttributeValues: marshall({
+        ':summary': response,
+        ':updatedAt': new Date().toISOString()
+      })
+    }));
 
     return { message: response };
   } catch (err) {
