@@ -107,7 +107,11 @@ Resources:
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
-                - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0
+                - !Sub  arn:${AWS::Partition}:bedrock:us-east-1::inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0
+            - Effect: Allow
+              Action:
+                - bedrock:ListInferenceProfiles
+              Resource: "*"
             - Effect: Allow
               Action:
                 - s3:GetObject
@@ -119,3 +123,42 @@ Resources:
           TABLE_NAME: !Ref NullCheckTable
           MODEL_ID: anthropic.claude-sonnet-4-5-20250929-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
+
+  TranscriptIngestFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/transcript-added.mjs
+    Properties:
+      Handler: events/transcript-added.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource:
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt NullCheckTable.Arn
+      Events:
+        TranscriptsUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref TranscriptBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: transcripts/
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref TranscriptBucket
+          TABLE_NAME: !Ref NullCheckTable
