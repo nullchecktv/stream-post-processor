@@ -2,9 +2,11 @@ import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand, P
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { parseBody, formatResponse } from '../utils/api.mjs';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
+const eb = new EventBridgeClient();
 
 export const handler = async (event) => {
   try {
@@ -63,6 +65,7 @@ export const handler = async (event) => {
         Item: marshall({
           pk: episodeId,
           sk: `track#${trackName}`,
+          status: 'Unprocessed',
           trackName,
           uploadKey: key,
           createdAt: now,
@@ -86,6 +89,20 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({ pk: episodeId, sk: `track-upload:${trackName}` })
     }));
+
+    try {
+      await eb.send(new PutEventsCommand({
+        Entries: [
+          {
+            Source: 'nullcheck',
+            DetailType: 'Video Upload Completed',
+            Detail: JSON.stringify({ episodeId, trackName, key })
+          }
+        ]
+      }));
+    } catch (e) {
+      console.error('Failed to publish Video Upload Completed event:', e);
+    }
 
     return formatResponse(200, { key, trackName });
   } catch (err) {

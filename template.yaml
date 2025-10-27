@@ -428,6 +428,10 @@ Resources:
               Action:
                 - s3:PutObject
               Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
           TABLE_NAME: !Ref NullCheckTable
@@ -439,6 +443,148 @@ Resources:
             RestApiId: !Ref Api
             Path: /episodes/{episodeId}/tracks/{trackName}/complete
             Method: POST
+
+  MediaConvertRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: mediaconvert.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MediaConvertS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource: !Sub '${TranscriptBucket.Arn}/*'
+
+  MediaConvertTriggerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/start-preprocessing.mjs
+    Properties:
+      Handler: events/start-preprocessing.handler
+      Timeout: 60
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - mediaconvert:CreateJob
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource: !GetAtt MediaConvertRole.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt NullCheckTable.Arn
+      Environment:
+        Variables:
+          MEDIACONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
+          BUCKET_NAME: !Ref TranscriptBucket
+          TABLE_NAME: !Ref NullCheckTable
+          CHUNK_SECONDS: '120'
+      Events:
+        VideoUploadCompleted:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - nullcheck
+              detail-type:
+                - Video Upload Completed
+
+  MediaConvertCompletionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/preprocessing-completed.mjs
+    Properties:
+      Handler: events/preprocessing-completed.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt NullCheckTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+                - s3:GetObject
+              Resource:
+                - !GetAtt TranscriptBucket.Arn
+                - !Sub '${TranscriptBucket.Arn}/*'
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        JobComplete:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.mediaconvert
+              detail-type:
+                - MediaConvert Job State Change
+              detail:
+                status:
+                  - COMPLETE
+
+  MediaConvertFailureFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/preprocessing-failed.mjs
+    Properties:
+      Handler: events/preprocessing-failed.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt NullCheckTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+      Events:
+        JobFailed:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.mediaconvert
+              detail-type:
+                - MediaConvert Job State Change
+              detail:
+                status:
+                  - ERROR
+                  - CANCELED
 
 Outputs:
   ApiUrl:
