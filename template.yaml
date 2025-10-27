@@ -153,17 +153,6 @@ Resources:
               Action:
                 - dynamodb:PutItem
               Resource: !GetAtt NullCheckTable.Arn
-      Events:
-        TranscriptsUpload:
-          Type: S3
-          Properties:
-            Bucket: !Ref TranscriptBucket
-            Events: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: transcripts/
       Environment:
         Variables:
           BUCKET_NAME: !Ref TranscriptBucket
