@@ -35,6 +35,8 @@ Globals:
 Resources:
   NullCheckTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       BillingMode: PAY_PER_REQUEST
       KeySchema:
@@ -111,7 +113,9 @@ Resources:
             - Effect: Allow
               Action:
                 - bedrock:ListInferenceProfiles
-              Resource: "*"
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
             - Effect: Allow
               Action:
                 - s3:GetObject
@@ -121,7 +125,7 @@ Resources:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
           TABLE_NAME: !Ref NullCheckTable
-          MODEL_ID: anthropic.claude-sonnet-4-5-20250929-v1:0
+          MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
 
   TranscriptIngestFunction:
