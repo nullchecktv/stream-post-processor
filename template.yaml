@@ -26,7 +26,7 @@ Globals:
     Architectures:
       - arm64
     Tracing: Active
-    Timeout: 25
+    Timeout: 35
     MemorySize: 1024
     Environment:
       Variables:
@@ -119,8 +119,10 @@ Resources:
             - Effect: Allow
               Action:
                 - s3:GetObject
+                - s3:ListBucket
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}
       Environment:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId

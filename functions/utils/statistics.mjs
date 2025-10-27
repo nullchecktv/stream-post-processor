@@ -37,7 +37,7 @@ export async function getOrCreateClipStats(tenantId) {
 
     await ddb.send(
       new PutItemCommand({
-        TableName: TABLE_NAME,
+        TableName: process.env.TABLE_NAME,
         Item: marshall(initial),
         ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
       })
@@ -75,7 +75,8 @@ export async function incrementClipsCreated(tenantId, clipType, isRetry = false)
     );
   } catch (err) {
     // If record doesn’t exist, create it once and retry
-    if (err.name === 'ValidationException' && err.message.includes('does not exist') && !isRetry) {
+    if (err.name === 'ValidationException' && !isRetry) {
+      console.error(err, `Is Retry: ${isRetry}`);
       await getOrCreateClipStats(tenantId);
       await incrementClipsCreated(tenantId, clipType, true);
       return;
