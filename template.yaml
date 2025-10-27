@@ -3,6 +3,16 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Autonomous AI Agent that processes livestream transcripts
 
+Parameters:
+  EncryptionKey:
+    Type: String
+    Description: Key used for hashing cursors
+    Default: ''
+    NoEcho: true
+  CORSOrigin:
+    Type: String
+    Default: '*'
+
 Metadata:
   esbuild-properties: &esbuild-properties
     Format: esm
@@ -31,8 +41,40 @@ Globals:
     Environment:
       Variables:
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+        ORIGIN: !Ref CORSOrigin
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: !Sub "'${CORSOrigin}'"
 
 Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: api
+      # Auth:
+      #   DefaultAuthorizer: LambdaAuthorizer
+      #   AddDefaultAuthorizerToCorsPreflight: false
+      #   Authorizers:
+      #     LambdaAuthorizer:
+      #       FunctionPayloadType: REQUEST
+      #       FunctionArn: !GetAtt BlogApiAuthorizer.Arn
+      #       Identity:
+      #         Headers:
+      #           - Authorization
+      MethodSettings:
+        - MetricsEnabled: True
+          ResourcePath: "/*"
+          HttpMethod: "*"
+          LoggingLevel: ERROR
+          DataTraceEnabled: True
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ./openapi.yaml
+
   NullCheckTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Delete
@@ -49,6 +91,19 @@ Resources:
           AttributeType: S
         - AttributeName: sk
           AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
@@ -56,6 +111,19 @@ Resources:
   TranscriptBucket:
     Type: AWS::S3::Bucket
     Properties:
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Ref CORSOrigin
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            AllowedHeaders:
+              - "*"
+            ExposedHeaders:
+              - ETag
       LifecycleConfiguration:
         Rules:
           - Id: DeleteRule
@@ -63,6 +131,9 @@ Resources:
             ExpirationInDays: 7
       VersioningConfiguration:
         Status: Enabled
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
 
   AgentMemory:
     Type: AWS::BedrockAgentCore::Memory
@@ -144,25 +215,232 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - s3:GetObject
-              Resource:
-                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
               Resource: !GetAtt NullCheckTable.Arn
-      Events:
-        TranscriptsUpload:
-          Type: S3
-          Properties:
-            Bucket: !Ref TranscriptBucket
-            Events: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: transcripts/
       Environment:
         Variables:
           BUCKET_NAME: !Ref TranscriptBucket
           TABLE_NAME: !Ref NullCheckTable
+      Events:
+        TranscriptAdded:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref TranscriptBucket
+                object:
+                  key:
+                    - suffix: .srt
+
+  ListEpisodesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/list-episodes.mjs
+    Properties:
+      Handler: episodes/list-episodes.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !Sub "${NullCheckTable.Arn}/index/GSI1"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+          ENCRYPTION_KEY: !Ref EncryptionKey
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes
+            Method: GET
+
+  CreateEpisodeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/create-episode.mjs
+    Properties:
+      Handler: episodes/create-episode.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt NullCheckTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+      Events:
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes
+            Method: POST
+
+  CreateTranscriptUploadFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/upload-transcript.mjs
+    Properties:
+      Handler: episodes/upload-transcript.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt NullCheckTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        CreatePresigned:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/transcripts
+            Method: POST
+
+  CreateTrackUploadFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/create-track-upload.mjs
+    Properties:
+      Handler: episodes/create-track-upload.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt NullCheckTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        InitiateTrackUpload:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks
+            Method: POST
+
+  SignTrackPartsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/sign-track-parts.mjs
+    Properties:
+      Handler: episodes/sign-track-parts.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt NullCheckTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        SignTrackParts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks/{trackName}/parts
+            Method: POST
+
+  CompleteTrackUploadFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/complete-track-upload.mjs
+    Properties:
+      Handler: episodes/complete-track-upload.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:PutItem
+              Resource: !GetAtt NullCheckTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        CompleteTrackUpload:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks/{trackName}/complete
+            Method: POST
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api"

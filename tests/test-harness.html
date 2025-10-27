@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post-Production Test Harness</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 20px; line-height: 1.4; }
+    h2 { margin-top: 28px; }
+    fieldset { border: 1px solid #ccc; padding: 16px; margin-bottom: 18px; }
+    legend { padding: 0 6px; }
+    label { display: block; margin-top: 8px; }
+    input[type="text"], input[type="number"], input[type="datetime-local"], textarea { width: 100%; max-width: 640px; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .small { font-size: 12px; color: #666; }
+    .out { white-space: pre-wrap; background: #f8f8f8; border: 1px solid #eee; padding: 10px; border-radius: 6px; }
+    .success { color: #0a7f3f; }
+    .error { color: #b30000; }
+    progress { width: 100%; max-width: 640px; }
+    .grid { display: grid; gap: 6px; grid-template-columns: max-content 1fr; align-items: center; }
+  </style>
+</head>
+<body>
+  <h1>Post-Production Test Harness</h1>
+
+  <fieldset>
+    <legend>API Settings</legend>
+    <label>
+      API Base URL
+      <input id="apiBase" type="text" placeholder="https://xxxx.execute-api.<region>.amazonaws.com/api" />
+    </label>
+    <div class="small">The base should include your stage (e.g., "/api").</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Create Episode</legend>
+    <div class="grid">
+      <label for="title">Title</label>
+      <input id="title" type="text" placeholder="Episode Title" />
+
+      <label for="episodeNumber">Episode Number</label>
+      <input id="episodeNumber" type="number" min="1" />
+
+      <label for="summary">Summary</label>
+      <textarea id="summary" rows="2" placeholder="Optional"></textarea>
+
+      <label for="airDate">Air Date</label>
+      <input id="airDate" type="datetime-local" />
+
+      <label>Platforms</label>
+      <div class="row">
+        <label><input type="checkbox" name="platforms" value="linkedin live" /> linkedin live</label>
+        <label><input type="checkbox" name="platforms" value="X" /> X</label>
+        <label><input type="checkbox" name="platforms" value="twitch" /> twitch</label>
+        <label><input type="checkbox" name="platforms" value="youtube" /> youtube</label>
+      </div>
+
+      <label for="themes">Themes (comma-separated)</label>
+      <input id="themes" type="text" placeholder="ai, devtools" />
+
+      <label for="seriesName">Series Name</label>
+      <input id="seriesName" type="text" placeholder="Optional" />
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button id="btnCreateEpisode">Create Episode</button>
+      <span id="createEpisodeStatus"></span>
+    </div>
+    <div class="small">Created Episode ID: <span id="createdEpisodeId"></span></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Use Episode</legend>
+    <label>
+      Episode ID
+      <input id="episodeId" type="text" placeholder="Paste episode id" />
+    </label>
+    <div class="small">Used for transcript and track uploads below.</div>
+  </fieldset>
+
+  <h2>Transcript Upload (.srt)</h2>
+    <fieldset>
+      <legend>Upload Transcript</legend>
+      <div class="grid">
+        <label for="transcriptFile">Transcript File</label>
+        <input id="transcriptFile" type="file" accept=".srt,text/plain" />
+        <label for="transcriptFilename">Original Filename (optional)</label>
+        <input id="transcriptFilename" type="text" placeholder="Defaults to selected file name" />
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnUploadTranscript">Upload Transcript</button>
+        <span id="transcriptStatus"></span>
+      </div>
+      <div id="transcriptOut" class="out"></div>
+    </fieldset>
+
+  <h2>Video Track Upload (Multipart)</h2>
+    <fieldset>
+      <legend>Upload Track</legend>
+      <div class="grid">
+        <label for="trackFile">Video File</label>
+        <input id="trackFile" type="file" accept="video/*" />
+
+        <label for="trackName">Track Name</label>
+        <input id="trackName" type="text" placeholder="main, guest, screenshare" />
+
+        <label for="chunkSize">Chunk Size (MiB)</label>
+        <input id="chunkSize" type="number" min="5" value="10" />
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnUploadTrack">Upload Track</button>
+        <span id="trackStatus"></span>
+      </div>
+      <progress id="trackProgress" value="0" max="100"></progress>
+      <div id="trackOut" class="out"></div>
+      <div class="small">Note: For part uploads, ensure your S3 bucket CORS exposes the ETag header so the browser can read it.</div>
+    </fieldset>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const apiBase = () => $("apiBase").value.trim().replace(/\/$/, '');
+
+    async function api(path, opts = {}) {
+      const res = await fetch(apiBase() + path, {
+        method: opts.method || 'GET',
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const text = await res.text();
+      let data;
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+      if (!res.ok) throw new Error(data?.message || res.statusText || 'Request failed');
+      return data;
+    }
+
+    function collectPlatforms() {
+      return Array.from(document.querySelectorAll('input[name="platforms"]:checked')).map(i => i.value);
+    }
+
+    function collectThemes() {
+      const raw = $("themes").value.trim();
+      if (!raw) return undefined;
+      return raw.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    $("btnCreateEpisode").addEventListener('click', async () => {
+      const status = $("createEpisodeStatus");
+      status.textContent = '';
+      try {
+        const body = {
+          title: $("title").value.trim(),
+          episodeNumber: parseInt($("episodeNumber").value, 10),
+        };
+        if ($("summary").value.trim()) body.summary = $("summary").value.trim();
+        if ($("airDate").value) body.airDate = new Date($("airDate").value).toISOString();
+        const platforms = collectPlatforms(); if (platforms.length) body.platforms = platforms;
+        const themes = collectThemes(); if (themes && themes.length) body.themes = themes;
+        if ($("seriesName").value.trim()) body.seriesName = $("seriesName").value.trim();
+
+        const res = await api('/episodes', { method: 'POST', body });
+        $("createdEpisodeId").textContent = res.id || '[unknown]';
+        $("episodeId").value = res.id || '';
+        status.textContent = 'Created'; status.className = 'success';
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnUploadTranscript").addEventListener('click', async () => {
+      const ep = $("episodeId").value.trim();
+      const file = $("transcriptFile").files[0];
+      const status = $("transcriptStatus");
+      const out = $("transcriptOut");
+      out.textContent = '';
+      status.textContent = '';
+      if (!ep) { status.textContent = 'Enter Episode ID'; status.className = 'error'; return; }
+      if (!file) { status.textContent = 'Choose a .srt file'; status.className = 'error'; return; }
+      try {
+        const filename = $("transcriptFilename").value.trim() || file.name;
+        const presign = await api(`/episodes/${encodeURIComponent(ep)}/transcripts`, { method: 'POST', body: { filename } });
+        const headers = { 'Content-Type': 'application/octet-stream' };
+        if (presign.requiredHeaders) Object.assign(headers, presign.requiredHeaders);
+        const put = await fetch(presign.uploadUrl, { method: 'PUT', headers, body: file });
+        if (!put.ok) throw new Error(`S3 upload failed: ${put.status} ${put.statusText}`);
+        status.textContent = 'Uploaded'; status.className = 'success';
+        out.textContent = JSON.stringify({ key: presign.key, expiresAt: presign.expiresAt }, null, 2);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnUploadTrack").addEventListener('click', async () => {
+      const ep = $("episodeId").value.trim();
+      const file = $("trackFile").files[0];
+      const trackName = $("trackName").value.trim();
+      const status = $("trackStatus");
+      const out = $("trackOut");
+      const progress = $("trackProgress");
+      status.textContent = ''; out.textContent = ''; progress.value = 0;
+      if (!ep) { status.textContent = 'Enter Episode ID'; status.className = 'error'; return; }
+      if (!file) { status.textContent = 'Choose a video file'; status.className = 'error'; return; }
+      if (!trackName) { status.textContent = 'Enter track name'; status.className = 'error'; return; }
+      try {
+        const init = await api(`/episodes/${encodeURIComponent(ep)}/tracks`, { method: 'POST', body: { filename: file.name, trackName } });
+        const partSizeMiB = Math.max(5, parseInt($("chunkSize").value, 10) || 10);
+        const partSize = partSizeMiB * 1024 * 1024;
+        const partCount = Math.ceil(file.size / partSize);
+        const partNumbers = Array.from({ length: partCount }, (_, i) => i + 1);
+        const signed = await api(`/episodes/${encodeURIComponent(ep)}/tracks/${encodeURIComponent(trackName)}/parts`, {
+          method: 'POST',
+          body: { uploadId: init.uploadId, partNumbers }
+        });
+
+        const urls = signed.urls || [];
+        if (urls.length !== partCount) throw new Error('Mismatch in part URL count');
+
+        const etags = [];
+        for (let i = 0; i < partCount; i++) {
+          const { url, partNumber } = urls[i];
+          const start = (i * partSize);
+          const end = Math.min(start + partSize, file.size);
+          const blob = file.slice(start, end);
+          const resp = await fetch(url, { method: 'PUT', headers: { 'Content-Length': blob.size }, body: blob });
+          if (!resp.ok) throw new Error(`Upload part ${partNumber} failed: ${resp.status} ${resp.statusText}`);
+          const etag = resp.headers.get('ETag') || resp.headers.get('Etag');
+          if (!etag) throw new Error('Missing ETag header in S3 response. Ensure bucket CORS exposes ETag.');
+          etags.push({ ETag: etag.replaceAll('"', ''), PartNumber: partNumber });
+          progress.value = Math.round(((i + 1) / partCount) * 100);
+        }
+
+        const complete = await api(`/episodes/${encodeURIComponent(ep)}/tracks/${encodeURIComponent(trackName)}/complete`, {
+          method: 'POST',
+          body: { uploadId: init.uploadId, parts: etags }
+        });
+
+        status.textContent = 'Upload complete'; status.className = 'success';
+        out.textContent = JSON.stringify(complete, null, 2);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+  </script>
+</body>
+</html>
+

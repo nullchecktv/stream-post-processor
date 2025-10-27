@@ -1,0 +1,396 @@
+openapi: 3.0.0
+info:
+  title: Episode API
+  version: 1.0.0
+  description: Management for episodes
+
+x-amazon-apigateway-request-validators:
+  Validate All:
+    validateRequestParameters: true
+    validateRequestBody: true
+x-amazon-apigateway-gateway-responses:
+  BAD_REQUEST_BODY:
+    statusCode: 400
+    responseTemplates:
+      application/json: '{ "message": "$context.error.validationErrorString" }'
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin:
+        Fn::Sub: "'${CORSOrigin}'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+      gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+  DEFAULT_4XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin:
+        Fn::Sub: "'${CORSOrigin}'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+      gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+  DEFAULT_5XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin:
+        Fn::Sub: "'${CORSOrigin}'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+      gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+tags:
+  - name: Episodes
+  - name: Uploads
+paths:
+  /episodes:
+    get:
+      summary: List all episodes
+      description: Gets a paginated list of episodes with their name, air date, and platform
+      tags: [Episodes]
+      responses:
+        200:
+          description: List of episodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EpisodeListView"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListEpisodesFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      summary: Create episode
+      description: Creates a new episode with metadata
+      tags: [Episodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                episodeNumber:
+                  type: integer
+                summary:
+                  type: string
+                airDate:
+                  type: string
+                  description: ISO-8601 date or datetime string
+                platforms:
+                  type: array
+                  items:
+                    type: string
+                    enum: ["linkedin live", "X", "twitch", "youtube"]
+                themes:
+                  type: array
+                  items:
+                    type: string
+                seriesName:
+                  type: string
+              required: [title, episodeNumber]
+      responses:
+        201:
+          description: Episode created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        400:
+          description: Invalid request
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateEpisodeFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}/transcripts:
+    parameters:
+      - $ref: '#/components/parameters/EpisodeId'
+    post:
+      summary: Create transcript upload URL
+      description: Returns a presigned S3 URL to upload the transcript for an episode
+      tags: [Uploads]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                  description: Original client-side filename to persist as S3 object metadata
+                  example: "meeting-transcript-2025-01-15.srt"
+      responses:
+        200:
+          description: Presigned URL created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000/transcript.srt"
+                  uploadUrl:
+                    type: string
+                  expiresAt:
+                    type: string
+                  requiredHeaders:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    description: Headers you must include when uploading (present if filename supplied)
+        400:
+          description: Invalid request
+        404:
+          description: Episode not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateTranscriptUploadFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}/tracks:
+    parameters:
+      - $ref: '#/components/parameters/EpisodeId'
+    post:
+      summary: Initiate track upload
+      description: Starts a multipart upload for a video track and returns uploadId and required headers
+      tags: [Uploads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, trackName]
+              properties:
+                filename:
+                  type: string
+                trackName:
+                  type: string
+                  description: Logical name for the track (e.g., main, guest, screenshare)
+      responses:
+        200:
+          description: Upload initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  uploadId:
+                    type: string
+                  expiresAt:
+                    type: string
+                  requiredHeaders:
+                    type: object
+                    additionalProperties:
+                      type: string
+        400:
+          description: Invalid request
+        404:
+          description: Episode not found
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateTrackUploadFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}/tracks/{trackName}/parts:
+    parameters:
+      - $ref: '#/components/parameters/EpisodeId'
+      - $ref: '#/components/parameters/TrackName'
+    post:
+      summary: Sign part upload URLs
+      description: Returns presigned URLs for specific part numbers of a multipart upload
+      tags: [Uploads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [uploadId, partNumbers]
+              properties:
+                uploadId:
+                  type: string
+                partNumbers:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        200:
+          description: Signed URLs for parts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  urls:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        partNumber:
+                          type: integer
+                        url:
+                          type: string
+        400:
+          description: Invalid request
+        404:
+          description: Upload not found
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SignTrackPartsFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}/tracks/{trackName}/complete:
+    parameters:
+      - $ref: '#/components/parameters/EpisodeId'
+      - $ref: '#/components/parameters/TrackName'
+    post:
+      summary: Complete track upload
+      description: Completes the multipart upload and records track metadata on the episode
+      tags: [Uploads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [uploadId, parts]
+              properties:
+                uploadId:
+                  type: string
+                parts:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      ETag:
+                        type: string
+                      PartNumber:
+                        type: integer
+      responses:
+        200:
+          description: Upload completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  trackName:
+                    type: string
+        400:
+          description: Invalid request
+        404:
+          description: Upload not found
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CompleteTrackUploadFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+
+components:
+  parameters:
+    EpisodeId:
+      in: path
+      name: episodeId
+      required: true
+      schema:
+        type: string
+    TrackName:
+      in: path
+      name: trackName
+      required: true
+      schema:
+        type: string
+  schemas:
+    EpisodeListView:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        airDate:
+          type: string
+          format: date-time
+        platforms:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - title
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+          example: "The request body contains invalid data"
+
+  responses:
+    BadRequest:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "ValidationError"
+            message: "The request body contains invalid data"
+
+    Unauthorized:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Unauthorized"
+            message: "Valid JWT token required"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "NotFound"
+            message: "The requested resource was not found"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "InternalError"
+            message: "Something went wrong"

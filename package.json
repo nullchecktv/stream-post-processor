@@ -30,6 +30,7 @@
     "@aws-sdk/util-dynamodb": "^3.917.0"
   },
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.917.0",
     "crypto": "^1.0.1",
     "zod": "^4.1.12"
   }

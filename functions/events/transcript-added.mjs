@@ -1,78 +1,74 @@
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 
 const ddb = new DynamoDBClient();
 
-const parsePath = (key) => {
-  const raw = key.replace(/^transcripts\//, '');
-  const parts = raw.split('/').filter(Boolean);
-  if (parts.length < 2) {
-    throw new Error(`Unexpected transcript key structure: ${key}`);
-  }
-  const tenantId = parts[0];
-  const file = parts[parts.length - 1];
-  const transcriptId = file.replace(/\.[^.]+$/, '');
-  return { tenantId, transcriptId };
-};
-
 export const handler = async (event) => {
   try {
-    if (!event?.Records?.length) {
-      console.log('No S3 records in event');
+    const rawKey = event?.detail?.object?.key;
+    if (!rawKey) {
+      console.log('Unsupported event shape (expecting EventBridge S3 event):', JSON.stringify(event?.detail || {}));
       return { statusCode: 200 };
     }
 
-    const puts = event.Records.map(async (record) => {
-      const bucket = record.s3?.bucket?.name;
-      const key = decodeURIComponent(record.s3?.object?.key || '');
-      const size = record.s3?.object?.size ?? null;
-      const eTag = record.s3?.object?.eTag ?? null;
-      const versionId = record.s3?.object?.versionId ?? null;
+    const key = decodeURIComponent(rawKey);
+    let episodeId;
+    try {
+      episodeId = parseEpisodeIdFromKey(key);
+    } catch (e) {
+      console.warn(`Skipping object with unexpected key: ${key}. Reason: ${e.message}`);
+      return { statusCode: 200 };
+    }
 
-      if (!key.startsWith('transcripts/')) {
-        console.log(`Ignoring non-transcripts key: ${key}`);
-        return;
-      }
+    const episodeResponse = await ddb.send(new GetItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({ pk: episodeId, sk: 'metadata' })
+    }));
 
-      let ids;
-      try {
-        ids = parsePath(key);
-      } catch (e) {
-        console.warn(`Skipping unexpected key structure: ${key} (${e.message})`);
-        return;
-      }
-      const { tenantId, transcriptId } = ids;
+    if (!episodeResponse.Item) {
+      console.warn(`Episode ${episodeId} not found; skipping transcript attachment for key ${key}`);
+      return { statusCode: 200 };
+    }
 
-      const item = marshall({
-        pk: `${tenantId}#${transcriptId}`,
-        sk: 'transcript',
-        tenantId,
-        transcriptId,
-        s3Bucket: bucket,
-        s3Key: key,
-        size,
-        eTag,
-        versionId,
-        status: 'available',
-        createdAt: new Date().toISOString()
-      });
+    const now = new Date().toISOString();
+    await ddb.send(new UpdateItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({ pk: episodeId, sk: 'metadata' }),
+      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+      UpdateExpression: 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt',
+      ExpressionAttributeNames: {
+        '#transcriptKey': 'transcriptKey',
+        '#status': 'status',
+        '#updatedAt': 'updatedAt'
+      },
+      ExpressionAttributeValues: marshall({
+        ':key': key,
+        ':status': 'Transcript Uploaded',
+        ':updatedAt': now,
+      }),
+    }));
 
-      await ddb.send(
-        new PutItemCommand({
-          TableName: process.env.TABLE_NAME,
-          // No overwrite if already present
-          ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
-          Item: item
-        })
-      );
-      console.log(`Indexed transcript ${tenantId}/${transcriptId} from s3://${bucket}/${key}`);
-    });
-
-    await Promise.allSettled(puts);
+    try {
+      await ddb.send(new DeleteItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: marshall({ pk: episodeId, sk: 'transcript-upload-url' })
+      }));
+    } catch (e) {
+      console.warn(`Failed to delete presigned url record for ${episodeId}: ${e?.message || e}`);
+    }
 
     return { statusCode: 200 };
   } catch (err) {
-    console.error('Error handling S3 put event:', err);
+    console.error('Error handling EventBridge S3 event:', err);
     throw err;
   }
+};
+
+const parseEpisodeIdFromKey = (key) => {
+  const cleaned = key.replace(/^\/+/, '');
+  const parts = cleaned.split('/').filter(Boolean);
+  if (parts.length !== 2 || parts[1] !== 'transcript.srt') {
+    throw new Error(`Unexpected key format: ${key}. Expected "/<episodeId>/transcript.srt"`);
+  }
+  return parts[0];
 };

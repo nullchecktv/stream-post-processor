@@ -19,3 +19,12 @@ export const formatEmptyResponse = () => {
     headers: corsHeaders
   };
 };
+
+export const parseBody = (event) => {
+  try {
+    if (!event?.body) return {};
+    return typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+  } catch {
+    return null;
+  }
+};
