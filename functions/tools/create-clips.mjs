@@ -53,7 +53,7 @@ export const createClipTool = {
     try {
       let transcript;
       try {
-        transcript = await loadTranscript(tenantId, transcriptId);
+        transcript = await loadTranscript(transcriptId);
       } catch (err) {
         console.error(`Transcript not found for ${transcriptId}:`, err);
         return `Transcript not found: ${transcriptId}`;

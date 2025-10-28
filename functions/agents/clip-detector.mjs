@@ -86,14 +86,10 @@ Think like a YouTube growth editor, not a stenographer.
 1. Call **createClip** exactly once with your full list of recommended clips.
 2. Return a short confirmation message indicating how many clips were created.
 3. Do not include raw transcript text or clip details in your message body.
-
-### Response
-
-Your response to this message should be a summary of the transcript in at most 3 sentences. Do not include additional verbiage, only respond with the summary. Do not mention the amount of clips or anything else besides the summary of what the transcript is about.
 `;
 
     const userPrompt = `
-transcriptId: ${transcriptId}
+transcriptId: ${transcriptKey}
 transcript:
 ${transcript}
 `;
@@ -104,6 +100,7 @@ ${transcript}
     });
 
     await ddb.send(new UpdateItemCommand({
+      TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${transcriptId}`,
         sk: 'episode'
