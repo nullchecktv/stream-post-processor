@@ -29,7 +29,7 @@ jobs:
       - name: Prepare parameters
         id: prepare-parameters
         run: |
-          ENV_DESCRIPTOR=env-${{ github.actor }}"
+          ENV_DESCRIPTOR="env-${{ github.actor }}"
 
           echo "ENV_DESCRIPTOR=$ENV_DESCRIPTOR" >> $GITHUB_ENV
           echo "# RUN METADATA" >> $GITHUB_STEP_SUMMARY
