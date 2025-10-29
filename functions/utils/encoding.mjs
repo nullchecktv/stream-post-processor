@@ -1,5 +1,8 @@
 import crypto from 'crypto';
 
+const algorithm = 'aes-256-gcm';
+const ivLength = 16; // 128 bits
+
 const getKey = () => {
   return crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY).digest();
 };
