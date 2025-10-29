@@ -28,3 +28,13 @@ export const parseBody = (event) => {
     return null;
   }
 };
+
+export const sanitizeTrackName = (name) => {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 128);
+};

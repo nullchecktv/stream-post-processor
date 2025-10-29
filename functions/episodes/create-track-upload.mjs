@@ -1,7 +1,7 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CreateMultipartUploadCommand } from '@aws-sdk/client-s3';
-import { parseBody, formatResponse } from '../utils/api.mjs';
+import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -104,14 +104,7 @@ export const handler = async (event) => {
   }
 };
 
-const sanitizeTrackName = (name) => {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 128);
-};
+
 
 const getExt = (filename) => {
   const m = /\.([^.]{1,10})$/.exec(String(filename || ''));

@@ -192,17 +192,30 @@ Resources:
     Properties:
       UserPoolId: !Ref CognitoUserPool
       ClientName: !Sub "${AWS::StackName}-client"
-      GenerateSecret: false
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
       ExplicitAuthFlows:
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_AUTH
+      AuthSessionValidity: 3
+      EnableTokenRevocation: true
+      PreventUserExistenceErrors: ENABLED
       TokenValidityUnits:
         AccessToken: hours
         IdToken: hours
         RefreshToken: days
-      AccessTokenValidity: 1
-      IdTokenValidity: 1
+      AccessTokenValidity: 24
+      IdTokenValidity: 24
       RefreshTokenValidity: 30
+      AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs:
         - !Ref Domain
         - "http://localhost:5173"
@@ -293,6 +306,7 @@ Resources:
           - agents/clip-detector.mjs
     Properties:
       Handler: agents/clip-detector.handler
+      Timeout: 300
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: 2012-10-17
@@ -311,7 +325,7 @@ Resources:
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
-                - !Sub  arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
                 - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
             - Effect: Allow
               Action:
@@ -879,7 +893,6 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref NullCheckTable
-
 
   FFMPEGLambdaLayer:
     Type: AWS::Serverless::Application

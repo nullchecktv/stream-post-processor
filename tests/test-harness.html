@@ -1,23 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Post-Production Test Harness</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 20px; line-height: 1.4; }
-    h2 { margin-top: 28px; }
-    fieldset { border: 1px solid #ccc; padding: 16px; margin-bottom: 18px; }
-    legend { padding: 0 6px; }
-    label { display: block; margin-top: 8px; }
-    input[type="text"], input[type="number"], input[type="datetime-local"], textarea { width: 100%; max-width: 640px; }
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .small { font-size: 12px; color: #666; }
-    .out { white-space: pre-wrap; background: #f8f8f8; border: 1px solid #eee; padding: 10px; border-radius: 6px; }
-    .success { color: #0a7f3f; }
-    .error { color: #b30000; }
-    progress { width: 100%; max-width: 640px; }
-    .grid { display: grid; gap: 6px; grid-template-columns: max-content 1fr; align-items: center; }
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.4;
+    }
+
+    h2 {
+      margin-top: 28px;
+    }
+
+    fieldset {
+      border: 1px solid #ccc;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+
+    legend {
+      padding: 0 6px;
+    }
+
+    label {
+      display: block;
+      margin-top: 8px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="datetime-local"],
+    textarea {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .out {
+      white-space: pre-wrap;
+      background: #f8f8f8;
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    .success {
+      color: #0a7f3f;
+    }
+
+    .error {
+      color: #b30000;
+    }
+
+    progress {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: max-content 1fr;
+      align-items: center;
+    }
+
+    .clickable-id {
+      color: #0066cc;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .clickable-id:hover {
+      background-color: #f0f8ff;
+    }
   </style>
 </head>
 <body>
@@ -41,8 +111,8 @@
       <label for="episodeNumber">Episode Number</label>
       <input id="episodeNumber" type="number" min="1" />
 
-      <label for="summary">Summary</label>
-      <textarea id="summary" rows="2" placeholder="Optional"></textarea>
+      <label for="description">Description</label>
+      <textarea id="description" rows="2" placeholder="Optional"></textarea>
 
       <label for="airDate">Air Date</label>
       <input id="airDate" type="datetime-local" />
@@ -69,10 +139,20 @@
   </fieldset>
 
   <fieldset>
+    <legend>List Episodes</legend>
+    <div class="row">
+      <button id="btnListEpisodes">List Episodes</button>
+      <span id="listEpisodesStatus"></span>
+    </div>
+    <div id="episodesList" class="out"></div>
+    <div class="small">Click on an episode ID to use it for uploads below.</div>
+  </fieldset>
+
+  <fieldset>
     <legend>Use Episode</legend>
     <label>
       Episode ID
-      <input id="episodeId" type="text" placeholder="Paste episode id" />
+      <input id="episodeId" type="text" placeholder="Paste episode id or click from list above" />
     </label>
     <div class="small">Used for transcript and track uploads below.</div>
   </fieldset>
@@ -103,6 +183,9 @@
         <label for="trackName">Track Name</label>
         <input id="trackName" type="text" placeholder="main, guest, screenshare" />
 
+        <label for="trackSpeakers">Speakers (comma-separated, optional)</label>
+        <input id="trackSpeakers" type="text" placeholder="host, guest1, guest2" />
+
         <label for="chunkSize">Chunk Size (MiB)</label>
         <input id="chunkSize" type="number" min="5" value="10" />
       </div>
@@ -119,10 +202,41 @@
     const $ = (id) => document.getElementById(id);
     const apiBase = () => $("apiBase").value.trim().replace(/\/$/, '');
 
+    // Configuration loaded from environment (set by test-setup.mjs)
+    const CONFIG = {
+      apiUrl: '{{API_URL}}',
+      accessToken: '{{ACCESS_TOKEN}}'
+    };
+
+    // Initialize form with environment values
+    document.addEventListener('DOMContentLoaded', () => {
+      // Pre-fill API URL if available
+      if (CONFIG.apiUrl && CONFIG.apiUrl !== '{{API_URL}}') {
+        $("apiBase").value = CONFIG.apiUrl;
+      }
+
+      // Show token status
+      if (CONFIG.accessToken && CONFIG.accessToken !== '{{ACCESS_TOKEN}}') {
+        console.log('✅ Access token loaded from environment');
+      } else {
+        console.warn('⚠️ No access token found. Run npm run test:setup first.');
+      }
+    });
+
     async function api(path, opts = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(opts.headers || {})
+      };
+
+      // Add authorization header if token is available
+      if (CONFIG.accessToken && CONFIG.accessToken !== '{{ACCESS_TOKEN}}') {
+        headers['Authorization'] = `Bearer ${CONFIG.accessToken}`;
+      }
+
       const res = await fetch(apiBase() + path, {
         method: opts.method || 'GET',
-        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        headers,
         body: opts.body ? JSON.stringify(opts.body) : undefined,
       });
       const text = await res.text();
@@ -142,6 +256,12 @@
       return raw.split(',').map(s => s.trim()).filter(Boolean);
     }
 
+    function collectSpeakers() {
+      const raw = $("trackSpeakers").value.trim();
+      if (!raw) return undefined;
+      return raw.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
     $("btnCreateEpisode").addEventListener('click', async () => {
       const status = $("createEpisodeStatus");
       status.textContent = '';
@@ -150,7 +270,7 @@
           title: $("title").value.trim(),
           episodeNumber: parseInt($("episodeNumber").value, 10),
         };
-        if ($("summary").value.trim()) body.summary = $("summary").value.trim();
+        if ($("description").value.trim()) body.description = $("description").value.trim();
         if ($("airDate").value) body.airDate = new Date($("airDate").value).toISOString();
         const platforms = collectPlatforms(); if (platforms.length) body.platforms = platforms;
         const themes = collectThemes(); if (themes && themes.length) body.themes = themes;
@@ -164,6 +284,56 @@
         status.textContent = e.message; status.className = 'error';
       }
     });
+
+    $("btnListEpisodes").addEventListener('click', async () => {
+      const status = $("listEpisodesStatus");
+      const out = $("episodesList");
+      status.textContent = '';
+      out.textContent = '';
+      try {
+        const res = await api('/episodes');
+        status.textContent = `Found ${res.items?.length || 0} episodes`;
+        status.className = 'success';
+
+        if (res.items && res.items.length > 0) {
+          // Create a formatted display of episodes
+          let episodesText = 'Episodes (click ID to use):\n\n';
+          res.items.forEach(episode => {
+            episodesText += `ID: ${episode.id}\n`;
+            episodesText += `Title: ${episode.title || 'Untitled'}\n`;
+            episodesText += `Episode #: ${episode.episodeNumber || 'N/A'}\n`;
+            if (episode.airDate) episodesText += `Air Date: ${new Date(episode.airDate).toLocaleString()}\n`;
+            if (episode.platforms) episodesText += `Platforms: ${episode.platforms.join(', ')}\n`;
+            if (episode.themes) episodesText += `Themes: ${episode.themes.join(', ')}\n`;
+            episodesText += `Created: ${new Date(episode.createdAt).toLocaleString()}\n`;
+            episodesText += '─'.repeat(60) + '\n\n';
+          });
+          out.textContent = episodesText;
+
+          // Make episode IDs clickable
+          out.innerHTML = out.innerHTML.replace(
+            /ID: ([a-f0-9-]{36})/g,
+            'ID: <span style="color: #0066cc; cursor: pointer; text-decoration: underline;" onclick="selectEpisode(\'$1\')">$1</span>'
+          );
+        } else {
+          out.textContent = 'No episodes found. Create one first!';
+        }
+      } catch (e) {
+        status.textContent = e.message;
+        status.className = 'error';
+        out.textContent = '';
+      }
+    });
+
+    // Function to select an episode ID
+    window.selectEpisode = (episodeId) => {
+      $("episodeId").value = episodeId;
+      $("episodeId").focus();
+      $("episodeId").style.backgroundColor = '#e8f5e8';
+      setTimeout(() => {
+        $("episodeId").style.backgroundColor = '';
+      }, 1000);
+    };
 
     $("btnUploadTranscript").addEventListener('click', async () => {
       const ep = $("episodeId").value.trim();
@@ -200,7 +370,11 @@
       if (!file) { status.textContent = 'Choose a video file'; status.className = 'error'; return; }
       if (!trackName) { status.textContent = 'Enter track name'; status.className = 'error'; return; }
       try {
-        const init = await api(`/episodes/${encodeURIComponent(ep)}/tracks`, { method: 'POST', body: { filename: file.name, trackName } });
+        const body = { filename: file.name, trackName };
+        const speakers = collectSpeakers();
+        if (speakers && speakers.length) body.speakers = speakers;
+
+        const init = await api(`/episodes/${encodeURIComponent(ep)}/tracks`, { method: 'POST', body });
         const partSizeMiB = Math.max(5, parseInt($("chunkSize").value, 10) || 10);
         const partSize = partSizeMiB * 1024 * 1024;
         const partCount = Math.ceil(file.size / partSize);

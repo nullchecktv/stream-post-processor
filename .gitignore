@@ -77,6 +77,9 @@ web_modules/
 .cache
 .parcel-cache
 
+# test-harness with values
+tests/manual/test-harness-configured.html
+
 # Next.js build output
 .next
 out

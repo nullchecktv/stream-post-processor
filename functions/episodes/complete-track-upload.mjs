@@ -1,7 +1,7 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
-import { parseBody, formatResponse } from '../utils/api.mjs';
+import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 
 const ddb = new DynamoDBClient();
@@ -17,7 +17,8 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const { episodeId, trackName } = event.pathParameters;
+    const { episodeId, trackName: rawTrackName } = event.pathParameters;
+    const trackName = sanitizeTrackName(rawTrackName);
 
     const body = parseBody(event);
     let uploadId, parts;

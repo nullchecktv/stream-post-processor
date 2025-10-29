@@ -1,6 +1,6 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
-import { parseBody, formatResponse, formatEmptyResponse } from '../utils/api.mjs';
+import { parseBody, formatResponse, formatEmptyResponse, sanitizeTrackName } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
 
@@ -13,7 +13,8 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const { episodeId, trackName } = event.pathParameters;
+    const { episodeId, trackName: rawTrackName } = event.pathParameters;
+    const trackName = sanitizeTrackName(rawTrackName);
 
     const data = parseBody(event);
     if (data === null) {

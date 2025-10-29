@@ -2,7 +2,7 @@ import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, UploadPartCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { formatResponse, parseBody } from '../utils/api.mjs';
+import { formatResponse, parseBody, sanitizeTrackName } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -16,7 +16,8 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const { episodeId, trackName } = event.pathParameters;
+    const { episodeId, trackName: rawTrackName } = event.pathParameters;
+    const trackName = sanitizeTrackName(rawTrackName);
 
     const body = parseBody(event);
     let uploadId, partNumbers;

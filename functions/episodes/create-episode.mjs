@@ -35,7 +35,7 @@ export const handler = async (event) => {
       return formatResponse(400, { message: errors.join(', ') });
     }
 
-    const summary = data?.summary ? String(data.summary) : undefined;
+    const description = data?.description ? String(data.description) : undefined;
     const airDate = data?.airDate ? String(data.airDate) : undefined;
     let platforms = data?.platforms;
     if (platforms) {
@@ -58,7 +58,7 @@ export const handler = async (event) => {
       title,
       episodeNumber,
       status: 'Draft',
-      ...(summary && { summary }),
+      ...(description && { description }),
       ...(airDate && { airDate }),
       ...(platforms?.length && { platforms }),
       ...(themes?.length && { themes }),
