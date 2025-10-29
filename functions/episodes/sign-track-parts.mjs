@@ -9,6 +9,13 @@ const s3 = new S3Client();
 
 export const handler = async (event) => {
   try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
     const { episodeId, trackName } = event.pathParameters;
 
     const body = parseBody(event);
@@ -23,7 +30,7 @@ export const handler = async (event) => {
 
     const trackResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: `track-upload:${trackName}` })
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track-upload:${trackName}` })
     }));
     if (!trackResponse.Item) return formatResponse(404, { message: 'Upload not found' });
 

@@ -12,17 +12,24 @@ export const handler = async (event) => {
     }
 
     const key = decodeURIComponent(rawKey);
-    let episodeId;
+    let tenantId, episodeId;
     try {
-      episodeId = parseEpisodeIdFromKey(key);
+      const parsed = parseEpisodeIdFromKey(key);
+      tenantId = parsed.tenantId;
+      episodeId = parsed.episodeId;
     } catch (e) {
       console.warn(`Skipping object with unexpected key: ${key}. Reason: ${e.message}`);
       return { statusCode: 200 };
     }
 
+    if (!tenantId) {
+      console.error('Missing tenantId in S3 key');
+      return { statusCode: 200 };
+    }
+
     const episodeResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: 'metadata' })
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
     }));
 
     if (!episodeResponse.Item) {
@@ -33,7 +40,7 @@ export const handler = async (event) => {
     const now = new Date().toISOString();
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: 'metadata' }),
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       UpdateExpression: 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt',
       ExpressionAttributeNames: {
@@ -51,7 +58,7 @@ export const handler = async (event) => {
     try {
       await ddb.send(new DeleteItemCommand({
         TableName: process.env.TABLE_NAME,
-        Key: marshall({ pk: episodeId, sk: 'transcript-upload-url' })
+        Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'transcript-upload-url' })
       }));
     } catch (e) {
       console.warn(`Failed to delete presigned url record for ${episodeId}: ${e?.message || e}`);
@@ -67,8 +74,11 @@ export const handler = async (event) => {
 const parseEpisodeIdFromKey = (key) => {
   const cleaned = key.replace(/^\/+/, '');
   const parts = cleaned.split('/').filter(Boolean);
-  if (parts.length !== 2 || parts[1] !== 'transcript.srt') {
-    throw new Error(`Unexpected key format: ${key}. Expected "/<episodeId>/transcript.srt"`);
+  if (parts.length !== 3 || parts[2] !== 'transcript.srt') {
+    throw new Error(`Unexpected key format: ${key}. Expected "/<tenantId>/<episodeId>/transcript.srt"`);
   }
-  return parts[0];
+  return {
+    tenantId: parts[0],
+    episodeId: parts[1]
+  };
 };

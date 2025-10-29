@@ -37,7 +37,7 @@ export async function getOrCreateClipStats(tenantId) {
 
     await ddb.send(
       new PutItemCommand({
-        TableName: TABLE_NAME,
+        TableName: process.env.TABLE_NAME,
         Item: marshall(initial),
         ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
       })

@@ -8,7 +8,12 @@ export const handler = async (event) => {
   let tempDir = null;
 
   try {
-    const { episodeId, clipId, segmentFiles } = event;
+    const { tenantId, episodeId, clipId, segmentFiles } = event;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in event');
+      throw new Error('Unauthorized');
+    }
 
     if (!episodeId || !clipId || !Array.isArray(segmentFiles)) {
       throw new Error('Missing required parameters: episodeId, clipId, segmentFiles');
@@ -37,7 +42,7 @@ export const handler = async (event) => {
       ...metadata,
       segmentCount: segmentFiles.length,
       ffmpegVersion
-    });
+    }, tenantId);
 
     const verificationResult = await verifyFinalClipIntegrity(
       bucketName,

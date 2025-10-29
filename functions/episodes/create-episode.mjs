@@ -9,6 +9,13 @@ const PLATFORMS = new Set(['linkedin live', 'X', 'twitch', 'youtube']);
 
 export const handler = async (event) => {
   try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
     const data = parseBody(event);
     if (data === null) {
       return formatResponse(400, { message: 'Invalid request' });
@@ -44,9 +51,9 @@ export const handler = async (event) => {
     const id = crypto.randomUUID();
 
     const item = {
-      pk: id,
+      pk: `${tenantId}#${id}`,
       sk: 'metadata',
-      GSI1PK: 'episode',
+      GSI1PK: `${tenantId}#episode`,
       GSI1SK: now,
       title,
       episodeNumber,

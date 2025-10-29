@@ -7,6 +7,13 @@ const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
     const query = event?.queryStringParameters || {};
     let limit = query?.limit;
     let nextToken = query?.nextToken;
@@ -33,14 +40,14 @@ export const handler = async (event) => {
         '#GSI1PK': 'GSI1PK'
       },
       ExpressionAttributeValues: marshall({
-        ':episode': 'episode'
+        ':episode': `${tenantId}#episode`
       }),
     }));
 
     const episodes = (res.Items || []).map((i) => {
       const item = unmarshall(i);
       return {
-        id: item.pk,
+        id: item.pk.split('#')[1],
         title: item.title,
         status: item.status,
         ...item.airDate && { airDate: item.airDate },

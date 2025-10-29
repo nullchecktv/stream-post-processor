@@ -24,11 +24,17 @@ export const handler = async (event) => {
       return { statusCode: 200 };
     }
 
+    const tenantId = (meta.tenantId || '').toString().trim();
+    if (!tenantId) {
+      console.error('Missing tenantId in MediaConvert failure event metadata');
+      return { statusCode: 200 };
+    }
+
     const now = new Date().toISOString();
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: `track#${trackName}` }),
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       UpdateExpression: 'SET #status = :failed, #failureReason = :reason, #updatedAt = :now',
       ExpressionAttributeNames: {

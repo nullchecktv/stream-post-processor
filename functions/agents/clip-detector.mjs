@@ -11,6 +11,12 @@ const AGENT_ID = 'clipforge';
 export const handler = async (event) => {
   try {
     const { tenantId, sessionId, transcriptId, transcriptKey } = event.detail;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in event detail');
+      throw new Error('Missing tenantId in event detail');
+    }
+
     const actorId = `${AGENT_ID}/${tenantId}/${transcriptId}`;
     const transcript = await loadTranscript(transcriptKey);
     if (!transcript) {
@@ -104,6 +110,7 @@ ${transcript}
     });
 
     await ddb.send(new UpdateItemCommand({
+      TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${transcriptId}`,
         sk: 'episode'

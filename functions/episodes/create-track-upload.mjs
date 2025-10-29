@@ -2,42 +2,39 @@ import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CreateMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { parseBody, formatResponse } from '../utils/api.mjs';
-import { z } from 'zod';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
 
 const TTL_SECONDS = 15 * 60;
 
-// Zod schema for track creation request validation
-const TrackUploadRequestSchema = z.object({
-  filename: z.string().min(1, 'filename is required'),
-  trackName: z.string().min(1, 'trackName is required'),
-  speakers: z.array(z.string().min(1, 'Speaker name cannot be empty')).optional()
-});
 
 export const handler = async (event) => {
   try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
     const { episodeId } = event.pathParameters;
 
     const body = parseBody(event);
 
-    // Validate request body using Zod schema
-    let validatedData;
-    try {
-      validatedData = TrackUploadRequestSchema.parse(body);
-    } catch (error) {
-      const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`);
-      return formatResponse(400, { message: errorMessages.join(', ') });
+    // Validate request body
+    const validationErrors = validateTrackUploadRequest(body);
+    if (validationErrors.length > 0) {
+      return formatResponse(400, { message: validationErrors.join(', ') });
     }
 
-    const { filename, trackName: rawTrackName, speakers } = validatedData;
+    const { filename, trackName: rawTrackName, speakers } = body;
 
     // Sanitize track name and trim/validate speakers
     const trackName = sanitizeTrackName(rawTrackName);
     const normalizedSpeakers = speakers ? speakers.map(speaker => speaker.trim()).filter(speaker => speaker.length > 0) : [];
 
-    const idempotencyKey = marshall({ pk: episodeId, sk: `track-upload:${trackName}` });
+    const idempotencyKey = marshall({ pk: `${tenantId}#${episodeId}`, sk: `track-upload:${trackName}` });
     const existing = await ddb.send(new GetItemCommand({ TableName: process.env.TABLE_NAME, Key: idempotencyKey }));
     const now = Math.floor(Date.now() / 1000);
     if (existing.Item) {
@@ -57,13 +54,13 @@ export const handler = async (event) => {
 
     const getEpisode = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: 'metadata' })
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
     }));
     if (!getEpisode.Item) return formatResponse(404, { message: 'Episode not found' });
 
 
     const ext = getExt(filename);
-    const key = `${episodeId}/tracks/${trackName}${ext}`;
+    const key = `${tenantId}/${episodeId}/tracks/${trackName}${ext}`;
 
     const createRes = await s3.send(new CreateMultipartUploadCommand({
       Bucket: process.env.BUCKET_NAME,
@@ -79,7 +76,7 @@ export const handler = async (event) => {
     await ddb.send(new PutItemCommand({
       TableName: process.env.TABLE_NAME,
       Item: marshall({
-        pk: episodeId,
+        pk: `${tenantId}#${episodeId}`,
         sk: `track-upload:${trackName}`,
         key,
         uploadId,
@@ -119,4 +116,35 @@ const sanitizeTrackName = (name) => {
 const getExt = (filename) => {
   const m = /\.([^.]{1,10})$/.exec(String(filename || ''));
   return m ? `.${m[1].toLowerCase()}` : '';
+};
+
+const validateTrackUploadRequest = (data) => {
+  const errors = [];
+
+  if (!data || typeof data !== 'object') {
+    errors.push('Request body must be a valid object');
+    return errors;
+  }
+
+  if (!data.filename || typeof data.filename !== 'string' || data.filename.trim().length === 0) {
+    errors.push('filename is required and must be a non-empty string');
+  }
+
+  if (!data.trackName || typeof data.trackName !== 'string' || data.trackName.trim().length === 0) {
+    errors.push('trackName is required and must be a non-empty string');
+  }
+
+  if (data.speakers !== undefined) {
+    if (!Array.isArray(data.speakers)) {
+      errors.push('speakers must be an array');
+    } else {
+      data.speakers.forEach((speaker, index) => {
+        if (!speaker || typeof speaker !== 'string' || speaker.trim().length === 0) {
+          errors.push(`speakers[${index}] must be a non-empty string`);
+        }
+      });
+    }
+  }
+
+  return errors;
 };

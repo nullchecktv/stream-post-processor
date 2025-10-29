@@ -9,7 +9,12 @@ export const handler = async (event) => {
   let tempDir = null;
 
   try {
-    const { episodeId, trackName = 'main', clipId, segments } = event;
+    const { tenantId, episodeId, trackName = 'main', clipId, segments } = event;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in event');
+      throw new Error('Unauthorized');
+    }
 
     if (!episodeId || !clipId || !Array.isArray(segments)) {
       throw new Error('Missing required parameters: episodeId, clipId, segments');
@@ -35,7 +40,7 @@ export const handler = async (event) => {
       let useTrackName = trackName;
       if (segment.speaker) {
         try {
-          const speakerTrack = await selectTrackForSpeaker(episodeId, segment.speaker);
+          const speakerTrack = await selectTrackForSpeaker(episodeId, segment.speaker, tenantId);
           if (speakerTrack) {
             useTrackName = speakerTrack.trackName;
             console.log(`Using track '${useTrackName}' for speaker '${segment.speaker}'`);
@@ -45,14 +50,14 @@ export const handler = async (event) => {
         }
       }
 
-      const manifest = await loadHlsManifest(episodeId, useTrackName);
+      const manifest = await loadHlsManifest(episodeId, useTrackName, tenantId);
       const chunkMappings = calculateChunkMapping(segment, manifest.segments);
 
       if (chunkMappings.length === 0) {
         throw new Error(`No chunks found for segment ${segmentIndex} (${segment.startTime} - ${segment.endTime})`);
       }
 
-      const segmentS3Key = generateSegmentKey(episodeId, clipId, segmentIndex);
+      const segmentS3Key = generateSegmentKey(episodeId, clipId, segmentIndex, tenantId);
       segmentFiles.push(segmentS3Key);
 
       const segmentExists = await objectExists(bucketName, segmentS3Key);
@@ -98,7 +103,7 @@ async function extractSingleChunkSegment(chunkMapping, segmentS3Key, bucketName,
       'source-chunk': chunkMapping.filename,
       'start-offset': chunkMapping.startOffset.toString(),
       'duration': chunkMapping.duration.toString()
-    });
+    }, tenantId);
     await verifySegmentIntegrity(bucketName, segmentS3Key, uploadResult.fileSize);
   } finally {
     await cleanup(chunkLocalPath);
@@ -128,7 +133,7 @@ async function extractMultiChunkSegment(chunkMappings, segmentS3Key, bucketName,
       'source-chunks': chunkMappings.map(m => m.filename).join(','),
       'chunk-count': chunkMappings.length.toString(),
       'total-duration': chunkMappings.reduce((sum, m) => sum + m.duration, 0).toString()
-    });
+    }, tenantId);
     await verifySegmentIntegrity(bucketName, segmentS3Key, uploadResult.fileSize);
   } finally {
     for (const partPath of chunkParts) {

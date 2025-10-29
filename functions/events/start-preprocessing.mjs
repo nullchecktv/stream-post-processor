@@ -17,17 +17,34 @@ export const handler = async (event) => {
       console.warn('Missing required event detail. Expecting { episodeId, trackName, key }.', JSON.stringify(detail));
       return { statusCode: 200 };
     }
+
+    let tenantId;
+    try {
+      const keyParts = s3Key.split('/').filter(Boolean);
+      if (keyParts.length < 2) {
+        throw new Error(`Invalid S3 key format: ${s3Key}`);
+      }
+      tenantId = keyParts[0];
+    } catch (e) {
+      console.error(`Failed to extract tenantId from S3 key ${s3Key}: ${e.message}`);
+      return { statusCode: 200 };
+    }
+
+    if (!tenantId) {
+      console.error('Missing tenantId in S3 key');
+      return { statusCode: 200 };
+    }
     const videoId = `${episodeId}-${trackName}`;
 
     console.log(`Processing video ${s3Key} as ${videoId}`);
 
     // Idempotency guard: acquire a preprocessing lock if no job exists yet
     const now = new Date().toISOString();
-    const outputPrefix = `${episodeId}/videos/${trackName}/chunks/`;
+    const outputPrefix = `${tenantId}/${episodeId}/videos/${trackName}/chunks/`;
     try {
       await ddb.send(new UpdateItemCommand({
         TableName: process.env.TABLE_NAME,
-        Key: marshall({ pk: episodeId, sk: `track#${trackName}` }),
+        Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` }),
         ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk) AND attribute_not_exists(#jobId) AND attribute_not_exists(#lock)',
         UpdateExpression: [
           'SET #status = :processing',
@@ -78,7 +95,7 @@ export const handler = async (event) => {
           OutputGroupSettings: {
             Type: 'HLS_GROUP_SETTINGS',
             HlsGroupSettings: {
-              Destination: `s3://${process.env.BUCKET_NAME}/${episodeId}/videos/${trackName}/chunks/`,
+              Destination: `s3://${process.env.BUCKET_NAME}/${tenantId}/${episodeId}/videos/${trackName}/chunks/`,
               SegmentLength: CHUNK_SECONDS,
               MinSegmentLength: 0,
               SegmentControl: 'SEGMENTED_FILES',
@@ -118,7 +135,8 @@ export const handler = async (event) => {
       UserMetadata: {
         videoId,
         episodeId,
-        trackName
+        trackName,
+        tenantId
       }
     };
 
@@ -126,7 +144,7 @@ export const handler = async (event) => {
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: `track#${trackName}` }),
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       UpdateExpression: 'SET #mediaConvertJobId = :jobId, #updatedAt = :updatedAt',
       ExpressionAttributeNames: {

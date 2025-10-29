@@ -19,8 +19,21 @@ export const handler = async (event) => {
       return { statusCode: 200 };
     }
 
+    let tenantId;
+    try {
+      tenantId = (meta.tenantId || '').toString().trim();
+
+      if (!tenantId) {
+        console.error('Missing tenantId in MediaConvert completion event metadata');
+        return { statusCode: 200 };
+      }
+    } catch (e) {
+      console.error(`Failed to extract tenantId from MediaConvert event: ${e.message}`);
+      return { statusCode: 200 };
+    }
+
     const now = new Date().toISOString();
-    const outputPrefix = `${episodeId}/videos/${trackName}/chunks/`;
+    const outputPrefix = `${tenantId}/${episodeId}/videos/${trackName}/chunks/`;
     let manifestKey = '';
     try {
       const list = await s3.send(new ListObjectsV2Command({
@@ -54,7 +67,7 @@ export const handler = async (event) => {
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: `track#${trackName}` }),
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       UpdateExpression: 'SET #status = :processed, #manifestKey = :manifestKey, #segmentIndex = :segmentIndex, #segmentCount = :segmentCount, #totalDurationSeconds = :total, #updatedAt = :now',
       ExpressionAttributeNames: {

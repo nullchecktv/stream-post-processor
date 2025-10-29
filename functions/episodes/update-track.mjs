@@ -1,11 +1,18 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
-import { parseBody, formatResponse } from '../utils/api.mjs';
+import { parseBody, formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
     const { episodeId, trackName } = event.pathParameters;
 
     const data = parseBody(event);
@@ -26,7 +33,7 @@ export const handler = async (event) => {
       speakers = [];
     }
 
-    const trackKey = marshall({ pk: episodeId, sk: `track#${trackName}` });
+    const trackKey = marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` });
     const getTrackResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: trackKey

@@ -10,6 +10,13 @@ const eb = new EventBridgeClient();
 
 export const handler = async (event) => {
   try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
     const { episodeId, trackName } = event.pathParameters;
 
     const body = parseBody(event);
@@ -24,17 +31,17 @@ export const handler = async (event) => {
 
     const trackResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: `track-upload:${trackName}` })
+      Key: marshall({
+        pk: `${tenantId}#${episodeId}`,
+        sk: `track-upload:${trackName}` })
     }));
     if (!trackResponse.Item) return formatResponse(404, { message: 'Upload not found' });
 
-    const rec = unmarshall(trackResponse.Item);
-    if (rec.uploadId !== uploadId) return formatResponse(400, { message: 'uploadId mismatch for this track' });
+    const record = unmarshall(trackResponse.Item);
+    if (record.uploadId !== uploadId) return formatResponse(400, { message: 'uploadId mismatch for this track' });
+    const speakers = record.speakers || [];
 
-    // Extract speakers from upload record, default to empty array if not provided
-    const speakers = rec.speakers || [];
-
-    const key = rec.key;
+    const key = record.key;
 
     await s3.send(new CompleteMultipartUploadCommand({
       Bucket: process.env.BUCKET_NAME,
@@ -46,7 +53,10 @@ export const handler = async (event) => {
     const now = new Date().toISOString();
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: 'metadata' }),
+      Key: marshall({
+        pk: `${tenantId}#${episodeId}`,
+        sk: 'metadata'
+      }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       UpdateExpression: 'SET #updatedAt = :updatedAt, #status = :status ADD #numTracks :one',
       ExpressionAttributeNames: {
@@ -66,7 +76,7 @@ export const handler = async (event) => {
         TableName: process.env.TABLE_NAME,
         ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
         Item: marshall({
-          pk: episodeId,
+          pk: `${tenantId}#${episodeId}`,
           sk: `track#${trackName}`,
           status: 'Unprocessed',
           trackName,
@@ -79,7 +89,10 @@ export const handler = async (event) => {
     } catch (e) {
       await ddb.send(new UpdateItemCommand({
         TableName: process.env.TABLE_NAME,
-        Key: marshall({ pk: episodeId, sk: `track#${trackName}` }),
+        Key: marshall({
+          pk: `${tenantId}#${episodeId}`,
+          sk: `track#${trackName}`
+        }),
         UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name, speakers = :speakers',
         ExpressionAttributeValues: marshall({
           ':key': key,
@@ -92,7 +105,7 @@ export const handler = async (event) => {
 
     await ddb.send(new DeleteItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: `track-upload:${trackName}` })
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track-upload:${trackName}` })
     }));
 
     try {

@@ -12,17 +12,9 @@ Parameters:
   CORSOrigin:
     Type: String
     Default: "*"
-  MaxTracksPerEpisode:
-    Type: Number
-    Description: Maximum number of tracks to query per episode for speaker matching
-    Default: 50
-    MinValue: 1
-    MaxValue: 1000
-  TrackSelectionLogLevel:
+  Domain:
     Type: String
-    Description: Log level for track selection operations (ERROR, WARN, INFO, DEBUG)
-    Default: INFO
-    AllowedValues: [ERROR, WARN, INFO, DEBUG]
+    Default: "http://localhost:5173"
 
 Metadata:
   esbuild-properties: &esbuild-properties
@@ -65,16 +57,16 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: api
-      # Auth:
-      #   DefaultAuthorizer: LambdaAuthorizer
-      #   AddDefaultAuthorizerToCorsPreflight: false
-      #   Authorizers:
-      #     LambdaAuthorizer:
-      #       FunctionPayloadType: REQUEST
-      #       FunctionArn: !GetAtt BlogApiAuthorizer.Arn
-      #       Identity:
-      #         Headers:
-      #           - Authorization
+      Auth:
+        DefaultAuthorizer: LambdaAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          LambdaAuthorizer:
+            FunctionPayloadType: REQUEST
+            FunctionArn: !GetAtt ApiAuthorizer.Arn
+            Identity:
+              Headers:
+                - Authorization
       MethodSettings:
         - MetricsEnabled: True
           ResourcePath: "/*"
@@ -163,6 +155,133 @@ Resources:
             Description: The topics and high-level coverage of content from the actor
             Namespaces:
               - "{actorId}-topics"
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Delete
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-user-pool"
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: tenantId
+          AttributeDataType: String
+          Required: false
+          Mutable: true
+      LambdaConfig:
+        PostConfirmation: !GetAtt PostConfirmationTrigger.Arn
+        PreTokenGeneration: !GetAtt PreTokenGenerationTrigger.Arn
+      UserPoolTags:
+        Project: NullCheck
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: !Sub "${AWS::StackName}-client"
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      CallbackURLs:
+        - !Ref Domain
+        - "http://localhost:5173"
+      LogoutURLs:
+        - !Ref Domain
+        - "http://localhost:5173"
+      SupportedIdentityProviders:
+        - COGNITO
+
+  ApiAuthorizer:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - auth/authorizer.mjs
+    Properties:
+      Handler: auth/authorizer.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: "*"
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CognitoUserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+
+  PostConfirmationTrigger:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - auth/post-confirmation.mjs
+    Properties:
+      Handler: auth/post-confirmation.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminUpdateUserAttributes
+              Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+
+  PostConfirmationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PostConfirmationTrigger
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}"
+
+  PreTokenGenerationTrigger:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - auth/pre-token-generation.mjs
+    Properties:
+      Handler: auth/pre-token-generation.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  PreTokenGenerationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PreTokenGenerationTrigger
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}"
 
   ClipDetectorAgent:
     Type: AWS::Serverless::Function
@@ -691,8 +810,6 @@ Resources:
         Variables:
           TABLE_NAME: !Ref NullCheckTable
           BUCKET_NAME: !Ref TranscriptBucket
-          MAX_TRACKS_PER_EPISODE: !Ref MaxTracksPerEpisode
-          TRACK_SELECTION_LOG_LEVEL: !Ref TrackSelectionLogLevel
 
   ClipStitcherFunction:
     Type: AWS::Serverless::Function
@@ -757,14 +874,14 @@ Outputs:
     Description: API Gateway URL
     Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api"
 
-  VideoClipProcessingStateMachineArn:
-    Description: ARN of the Video Clip Processing Step Functions State Machine
-    Value: !Ref VideoClipProcessingStateMachine
-    Export:
-      Name: !Sub "${AWS::StackName}-VideoClipProcessingStateMachine"
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
 
   FFmpegLayerArn:
     Description: ARN of the FFmpeg Lambda Layer
     Value: !GetAtt FFMPEGLambdaLayer.Outputs.LayerVersion
-    Export:
-      Name: !Sub "${AWS::StackName}-FFmpegLayer"

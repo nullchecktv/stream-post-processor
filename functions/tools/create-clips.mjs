@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import crypto, { randomUUID } from 'crypto';
-import { loadTranscript } from '../utils/transcripts.mjs';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
 
 const ddb = new DynamoDBClient();
@@ -43,12 +42,9 @@ export const createClipTool = {
   }),
   handler: async (tenantId, { episodeId, clips }) => {
     try {
-      let transcript;
-      try {
-        transcript = await loadTranscript(tenantId, episodeId);
-      } catch (err) {
-        console.error(`Transcript not found for ${transcriptId}:`, err);
-        return `Transcript not found: ${transcriptId}`;
+      if (!tenantId) {
+        console.error('Missing tenantId in tool handler');
+        return 'Unauthorized: Missing tenant context';
       }
 
       const results = await Promise.allSettled(
@@ -72,6 +68,8 @@ export const createClipTool = {
               Item: marshall({
                 pk: `${tenantId}#${episodeId}`,
                 sk: `clip#${id}`,
+                GSI1PK: `${tenantId}#clips`,
+                GSI1SK: `${new Date().toISOString()}#${episodeId}#${id}`,
                 clipId: id,
                 clipHash,
                 segments: clip.segments,
@@ -100,15 +98,10 @@ export const createClipTool = {
       );
 
       const created = results.filter((r) => r.status === 'fulfilled' && r.value).length;
-      const withTracks = results.filter((r) => r.status === 'fulfilled' && r.value?.trackSelectionStatus === 'success').length;
 
-      console.log(`Created ${created} clips for transcript ${transcriptId}. ${withTracks} clips have track matches.`);
+      console.log(`Created ${created} clips for episode ${episodeId} (tenant: ${tenantId})`);
 
-      if (withTracks < created) {
-        return `${created} clips added for transcript ${transcriptId}. Warning: ${created - withTracks} clips have no track matches and may not be processable.`;
-      }
-
-      return `${created} clips added for transcript ${transcriptId}. All clips have track matches.`;
+      return `${created} clips added for episode ${episodeId}. All clips have been created with tenant isolation.`;
     } catch (err) {
       console.error('Error creating clips:', err);
       return 'Something went wrong while creating clips';

@@ -101,9 +101,9 @@ export const createClipDirectoryStructure = (episodeId, clipId) => {
   };
 };
 
-export const uploadSegmentFile = async (bucket, episodeId, clipId, segmentIndex, localPath, metadata = {}) => {
+export const uploadSegmentFile = async (bucket, episodeId, clipId, segmentIndex, localPath, metadata = {}, tenantId = null) => {
   const { generateSegmentKey } = await import('./video-processing.mjs');
-  const segmentKey = generateSegmentKey(episodeId, clipId, segmentIndex);
+  const segmentKey = generateSegmentKey(episodeId, clipId, segmentIndex, tenantId);
 
   try {
     const stats = await fs.stat(localPath);
@@ -325,9 +325,9 @@ export const cleanupLocalFiles = async (filePaths) => {
   return results;
 };
 
-export const uploadFinalClip = async (bucket, episodeId, clipId, localPath, metadata = {}) => {
+export const uploadFinalClip = async (bucket, episodeId, clipId, localPath, metadata = {}, tenantId = null) => {
   const { generateClipKey } = await import('./video-processing.mjs');
-  const clipKey = generateClipKey(episodeId, clipId);
+  const clipKey = generateClipKey(episodeId, clipId, tenantId);
 
   try {
     const stats = await fs.stat(localPath);

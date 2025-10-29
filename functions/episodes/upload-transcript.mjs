@@ -7,13 +7,20 @@ import { parseBody } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
-// Avoid presigning checksum params that will not match client payloads
+
 try { s3.middlewareStack.remove('flexibleChecksumsMiddleware'); } catch {}
 
 const TTL_SECONDS = 15 * 60;
 
 export const handler = async (event) => {
   try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
     const { episodeId } = event.pathParameters;
 
     const body = parseBody(event);
@@ -26,7 +33,7 @@ export const handler = async (event) => {
       return formatResponse(400, { message: 'Must include a valid filename' });
     }
 
-    const idempotencyKey = marshall({ pk: episodeId, sk: 'transcript-upload-url' });
+    const idempotencyKey = marshall({ pk: `${tenantId}#${episodeId}`, sk: 'transcript-upload-url' });
     const existing = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: idempotencyKey
@@ -34,26 +41,26 @@ export const handler = async (event) => {
 
     const now = Math.floor(Date.now() / 1000);
     if (existing.Item) {
-      const rec = unmarshall(existing.Item);
-      if (typeof rec.ttl === 'number' && rec.ttl > now && rec.uploadUrl && rec.key && rec.expiresAt) {
+      const record = unmarshall(existing.Item);
+      if (typeof record.ttl === 'number' && record.ttl > now && record.uploadUrl && record.key && record.expiresAt) {
         return formatResponse(201, {
-          key: rec.key,
-          uploadUrl: rec.uploadUrl,
-          expiresAt: rec.expiresAt,
-          ...(rec.originalFilename && { requiredHeaders: { 'x-amz-meta-filename': rec.originalFilename } })
+          key: record.key,
+          uploadUrl: record.uploadUrl,
+          expiresAt: record.expiresAt,
+          ...(record.originalFilename && { requiredHeaders: { 'x-amz-meta-filename': record.originalFilename } })
         });
       }
     }
 
     const getEpisode = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: episodeId, sk: 'metadata' })
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
     }));
     if (!getEpisode.Item) {
       return formatResponse(404, { message: 'Episode not found' });
     }
 
-    const key = `${episodeId}/transcript.srt`;
+    const key = `${tenantId}/${episodeId}/transcript.srt`;
 
     const putParams = {
       Bucket: process.env.BUCKET_NAME,
@@ -72,7 +79,7 @@ export const handler = async (event) => {
     await ddb.send(new PutItemCommand({
       TableName: process.env.TABLE_NAME,
       Item: marshall({
-        pk: episodeId,
+        pk: `${tenantId}#${episodeId}`,
         sk: 'transcript-upload-url',
         key,
         uploadUrl,

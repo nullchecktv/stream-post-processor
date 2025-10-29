@@ -32,9 +32,13 @@ export const secondsToTime = (seconds) => {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-export const loadHlsManifest = async (episodeId, trackName) => {
+export const loadHlsManifest = async (episodeId, trackName, tenantId) => {
+  if (!tenantId) {
+    throw new Error('tenantId is required for video processing operations');
+  }
+
   try {
-    const manifestKey = `${episodeId}/videos/${trackName}/chunks/${trackName}_chunk.m3u8`;
+    const manifestKey = `${tenantId}/${episodeId}/videos/${trackName}/chunks/${trackName}_chunk.m3u8`;
 
     const command = new GetObjectCommand({
       Bucket: process.env.BUCKET_NAME,
@@ -53,7 +57,7 @@ export const loadHlsManifest = async (episodeId, trackName) => {
       throw new Error('Empty manifest content');
     }
 
-    return parseHlsManifest(manifestContent, episodeId, trackName);
+    return parseHlsManifest(manifestContent, episodeId, trackName, tenantId);
   } catch (error) {
     if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
       throw new Error(`HLS manifest not found: ${episodeId}/${trackName}_manifest.m3u8`);
@@ -63,7 +67,11 @@ export const loadHlsManifest = async (episodeId, trackName) => {
   }
 };
 
-export const parseHlsManifest = (manifestContent, episodeId, trackName) => {
+export const parseHlsManifest = (manifestContent, episodeId, trackName, tenantId) => {
+  if (!tenantId) {
+    throw new Error('tenantId is required for parsing HLS manifest');
+  }
+
   if (!manifestContent || typeof manifestContent !== 'string') {
     throw new Error('Invalid manifest content: must be a non-empty string');
   }
@@ -105,7 +113,7 @@ export const parseHlsManifest = (manifestContent, episodeId, trackName) => {
             continue;
           }
 
-          const segmentKey = `${episodeId}/videos/${trackName}/chunks/${segmentFile}`;
+          const segmentKey = `${tenantId}/${episodeId}/videos/${trackName}/chunks/${segmentFile}`;
 
           segments.push({
             key: segmentKey,
@@ -200,12 +208,20 @@ export const calculateChunkMapping = (segment, hlsSegments) => {
   return mappings;
 };
 
-export const generateSegmentKey = (episodeId, clipId, segmentIndex) => {
-  return `${episodeId}/clips/${clipId}/segments/${segmentIndex.toString().padStart(3, '0')}.mp4`;
+export const generateSegmentKey = (episodeId, clipId, segmentIndex, tenantId) => {
+  if (!tenantId) {
+    throw new Error('tenantId is required for generating segment keys');
+  }
+
+  return `${tenantId}/${episodeId}/clips/${clipId}/segments/${segmentIndex.toString().padStart(3, '0')}.mp4`;
 };
 
-export const generateClipKey = (episodeId, clipId) => {
-  return `${episodeId}/clips/${clipId}/clip.mp4`;
+export const generateClipKey = (episodeId, clipId, tenantId) => {
+  if (!tenantId) {
+    throw new Error('tenantId is required for generating clip keys');
+  }
+
+  return `${tenantId}/${episodeId}/clips/${clipId}/clip.mp4`;
 };
 
 export const createConcatFileContent = (segmentFiles) => {
