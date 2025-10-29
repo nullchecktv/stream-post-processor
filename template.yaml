@@ -72,7 +72,7 @@ Resources:
   AgentMemory:
     Type: AWS::BedrockAgentCore::Memory
     Properties:
-      Name: !Sub clipAgentMemory${EnvironmentHash}
+      Name: !Sub "clipAgentMemory${EnvironmentHash}"
       EventExpiryDuration: 90
       MemoryStrategies:
         - SummaryMemoryStrategy:
