@@ -1,6 +1,7 @@
 import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
+import { parseTenantIdFromKey } from '../utils/clips.mjs';
 
 const ddb = new DynamoDBClient();
 const mediaConvert = new MediaConvertClient({ endpointDiscoveryEnabled: true });
@@ -20,11 +21,7 @@ export const handler = async (event) => {
 
     let tenantId;
     try {
-      const keyParts = s3Key.split('/').filter(Boolean);
-      if (keyParts.length < 2) {
-        throw new Error(`Invalid S3 key format: ${s3Key}`);
-      }
-      tenantId = keyParts[0];
+      tenantId = parseTenantIdFromKey(s3Key);
     } catch (e) {
       console.error(`Failed to extract tenantId from S3 key ${s3Key}: ${e.message}`);
       return { statusCode: 200 };

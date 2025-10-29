@@ -1,5 +1,6 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
+import { parseEpisodeIdFromKey } from '../utils/clips.mjs';
 
 const ddb = new DynamoDBClient();
 
@@ -71,14 +72,4 @@ export const handler = async (event) => {
   }
 };
 
-const parseEpisodeIdFromKey = (key) => {
-  const cleaned = key.replace(/^\/+/, '');
-  const parts = cleaned.split('/').filter(Boolean);
-  if (parts.length !== 3 || parts[2] !== 'transcript.srt') {
-    throw new Error(`Unexpected key format: ${key}. Expected "/<tenantId>/<episodeId>/transcript.srt"`);
-  }
-  return {
-    tenantId: parts[0],
-    episodeId: parts[1]
-  };
-};
+

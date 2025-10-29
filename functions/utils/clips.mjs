@@ -1,8 +1,37 @@
 /**
  * Clip data model utilities
- * Provides functions for working with enhanced clip entities
+ * Provides functions for working with enhanced clip entities and S3 key parsing
  * Requirements: 1.5, 4.4
  */
+
+/**
+ * Parse episode ID and tenant ID from S3 transcript key
+ * Expected format: /<tenantId>/<episodeId>/transcript.srt
+ */
+export const parseEpisodeIdFromKey = (key) => {
+  const cleaned = key.replace(/^\/+/, '');
+  const parts = cleaned.split('/').filter(Boolean);
+  if (parts.length !== 3 || parts[2] !== 'transcript.srt') {
+    throw new Error(`Unexpected key format: ${key}. Expected "/<tenantId>/<episodeId>/transcript.srt"`);
+  }
+  return {
+    tenantId: parts[0],
+    episodeId: parts[1]
+  };
+};
+
+/**
+ * Parse tenant ID from any S3 key
+ * Expected format: /<tenantId>/...
+ */
+export const parseTenantIdFromKey = (key) => {
+  const cleaned = key.replace(/^\/+/, '');
+  const keyParts = cleaned.split('/').filter(Boolean);
+  if (keyParts.length < 2) {
+    throw new Error(`Invalid S3 key format: ${key}`);
+  }
+  return keyParts[0];
+};
 
 /**
  * Valid clip status values

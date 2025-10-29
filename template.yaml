@@ -332,6 +332,22 @@ Resources:
           TABLE_NAME: !Ref NullCheckTable
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        TranscriptAdded:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref TranscriptBucket
+                object:
+                  key:
+                    - suffix: .srt
 
   TranscriptIngestFunction:
     Type: AWS::Serverless::Function

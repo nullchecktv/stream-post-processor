@@ -4,20 +4,39 @@ import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
 import { loadTranscript } from "../utils/transcripts.mjs";
 import { marshall } from "@aws-sdk/util-dynamodb";
+import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 
 const ddb = new DynamoDBClient();
 const tools = convertToBedrockTools([createClipTool]);
 const AGENT_ID = 'clipforge';
+
+
 export const handler = async (event) => {
   try {
-    const { tenantId, sessionId, transcriptId, transcriptKey } = event.detail;
-
-    if (!tenantId) {
-      console.error('Missing tenantId in event detail');
-      throw new Error('Missing tenantId in event detail');
+    const rawKey = event?.detail?.object?.key;
+    if (!rawKey) {
+      console.log('Unsupported event shape (expecting EventBridge S3 event):', JSON.stringify(event?.detail || {}));
+      return { statusCode: 200 };
     }
 
-    const actorId = `${AGENT_ID}/${tenantId}/${transcriptId}`;
+    const transcriptKey = decodeURIComponent(rawKey);
+    let tenantId, episodeId;
+    try {
+      const parsed = parseEpisodeIdFromKey(transcriptKey);
+      tenantId = parsed.tenantId;
+      episodeId = parsed.episodeId;
+    } catch (e) {
+      console.warn(`Skipping object with unexpected key: ${transcriptKey}. Reason: ${e.message}`);
+      return { statusCode: 200 };
+    }
+
+    if (!tenantId) {
+      console.error('Missing tenantId in S3 key');
+      return { statusCode: 200 };
+    }
+
+    const sessionId = `clip-detection-${episodeId}`;
+    const actorId = `${AGENT_ID}/${tenantId}/${episodeId}`;
     const transcript = await loadTranscript(transcriptKey);
     if (!transcript) {
       console.error(`Could not find transcript with provided key ${transcriptKey}`);
@@ -95,8 +114,7 @@ Think like a YouTube growth editor, not a stenographer.
 `;
 
     const userPrompt = `
-transcriptId: ${transcriptId}
-transcriptKey: ${transcriptKey}
+episodeId: ${episodeId}
 transcript:
 ${transcript}
 `;
@@ -109,17 +127,19 @@ ${transcript}
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
-        pk: `${tenantId}#${transcriptId}`,
-        sk: 'episode'
+        pk: `${tenantId}#${episodeId}`,
+        sk: 'metadata'
       }),
-      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt',
+      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt, #status = :status',
       ExpressionAttributeNames: {
         '#summary': 'summary',
-        "#updatedAt": 'updatedAt'
+        '#updatedAt': 'updatedAt',
+        '#status': 'status'
       },
       ExpressionAttributeValues: marshall({
         ':summary': response,
-        ':updatedAt': new Date().toISOString()
+        ':updatedAt': new Date().toISOString(),
+        ':status': 'Analyzed'
       })
     }));
 
