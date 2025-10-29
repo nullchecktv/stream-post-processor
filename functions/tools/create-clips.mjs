@@ -34,7 +34,8 @@ export const createClipTool = {
   description:
     'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with timestamps, text snippets, or both',
   schema: z.object({
-    transcriptId: z.string().describe('The ID of the transcript associated with the livestream episode'),
+    transcriptId: z.string().describe('The Id of the transcript associated with the livestream episode'),
+    transcriptKey: z.string().describe('The S3 Key location of the transcript associated with the livestream episode'),
     clips: z.array(
       z.object({
         segments: z.array(segmentSchema)
@@ -49,14 +50,14 @@ export const createClipTool = {
       })
     ).min(1).max(MAX_CLIPS_PER_REQUEST)
   }),
-  handler: async (tenantId, { transcriptId, clips }) => {
+  handler: async (tenantId, { transcriptId, transcriptKey, clips }) => {
     try {
       let transcript;
       try {
-        transcript = await loadTranscript(tenantId, transcriptId);
+        transcript = await loadTranscript(transcriptKey);
       } catch (err) {
-        console.error(`Transcript not found for ${transcriptId}:`, err);
-        return `Transcript not found: ${transcriptId}`;
+        console.error(`Transcript not found for ${transcriptKey}:`, err);
+        return `Transcript not found: ${transcriptKey}`;
       }
 
       const results = await Promise.allSettled(
