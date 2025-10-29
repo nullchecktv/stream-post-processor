@@ -45,6 +45,6 @@ jobs:
     uses: ./.github/workflows/shared-deploy.yaml
     with:
       ENV: dev
-      STACK_NAME: ${{ needs.prepare-deployment.outputs.env_descriptor }}
+      STACK_NAME: ${{ needs.prepare-deployment.outputs.env_descriptor }}-stream-post-processor
       ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
     secrets: inherit
