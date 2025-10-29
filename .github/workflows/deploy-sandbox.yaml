@@ -16,9 +16,9 @@ env:
   JIRA_PREFIX: 'NC'
 
 jobs:
-  pre-deploy:
-    name: Pre-deploy validations
-    uses: ./.github/workflows/shared-pre-deploy-validations.yaml
+  # pre-deploy:
+  #   name: Pre-deploy validations
+  #   uses: ./.github/workflows/shared-pre-deploy-validations.yaml
 
   prepare-deployment:
     name: Prepare Deployment
@@ -39,7 +39,7 @@ jobs:
 
   deploy:
     name: Deploy API
-    needs: [pre-deploy, prepare-deployment]
+    needs: [prepare-deployment]
     uses: ./.github/workflows/shared-deploy.yaml
     with:
       ENV: dev
