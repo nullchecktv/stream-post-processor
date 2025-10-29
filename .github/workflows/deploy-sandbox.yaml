@@ -1,5 +1,5 @@
 name: Deploy Sandbox
-run-name: Deploy ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event_name == 'pull_request' && github.head_ref }} to Sandbox
+run-name: Deploy ${{ github.actor }} Sandbox
 
 on:
   push:

@@ -33,7 +33,7 @@ Globals:
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
 
 Resources:
-  NullCheckTable:
+  StreamPostProcessingTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
@@ -67,7 +67,6 @@ Resources:
   AgentMemory:
     Type: AWS::BedrockAgentCore::Memory
     Properties:
-      Name: clipAgentMemory
       EventExpiryDuration: 90
       MemoryStrategies:
         - SummaryMemoryStrategy:
