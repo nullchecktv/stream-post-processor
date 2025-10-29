@@ -1,0 +1,47 @@
+name: Deploy Sandbox
+run-name: Deploy ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event_name == 'pull_request' && github.head_ref }} to Sandbox
+
+on:
+  push:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  JIRA_PREFIX: 'NC'
+
+jobs:
+  pre-deploy:
+    name: Pre-deploy validations
+    uses: ./.github/workflows/shared-pre-deploy-validations.yaml
+
+  prepare-deployment:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      env_descriptor: ${{ steps.prepare-parameters.outputs.env_descriptor }}
+    steps:
+      - name: Prepare parameters
+        id: prepare-parameters
+        run: |
+          ENV_DESCRIPTOR=env-${{ github.actor }}"
+
+          echo "ENV_DESCRIPTOR=$ENV_DESCRIPTOR" >> $GITHUB_ENV
+          echo "# RUN METADATA" >> $GITHUB_STEP_SUMMARY
+          echo "* Environment Descriptor - $ENV_DESCRIPTOR" >> $GITHUB_STEP_SUMMARY
+
+          echo "env_descriptor=$ENV_DESCRIPTOR" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy API
+    needs: [pre-deploy, prepare-deployment]
+    uses: ./.github/workflows/shared-deploy.yaml
+    with:
+      ENV: dev
+      STACK_NAME: ${{ needs.prepare-deployment.outputs.env_descriptor }}
+    secrets: inherit
