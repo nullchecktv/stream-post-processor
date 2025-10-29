@@ -94,6 +94,7 @@ Your response to this message should be a summary of the transcript in at most 3
 
     const userPrompt = `
 transcriptId: ${transcriptId}
+transcriptKey: ${transcriptKey}
 transcript:
 ${transcript}
 `;
