@@ -8,9 +8,9 @@ dev:
       image_repositories: []
       tags:
         - project=stream-post-processor
-      parameter_overrides:
-        - name: EnvironmentHash
-          value: $ENV_HASH
+      parameter_overrides: [
+        "EnvironmentHash=$ENV_HASH"
+      ]
   global:
     parameters:
       region: us-east-1
