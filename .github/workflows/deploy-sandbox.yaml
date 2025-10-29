@@ -12,9 +12,6 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  JIRA_PREFIX: 'NC'
-
 jobs:
   # pre-deploy:
   #   name: Pre-deploy validations
@@ -44,7 +41,7 @@ jobs:
           echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
 
   deploy:
-    name: Deploy API
+    name: Deploy
     needs: [prepare-deployment]
     uses: ./.github/workflows/shared-deploy.yaml
     with:
