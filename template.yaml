@@ -15,6 +15,9 @@ Parameters:
   Domain:
     Type: String
     Default: "http://localhost:5173"
+  EnvironmentHash:
+    Type: String
+    Description: A hash of the current environment
 
 Metadata:
   esbuild-properties: &esbuild-properties
@@ -79,7 +82,7 @@ Resources:
           Parameters:
             Location: ./openapi.yaml
 
-  NullCheckTable:
+  StreamPostProcessingTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
@@ -142,7 +145,7 @@ Resources:
   AgentMemory:
     Type: AWS::BedrockAgentCore::Memory
     Properties:
-      Name: clipAgentMemory
+      Name: !Sub clipAgentMemory${EnvironmentHash}
       EventExpiryDuration: 90
       MemoryStrategies:
         - SummaryMemoryStrategy:
@@ -321,7 +324,7 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
@@ -343,7 +346,7 @@ Resources:
       Environment:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
@@ -382,11 +385,11 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
                 - dynamodb:DeleteItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
           BUCKET_NAME: !Ref TranscriptBucket
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
       Events:
         TranscriptAdded:
           Type: EventBridgeRule
@@ -421,10 +424,10 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:Query
-              Resource: !Sub "${NullCheckTable.Arn}/index/GSI1"
+              Resource: !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
       Environment:
         Variables:
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
           ENCRYPTION_KEY: !Ref EncryptionKey
       Events:
         List:
@@ -451,10 +454,10 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:PutItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
       Events:
         Create:
           Type: Api
@@ -481,14 +484,14 @@ Resources:
               Action:
                 - dynamodb:GetItem
                 - dynamodb:PutItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
                 - s3:PutObject
               Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
       Environment:
         Variables:
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
         CreatePresigned:
@@ -516,14 +519,14 @@ Resources:
               Action:
                 - dynamodb:GetItem
                 - dynamodb:PutItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
                 - s3:PutObject
               Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
       Environment:
         Variables:
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
         InitiateTrackUpload:
@@ -550,14 +553,14 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
                 - s3:PutObject
               Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
       Environment:
         Variables:
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
         SignTrackParts:
@@ -587,7 +590,7 @@ Resources:
                 - dynamodb:UpdateItem
                 - dynamodb:DeleteItem
                 - dynamodb:PutItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
                 - s3:PutObject
@@ -598,7 +601,7 @@ Resources:
               Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
         CompleteTrackUpload:
@@ -626,10 +629,10 @@ Resources:
               Action:
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
       Events:
         UpdateTrack:
           Type: Api
@@ -686,234 +689,9 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:UpdateItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
           MEDIACONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
           BUCKET_NAME: !Ref TranscriptBucket
-          TABLE_NAME: !Ref NullCheckTable
-          CHUNK_SECONDS: "120"
-      Events:
-        VideoUploadCompleted:
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - nullcheck
-              detail-type:
-                - Video Upload Completed
-
-  MediaConvertCompletionFunction:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        <<: *esbuild-properties
-        EntryPoints:
-          - events/preprocessing-completed.mjs
-    Properties:
-      Handler: events/preprocessing-completed.handler
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: 2012-10-17
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:UpdateItem
-              Resource: !GetAtt NullCheckTable.Arn
-            - Effect: Allow
-              Action:
-                - s3:ListBucket
-                - s3:GetObject
-              Resource:
-                - !GetAtt TranscriptBucket.Arn
-                - !Sub "${TranscriptBucket.Arn}/*"
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref NullCheckTable
-          BUCKET_NAME: !Ref TranscriptBucket
-      Events:
-        JobComplete:
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - aws.mediaconvert
-              detail-type:
-                - MediaConvert Job State Change
-              detail:
-                status:
-                  - COMPLETE
-
-  MediaConvertFailureFunction:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        <<: *esbuild-properties
-        EntryPoints:
-          - events/preprocessing-failed.mjs
-    Properties:
-      Handler: events/preprocessing-failed.handler
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: 2012-10-17
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:UpdateItem
-              Resource: !GetAtt NullCheckTable.Arn
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref NullCheckTable
-      Events:
-        JobFailed:
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - aws.mediaconvert
-              detail-type:
-                - MediaConvert Job State Change
-              detail:
-                status:
-                  - ERROR
-                  - CANCELED
-
-  VideoClipProcessingStateMachine:
-    Type: AWS::Serverless::StateMachine
-    Properties:
-      Type: STANDARD
-      DefinitionUri: ./state-machines/video-clip-processing.asl.json
-      DefinitionSubstitutions:
-        SegmentExtractorFunction: !Ref SegmentExtractorFunction
-        ClipStitcherFunction: !Ref ClipStitcherFunction
-        UpdateClipRecordFunction: !Ref UpdateClipRecordFunction
-        TableName: !Ref NullCheckTable
-      Policies:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - lambda:InvokeFunction
-            Resource:
-              - !GetAtt SegmentExtractorFunction.Arn
-              - !GetAtt ClipStitcherFunction.Arn
-              - !GetAtt UpdateClipRecordFunction.Arn
-          - Effect: Allow
-            Action:
-              - dynamodb:GetItem
-              - dynamodb:UpdateItem
-            Resource: !GetAtt NullCheckTable.Arn
-
-  SegmentExtractorFunction:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        <<: *esbuild-properties
-        EntryPoints:
-          - video/segment-extractor.mjs
-    Properties:
-      Handler: video/segment-extractor.handler
-      MemorySize: 3008
-      Timeout: 900
-      Layers:
-        - !GetAtt FFMPEGLambdaLayer.Outputs.LayerVersion
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: 2012-10-17
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:PutObject
-              Resource: !Sub "${TranscriptBucket.Arn}/*"
-            - Effect: Allow
-              Action:
-                - s3:ListBucket
-              Resource:
-                - !GetAtt TranscriptBucket.Arn
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:Query
-              Resource: !GetAtt NullCheckTable.Arn
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref NullCheckTable
-          BUCKET_NAME: !Ref TranscriptBucket
-
-  ClipStitcherFunction:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        <<: *esbuild-properties
-        EntryPoints:
-          - video/clip-stitcher.mjs
-    Properties:
-      Handler: video/clip-stitcher.handler
-      MemorySize: 3008
-      Timeout: 600
-      Layers:
-        - !GetAtt FFMPEGLambdaLayer.Outputs.LayerVersion
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: 2012-10-17
-          Statement:
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:PutObject
-                - s3:DeleteObject
-              Resource: !Sub "${TranscriptBucket.Arn}/*"
-      Environment:
-        Variables:
-          BUCKET_NAME: !Ref TranscriptBucket
-
-  UpdateClipRecordFunction:
-    Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        <<: *esbuild-properties
-        EntryPoints:
-          - video/update-clip-record.mjs
-    Properties:
-      Handler: video/update-clip-record.handler
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: 2012-10-17
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:UpdateItem
-              Resource: !GetAtt NullCheckTable.Arn
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref NullCheckTable
-
-  FFMPEGLambdaLayer:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location:
-        ApplicationId: arn:aws:serverlessrepo:us-east-1:145266761615:applications/ffmpeg-lambda-layer
-        SemanticVersion: 1.0.0
-
-Outputs:
-  ApiUrl:
-    Description: API Gateway URL
-    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api"
-
-  UserPoolId:
-    Description: Cognito User Pool ID
-    Value: !Ref CognitoUserPool
-
-  UserPoolClientId:
-    Description: Cognito User Pool Client ID
-    Value: !Ref UserPoolClient
-
-  FFmpegLayerArn:
-    Description: ARN of the FFmpeg Lambda Layer
-    Value: !GetAtt FFMPEGLambdaLayer.Outputs.LayerVersion
+          TABLE_NAME: !Ref StreamPostProcessingTable

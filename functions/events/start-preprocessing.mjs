@@ -5,7 +5,7 @@ import { parseTenantIdFromKey } from '../utils/clips.mjs';
 
 const ddb = new DynamoDBClient();
 const mediaConvert = new MediaConvertClient({ endpointDiscoveryEnabled: true });
-const CHUNK_SECONDS = Number.parseInt(process.env.CHUNK_SECONDS, 10) || 120;
+const CHUNK_SECONDS = parseInt(process.env.CHUNK_SECONDS, 10) || 120;
 
 export const handler = async (event) => {
   try {

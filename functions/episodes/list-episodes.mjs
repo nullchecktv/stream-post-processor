@@ -17,7 +17,7 @@ export const handler = async (event) => {
     const query = event?.queryStringParameters || {};
     let limit = query?.limit;
     let nextToken = query?.nextToken;
-    if (limit !== undefined && limit !== null && limit !== '') {
+    if (limit !== null && limit !== '') {
       const n = parseInt(limit, 10);
       limit = Math.max(1, Math.min(20, Number.isFinite(n) ? n : 20));
     }

@@ -1,9 +1,17 @@
 name: Deploy
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
+  workflow_call:
+    inputs:
+      ENV:
+        type: string
+        required: true
+      STACK_NAME:
+        type: string
+        required: true
+      ENV_HASH:
+        type: string
+        required: true
 
 jobs:
   deploy:
@@ -26,6 +34,16 @@ jobs:
         run: |
           sam validate -t template.yaml
 
+      - name: Replace Variables in samconfig
+        env:
+          STACK_NAME: ${{ inputs.STACK_NAME }}
+          ENV_HASH: ${{ inputs.ENV_HASH }}
+        run: |
+          envsubst < samconfig.yaml.template > samconfig.yaml
+
+          echo "Generated samconfig.yaml:"
+          cat samconfig.yaml
+
       - name: Deploy stack
         run: |
           npm install -g esbuild
@@ -37,7 +55,7 @@ jobs:
 
           sam deploy \
             --config-file samconfig.yaml \
-            --config-env dev \
+            --config-env ${{ inputs.ENV }} \
             --s3-bucket "${{ secrets.ARTIFACTS_BUCKET_NAME }}" \
             --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
             --no-fail-on-empty-changeset

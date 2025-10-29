@@ -34,7 +34,8 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `track-upload:${trackName}` })
+        sk: `track-upload:${trackName}`
+      })
     }));
     if (!trackResponse.Item) return formatResponse(404, { message: 'Upload not found' });
 
@@ -88,20 +89,24 @@ export const handler = async (event) => {
         })
       }));
     } catch (e) {
-      await ddb.send(new UpdateItemCommand({
-        TableName: process.env.TABLE_NAME,
-        Key: marshall({
-          pk: `${tenantId}#${episodeId}`,
-          sk: `track#${trackName}`
-        }),
-        UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name, speakers = :speakers',
-        ExpressionAttributeValues: marshall({
-          ':key': key,
-          ':updatedAt': now,
-          ':name': trackName,
-          ':speakers': speakers
-        })
-      }));
+      if (e && (e.name === 'ConditionalCheckFailedException' || e.code === 'ConditionalCheckFailedException')) {
+        await ddb.send(new UpdateItemCommand({
+          TableName: process.env.TABLE_NAME,
+          Key: marshall({
+            pk: `${tenantId}#${episodeId}`,
+            sk: `track#${trackName}`
+          }),
+          UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name, speakers = :speakers',
+          ExpressionAttributeValues: marshall({
+            ':key': key,
+            ':updatedAt': now,
+            ':name': trackName,
+            ':speakers': speakers
+          })
+        }));
+      } else {
+        throw e;
+      }
     }
 
     await ddb.send(new DeleteItemCommand({

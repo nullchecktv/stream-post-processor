@@ -43,7 +43,7 @@ export const handler = async (event) => {
     if (existing.Item) {
       const record = unmarshall(existing.Item);
       if (typeof record.ttl === 'number' && record.ttl > now && record.uploadUrl && record.key && record.expiresAt) {
-        return formatResponse(201, {
+        return formatResponse(200, {
           key: record.key,
           uploadUrl: record.uploadUrl,
           expiresAt: record.expiresAt,

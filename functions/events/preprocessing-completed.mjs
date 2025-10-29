@@ -11,7 +11,7 @@ export const handler = async (event) => {
     const meta = detail?.userMetadata || {};
 
     const episodeId = (meta.episodeId || '').toString().trim();
-    const trackName = ((meta.trackName || meta.videoName) || '').toString().trim();
+    const trackName = (meta.trackName || '').toString().trim();
     const jobId = (detail?.jobId || '').toString().trim();
 
     if (!episodeId || !trackName) {
