@@ -39,7 +39,7 @@ Globals:
     Architectures:
       - x86_64
     Tracing: Active
-    Timeout: 25
+    Timeout: 35
     MemorySize: 1024
     Environment:
       Variables:
@@ -311,7 +311,8 @@ Resources:
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
-                - !Sub arn:${AWS::Partition}:bedrock:us-east-1::inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0
+                - !Sub  arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
             - Effect: Allow
               Action:
                 - bedrock:ListInferenceProfiles
@@ -321,8 +322,10 @@ Resources:
             - Effect: Allow
               Action:
                 - s3:GetObject
+                - s3:ListBucket
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}
       Environment:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
