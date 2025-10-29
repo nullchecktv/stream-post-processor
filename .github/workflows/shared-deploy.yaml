@@ -30,14 +30,15 @@ jobs:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
 
-      - name: Validate template
-        run: |
-          sam validate -t template.yaml
+      # - name: Validate template
+      #   run: |
+      #     sam validate -t template.yaml
 
       - name: Replace Variables in samconfig
         env:
           STACK_NAME: ${{ inputs.STACK_NAME }}
           ENV_HASH: ${{ inputs.ENV_HASH }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml
 

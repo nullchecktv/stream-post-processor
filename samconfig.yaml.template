@@ -9,7 +9,8 @@ dev:
       tags:
         - project=stream-post-processor
       parameter_overrides: [
-        "EnvironmentHash=$ENV_HASH"
+        "EnvironmentHash=$ENV_HASH",
+        "EncryptionKey=$ENCRYPTION_KEY"
       ]
   global:
     parameters:
