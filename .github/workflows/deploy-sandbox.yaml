@@ -48,3 +48,4 @@ jobs:
       STACK_NAME: stream-post-processor-${{ needs.prepare-deployment.outputs.env_descriptor }}
       ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
     secrets: inherit
+    
