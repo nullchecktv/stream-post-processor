@@ -1,0 +1,86 @@
+{
+  "Comment": "Video Clip Processing Workflow",
+  "StartAt": "InitializeProcessing",
+  "States": {
+    "InitializeProcessing": {
+      "Type": "Pass",
+      "Parameters": {
+        "episodeId.$": "$.episodeId",
+        "trackName.$": "$.trackName",
+        "clips.$": "$.clips"
+      },
+      "Next": "ProcessClipsParallel"
+    },
+    "ProcessClipsParallel": {
+      "Type": "Map",
+      "ItemsPath": "$.clips",
+      "MaxConcurrency": 5,
+      "Parameters": {
+        "episodeId.$": "$.episodeId",
+        "trackName.$": "$.trackName",
+        "clipId.$": "$.Map.Item.Value.clipId",
+        "segments.$": "$.Map.Item.Value.segments"
+      },
+      "Iterator": {
+        "StartAt": "ExtractSegments",
+        "States": {
+          "ExtractSegments": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${SegmentExtractorFunction}",
+              "Payload.$": "$"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 3,
+                "BackoffRate": 2.0
+              }
+            ],
+            "ResultPath": "$.extractionResult",
+            "Next": "StitchClip"
+          },
+          "StitchClip": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${ClipStitcherFunction}",
+              "Payload": {
+                "episodeId.$": "$.episodeId",
+                "clipId.$": "$.clipId",
+                "segmentFiles.$": "$.extractionResult.Payload.segmentFiles"
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 3,
+                "BackoffRate": 2.0
+              }
+            ],
+            "ResultPath": "$.stitchResult",
+            "Next": "UpdateClipRecord"
+          },
+          "UpdateClipRecord": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${UpdateClipRecordFunction}",
+              "Payload": {
+                "episodeId.$": "$.episodeId",
+                "clipId.$": "$.clipId",
+                "clipS3Key.$": "$.stitchResult.Payload.clipS3Key",
+                "fileSize.$": "$.stitchResult.Payload.fileSize"
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "End": true
+    }
+  }
+}

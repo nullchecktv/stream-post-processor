@@ -45,7 +45,7 @@ Each clip you pass to **createClip** must contain the schema:
 
 {
   "segments": [
-    { "startTime": "00:14:32", "endTime": "00:15:18", "text": "words that were said during the segment time" }
+    { "startTime": "00:14:32", "endTime": "00:15:18", "speaker": "Allen", "order": 1 }
   ],
   "hook": "Why we let our AI agent go rogue (on purpose)",
   "summary": "Allen and Andres debate what happens when you remove safety guardrails from an agent and whether chaos teaches more than control.",
@@ -71,8 +71,8 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 * Hooks should sound like strong YouTube titles: conversational, bold, and curiosity-driven—never clickbait.
 * Summaries must be factual and concise (1-2 sentences).
 * Suggest b-roll that enhances storytelling: reactions, diagrams, or overlays.
-* If timestamps are unavailable, use the transcript text only.
-* Do not echo the entire transcript; include only the text from the segment
+* All segments must include startTime, endTime, speaker, and order fields.
+* Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
 
 ### Audience objective
 

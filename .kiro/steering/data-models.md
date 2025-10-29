@@ -148,22 +148,45 @@ This system uses **single-table design** in DynamoDB because it works well for o
 
 ### Clip Entity
 
-#### Detected Clip
+#### Enhanced Clip with Processing Fields
 ```json
 {
   "pk": "123e4567-e89b-12d3-a456-426614174000",
   "sk": "clip#001",
   "GSI1PK": "clips",
   "GSI1SK": "2025-01-15T10:30:00Z#123e4567-e89b-12d3-a456-426614174000#001",
+  "clipId": "clip-uuid",
   "title": "Interesting Discussion Point",
   "description": "AI-generated description of the clip content",
+  "segments": [
+    {
+      "startTime": "00:15:30",
+      "endTime": "00:17:45",
+      "text": "Transcript text for this segment"
+    }
+  ],
   "startTime": "00:15:30",
   "endTime": "00:17:45",
   "duration": "00:02:15",
   "confidence": 0.85,
   "tags": ["discussion", "technical", "important"],
   "transcriptSegment": "This is the transcript text for this clip...",
-  "status": "detected|reviewed|approved|rejected|published",
+  "status": "detected|processing|processed|failed|reviewed|approved|rejected|published",
+  "s3Key": "123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid/clip.mp4",
+  "fileSize": 15728640,
+  "processingDuration": 45.2,
+  "processingMetadata": {
+    "segmentCount": 3,
+    "totalProcessingTime": 45.2,
+    "ffmpegVersion": "4.4.2",
+    "resolution": "1920x1080",
+    "codec": "h264"
+  },
+  "processingError": {
+    "message": "FFmpeg processing failed",
+    "code": "FFMPEG_ERROR",
+    "timestamp": "2025-01-15T10:42:00Z"
+  },
   "aiAnalysis": {
     "sentiment": "positive",
     "topics": ["technology", "innovation"],
@@ -171,9 +194,20 @@ This system uses **single-table design** in DynamoDB because it works well for o
     "speakerCount": 2
   },
   "createdAt": "2025-01-15T10:40:00Z",
-  "updatedAt": "2025-01-15T10:40:00Z"
+  "processedAt": "2025-01-15T10:42:15Z",
+  "updatedAt": "2025-01-15T10:42:15Z"
 }
 ```
+
+#### Status Values
+- **detected**: Initial state when AI detects a potential clip
+- **processing**: Clip is currently being processed (segment extraction/stitching)
+- **processed**: Successfully processed and video file is available
+- **failed**: Processing failed due to technical issues
+- **reviewed**: Human has reviewed the processed clip
+- **approved**: Approved for publication
+- **rejected**: Rejected and will not be published
+- **published**: Published to social media platforms
 
 #### Access Patterns
 - **Get clip by ID**: `pk = {episodeId}` AND `sk = clip#{clipId}`

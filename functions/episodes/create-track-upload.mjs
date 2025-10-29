@@ -2,28 +2,40 @@ import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CreateMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { parseBody, formatResponse } from '../utils/api.mjs';
+import { z } from 'zod';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
 
 const TTL_SECONDS = 15 * 60;
 
+// Zod schema for track creation request validation
+const TrackUploadRequestSchema = z.object({
+  filename: z.string().min(1, 'filename is required'),
+  trackName: z.string().min(1, 'trackName is required'),
+  speakers: z.array(z.string().min(1, 'Speaker name cannot be empty')).optional()
+});
+
 export const handler = async (event) => {
   try {
     const { episodeId } = event.pathParameters;
 
     const body = parseBody(event);
-    let filename, trackName;
+
+    // Validate request body using Zod schema
+    let validatedData;
     try {
-      filename = (body?.filename || '').toString().trim();
-      trackName = sanitizeTrackName(body?.trackName || '');
-    } catch {
-      return formatResponse(400, { message: 'Invalid request' });
+      validatedData = TrackUploadRequestSchema.parse(body);
+    } catch (error) {
+      const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`);
+      return formatResponse(400, { message: errorMessages.join(', ') });
     }
-    const errors = [];
-    if (!filename) errors.push('filename is required');
-    if (!trackName) errors.push('trackName is required');
-    if (errors.length) return formatResponse(400, { message: errors.join(', ') });
+
+    const { filename, trackName: rawTrackName, speakers } = validatedData;
+
+    // Sanitize track name and trim/validate speakers
+    const trackName = sanitizeTrackName(rawTrackName);
+    const normalizedSpeakers = speakers ? speakers.map(speaker => speaker.trim()).filter(speaker => speaker.length > 0) : [];
 
     const idempotencyKey = marshall({ pk: episodeId, sk: `track-upload:${trackName}` });
     const existing = await ddb.send(new GetItemCommand({ TableName: process.env.TABLE_NAME, Key: idempotencyKey }));
@@ -73,6 +85,7 @@ export const handler = async (event) => {
         uploadId,
         originalFilename: filename,
         trackName,
+        speakers: normalizedSpeakers,
         createdAt: new Date(now * 1000).toISOString(),
         expiresAt: expiresAtISO,
         ttl: now + TTL_SECONDS,

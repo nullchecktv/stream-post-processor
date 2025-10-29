@@ -7,11 +7,22 @@ Parameters:
   EncryptionKey:
     Type: String
     Description: Key used for hashing cursors
-    Default: ''
+    Default: ""
     NoEcho: true
   CORSOrigin:
     Type: String
-    Default: '*'
+    Default: "*"
+  MaxTracksPerEpisode:
+    Type: Number
+    Description: Maximum number of tracks to query per episode for speaker matching
+    Default: 50
+    MinValue: 1
+    MaxValue: 1000
+  TrackSelectionLogLevel:
+    Type: String
+    Description: Log level for track selection operations (ERROR, WARN, INFO, DEBUG)
+    Default: INFO
+    AllowedValues: [ERROR, WARN, INFO, DEBUG]
 
 Metadata:
   esbuild-properties: &esbuild-properties
@@ -34,7 +45,7 @@ Globals:
     Runtime: nodejs22.x
     CodeUri: functions
     Architectures:
-      - arm64
+      - x86_64
     Tracing: Active
     Timeout: 25
     MemorySize: 1024
@@ -42,6 +53,7 @@ Globals:
       Variables:
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
         ORIGIN: !Ref CORSOrigin
+
   Api:
     Cors:
       AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
@@ -180,7 +192,7 @@ Resources:
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
-                - !Sub  arn:${AWS::Partition}:bedrock:us-east-1::inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1::inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0
             - Effect: Allow
               Action:
                 - bedrock:ListInferenceProfiles
@@ -444,11 +456,41 @@ Resources:
             Path: /episodes/{episodeId}/tracks/{trackName}/complete
             Method: POST
 
+  UpdateTrackFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/update-track.mjs
+    Properties:
+      Handler: episodes/update-track.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt NullCheckTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+      Events:
+        UpdateTrack:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks/{trackName}
+            Method: PUT
+
   MediaConvertRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -457,14 +499,14 @@ Resources:
       Policies:
         - PolicyName: MediaConvertS3Access
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:GetObjectVersion
                   - s3:PutObject
-                Resource: !Sub '${TranscriptBucket.Arn}/*'
+                Resource: !Sub "${TranscriptBucket.Arn}/*"
 
   MediaConvertTriggerFunction:
     Type: AWS::Serverless::Function
@@ -484,7 +526,7 @@ Resources:
             - Effect: Allow
               Action:
                 - mediaconvert:CreateJob
-              Resource: '*'
+              Resource: "*"
             - Effect: Allow
               Action:
                 - iam:PassRole
@@ -498,7 +540,7 @@ Resources:
           MEDIACONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
           BUCKET_NAME: !Ref TranscriptBucket
           TABLE_NAME: !Ref NullCheckTable
-          CHUNK_SECONDS: '120'
+          CHUNK_SECONDS: "120"
       Events:
         VideoUploadCompleted:
           Type: EventBridgeRule
@@ -533,7 +575,7 @@ Resources:
                 - s3:GetObject
               Resource:
                 - !GetAtt TranscriptBucket.Arn
-                - !Sub '${TranscriptBucket.Arn}/*'
+                - !Sub "${TranscriptBucket.Arn}/*"
       Environment:
         Variables:
           TABLE_NAME: !Ref NullCheckTable
@@ -586,7 +628,143 @@ Resources:
                   - ERROR
                   - CANCELED
 
+  VideoClipProcessingStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: STANDARD
+      DefinitionUri: ./state-machines/video-clip-processing.asl.json
+      DefinitionSubstitutions:
+        SegmentExtractorFunction: !Ref SegmentExtractorFunction
+        ClipStitcherFunction: !Ref ClipStitcherFunction
+        UpdateClipRecordFunction: !Ref UpdateClipRecordFunction
+        TableName: !Ref NullCheckTable
+      Policies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - !GetAtt SegmentExtractorFunction.Arn
+              - !GetAtt ClipStitcherFunction.Arn
+              - !GetAtt UpdateClipRecordFunction.Arn
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+            Resource: !GetAtt NullCheckTable.Arn
+
+  SegmentExtractorFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - video/segment-extractor.mjs
+    Properties:
+      Handler: video/segment-extractor.handler
+      MemorySize: 3008
+      Timeout: 900
+      Layers:
+        - !GetAtt FFMPEGLambdaLayer.Outputs.LayerVersion
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+              Resource: !Sub "${TranscriptBucket.Arn}/*"
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource:
+                - !GetAtt TranscriptBucket.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt NullCheckTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+          BUCKET_NAME: !Ref TranscriptBucket
+          MAX_TRACKS_PER_EPISODE: !Ref MaxTracksPerEpisode
+          TRACK_SELECTION_LOG_LEVEL: !Ref TrackSelectionLogLevel
+
+  ClipStitcherFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - video/clip-stitcher.mjs
+    Properties:
+      Handler: video/clip-stitcher.handler
+      MemorySize: 3008
+      Timeout: 600
+      Layers:
+        - !GetAtt FFMPEGLambdaLayer.Outputs.LayerVersion
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+              Resource: !Sub "${TranscriptBucket.Arn}/*"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref TranscriptBucket
+
+  UpdateClipRecordFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - video/update-clip-record.mjs
+    Properties:
+      Handler: video/update-clip-record.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt NullCheckTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NullCheckTable
+
+
+  FFMPEGLambdaLayer:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:145266761615:applications/ffmpeg-lambda-layer
+        SemanticVersion: 1.0.0
+
 Outputs:
   ApiUrl:
     Description: API Gateway URL
     Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api"
+
+  VideoClipProcessingStateMachineArn:
+    Description: ARN of the Video Clip Processing Step Functions State Machine
+    Value: !Ref VideoClipProcessingStateMachine
+    Export:
+      Name: !Sub "${AWS::StackName}-VideoClipProcessingStateMachine"
+
+  FFmpegLayerArn:
+    Description: ARN of the FFmpeg Lambda Layer
+    Value: !GetAtt FFMPEGLambdaLayer.Outputs.LayerVersion
+    Export:
+      Name: !Sub "${AWS::StackName}-FFmpegLayer"

@@ -31,6 +31,9 @@ export const handler = async (event) => {
     const rec = unmarshall(trackResponse.Item);
     if (rec.uploadId !== uploadId) return formatResponse(400, { message: 'uploadId mismatch for this track' });
 
+    // Extract speakers from upload record, default to empty array if not provided
+    const speakers = rec.speakers || [];
+
     const key = rec.key;
 
     await s3.send(new CompleteMultipartUploadCommand({
@@ -68,6 +71,7 @@ export const handler = async (event) => {
           status: 'Unprocessed',
           trackName,
           uploadKey: key,
+          speakers: speakers,
           createdAt: now,
           updatedAt: now
         })
@@ -76,11 +80,12 @@ export const handler = async (event) => {
       await ddb.send(new UpdateItemCommand({
         TableName: process.env.TABLE_NAME,
         Key: marshall({ pk: episodeId, sk: `track#${trackName}` }),
-        UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name',
+        UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name, speakers = :speakers',
         ExpressionAttributeValues: marshall({
           ':key': key,
           ':updatedAt': now,
-          ':name': trackName
+          ':name': trackName,
+          ':speakers': speakers
         })
       }));
     }

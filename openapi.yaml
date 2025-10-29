@@ -114,7 +114,7 @@ paths:
 
   /episodes/{episodeId}/transcripts:
     parameters:
-      - $ref: '#/components/parameters/EpisodeId'
+      - $ref: "#/components/parameters/EpisodeId"
     post:
       summary: Create transcript upload URL
       description: Returns a presigned S3 URL to upload the transcript for an episode
@@ -166,7 +166,7 @@ paths:
 
   /episodes/{episodeId}/tracks:
     parameters:
-      - $ref: '#/components/parameters/EpisodeId'
+      - $ref: "#/components/parameters/EpisodeId"
     post:
       summary: Initiate track upload
       description: Starts a multipart upload for a video track and returns uploadId and required headers
@@ -181,9 +181,20 @@ paths:
               properties:
                 filename:
                   type: string
+                  description: Original filename of the video file
+                  example: "main-camera-feed.mp4"
                 trackName:
                   type: string
                   description: Logical name for the track (e.g., main, guest, screenshare)
+                  example: "main"
+                speakers:
+                  type: array
+                  description: Optional array of speaker names associated with this track. If not provided, defaults to empty array.
+                  items:
+                    type: string
+                    minLength: 1
+                    description: Speaker name (non-empty string, will be trimmed of whitespace)
+                  example: ["host", "guest1", "guest2"]
       responses:
         200:
           description: Upload initiated
@@ -214,8 +225,8 @@ paths:
 
   /episodes/{episodeId}/tracks/{trackName}/parts:
     parameters:
-      - $ref: '#/components/parameters/EpisodeId'
-      - $ref: '#/components/parameters/TrackName'
+      - $ref: "#/components/parameters/EpisodeId"
+      - $ref: "#/components/parameters/TrackName"
     post:
       summary: Sign part upload URLs
       description: Returns presigned URLs for specific part numbers of a multipart upload
@@ -263,8 +274,8 @@ paths:
 
   /episodes/{episodeId}/tracks/{trackName}/complete:
     parameters:
-      - $ref: '#/components/parameters/EpisodeId'
-      - $ref: '#/components/parameters/TrackName'
+      - $ref: "#/components/parameters/EpisodeId"
+      - $ref: "#/components/parameters/TrackName"
     post:
       summary: Complete track upload
       description: Completes the multipart upload and records track metadata on the episode
@@ -310,6 +321,50 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/tracks/{trackName}:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+      - $ref: "#/components/parameters/TrackName"
+    put:
+      summary: Update track metadata
+      description: Updates track metadata including speakers array. Replaces the existing speakers array completely.
+      tags: [Episodes]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackUpdateRequest"
+            examples:
+              update_speakers:
+                summary: Update speakers array
+                value:
+                  speakers: ["host", "guest1", "guest2"]
+              remove_speakers:
+                summary: Remove all speakers
+                value:
+                  speakers: []
+              empty_request:
+                summary: No changes (empty request body)
+                value: {}
+      responses:
+        204:
+          description: Track updated successfully
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data - speakers array contains invalid values
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode or track not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateTrackFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
 
 components:
   parameters:
@@ -344,11 +399,50 @@ components:
         - id
         - title
 
+    TrackUpdateResponse:
+      type: object
+      properties:
+        trackName:
+          type: string
+          description: Name of the updated track
+          example: "main"
+        speakers:
+          type: array
+          description: Updated speakers array
+          items:
+            type: string
+          example: ["host", "guest1", "guest2"]
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when track was last updated
+          example: "2025-01-15T10:35:00Z"
+      required:
+        - trackName
+        - speakers
+        - updatedAt
+
+    TrackUpdateRequest:
+      type: object
+      properties:
+        speakers:
+          type: array
+          description: Array of speaker names associated with this track. Replaces existing speakers array completely. Empty array removes all speakers.
+          items:
+            type: string
+            minLength: 1
+            description: Speaker name (non-empty string, will be trimmed of whitespace)
+          example: ["host", "guest1", "guest2"]
+
     ErrorResponse:
       type: object
       required:
         - error
       properties:
+        error:
+          type: string
+          description: Error type identifier
+          example: "ValidationError"
         message:
           type: string
           description: Human-readable error message
@@ -361,9 +455,22 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-          example:
-            error: "ValidationError"
-            message: "The request body contains invalid data"
+          examples:
+            validation_error:
+              summary: Validation error
+              value:
+                error: "ValidationError"
+                message: "The request body contains invalid data"
+            invalid_speakers:
+              summary: Invalid speakers array
+              value:
+                error: "ValidationError"
+                message: "Speaker names must be non-empty strings"
+            empty_speaker_name:
+              summary: Empty speaker name
+              value:
+                error: "ValidationError"
+                message: "Speaker name cannot be empty or contain only whitespace"
 
     Unauthorized:
       description: Authentication required or invalid token
@@ -381,9 +488,17 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-          example:
-            error: "NotFound"
-            message: "The requested resource was not found"
+          examples:
+            episode_not_found:
+              summary: Episode not found
+              value:
+                error: "NotFound"
+                message: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+            track_not_found:
+              summary: Track not found
+              value:
+                error: "NotFound"
+                message: "Track 'main' not found for episode '123e4567-e89b-12d3-a456-426614174000'"
 
     InternalError:
       description: Internal server error
