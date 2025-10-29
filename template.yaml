@@ -19,6 +19,11 @@ Metadata:
       - "@aws-sdk/*"
     Loader: []
 
+Parameters:
+  EnvironmentHash:
+    Type: String
+    Description: A hash of the current environment
+
 Globals:
   Function:
     Runtime: nodejs22.x
@@ -67,9 +72,7 @@ Resources:
   AgentMemory:
     Type: AWS::BedrockAgentCore::Memory
     Properties:
-      Name: !Sub
-        - clipAgentMemory${RandomSuffix}
-        - RandomSuffix: !Select [2, !Split ["-", !Ref "AWS::StackId"]]
+      Name: !Sub clipAgentMemory${EnvironmentHash}
       EventExpiryDuration: 90
       MemoryStrategies:
         - SummaryMemoryStrategy:

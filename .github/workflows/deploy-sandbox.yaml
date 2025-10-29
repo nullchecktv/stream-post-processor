@@ -25,17 +25,23 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       env_descriptor: ${{ steps.prepare-parameters.outputs.env_descriptor }}
+      env_hash: ${{ steps.prepare-parameters.outputs.env_hash }}
     steps:
       - name: Prepare parameters
         id: prepare-parameters
         run: |
           ENV_DESCRIPTOR="env-${{ github.actor }}"
+          ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
+
 
           echo "ENV_DESCRIPTOR=$ENV_DESCRIPTOR" >> $GITHUB_ENV
+          echo "ENV_HASH=$ENV_HASH" >> $GITHUB_ENV
           echo "# RUN METADATA" >> $GITHUB_STEP_SUMMARY
           echo "* Environment Descriptor - $ENV_DESCRIPTOR" >> $GITHUB_STEP_SUMMARY
+          echo "* Environment Hash - $ENV_HASH" >> $GITHUB_STEP_SUMMARY
 
           echo "env_descriptor=$ENV_DESCRIPTOR" >> $GITHUB_OUTPUT
+          echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy API
@@ -44,4 +50,5 @@ jobs:
     with:
       ENV: dev
       STACK_NAME: ${{ needs.prepare-deployment.outputs.env_descriptor }}
+      ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
     secrets: inherit

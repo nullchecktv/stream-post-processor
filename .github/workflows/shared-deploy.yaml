@@ -9,6 +9,9 @@ on:
       STACK_NAME:
         type: string
         required: true
+      ENV_HASH:
+        type: string
+        required: true
 
 jobs:
   deploy:
@@ -34,6 +37,7 @@ jobs:
       - name: Replace Variables in samconfig
         env:
           STACK_NAME: ${{ inputs.STACK_NAME }}
+          ENV_HASH: ${{ inputs.ENV_HASH }}
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml
 
