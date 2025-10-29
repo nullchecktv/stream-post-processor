@@ -67,6 +67,9 @@ Resources:
   AgentMemory:
     Type: AWS::BedrockAgentCore::Memory
     Properties:
+      Name: !Sub
+        - clipAgentMemory${RandomSuffix}
+        - RandomSuffix: !Select [2, !Split ["-", !Ref "AWS::StackId"]]
       EventExpiryDuration: 90
       MemoryStrategies:
         - SummaryMemoryStrategy:
@@ -108,7 +111,7 @@ Resources:
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
-                - !Sub  arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
                 - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
             - Effect: Allow
               Action:
