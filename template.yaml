@@ -104,7 +104,7 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
@@ -126,7 +126,7 @@ Resources:
       Environment:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
 
@@ -152,8 +152,8 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:PutItem
-              Resource: !GetAtt NullCheckTable.Arn
+              Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
           BUCKET_NAME: !Ref TranscriptBucket
-          TABLE_NAME: !Ref NullCheckTable
+          TABLE_NAME: !Ref StreamPostProcessingTable
