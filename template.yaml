@@ -70,12 +70,6 @@ Resources:
             Identity:
               Headers:
                 - Authorization
-      MethodSettings:
-        - MetricsEnabled: True
-          ResourcePath: "/*"
-          HttpMethod: "*"
-          LoggingLevel: ERROR
-          DataTraceEnabled: True
       DefinitionBody:
         Fn::Transform:
           Name: AWS::Include
