@@ -19,3 +19,22 @@ export const formatEmptyResponse = () => {
     headers: corsHeaders
   };
 };
+
+export const parseBody = (event) => {
+  try {
+    if (!event?.body) return {};
+    return typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+  } catch {
+    return null;
+  }
+};
+
+export const sanitizeTrackName = (name) => {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 128);
+};

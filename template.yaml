@@ -3,6 +3,22 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Autonomous AI Agent that processes livestream transcripts
 
+Parameters:
+  EncryptionKey:
+    Type: String
+    Description: Key used for hashing cursors
+    Default: ""
+    NoEcho: true
+  CORSOrigin:
+    Type: String
+    Default: "*"
+  Domain:
+    Type: String
+    Default: "http://localhost:5173"
+  EnvironmentHash:
+    Type: String
+    Description: A hash of the current environment
+
 Metadata:
   esbuild-properties: &esbuild-properties
     Format: esm
@@ -19,25 +35,47 @@ Metadata:
       - "@aws-sdk/*"
     Loader: []
 
-Parameters:
-  EnvironmentHash:
-    Type: String
-    Description: A hash of the current environment
-
 Globals:
   Function:
     Runtime: nodejs22.x
     CodeUri: functions
     Architectures:
-      - arm64
+      - x86_64
     Tracing: Active
     Timeout: 35
     MemorySize: 1024
     Environment:
       Variables:
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+        ORIGIN: !Ref CORSOrigin
+
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: !Sub "'${CORSOrigin}'"
 
 Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: api
+      Auth:
+        DefaultAuthorizer: LambdaAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          LambdaAuthorizer:
+            FunctionPayloadType: REQUEST
+            FunctionArn: !GetAtt ApiAuthorizer.Arn
+            Identity:
+              Headers:
+                - Authorization
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ./openapi.yaml
+
   StreamPostProcessingTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Delete
@@ -54,6 +92,19 @@ Resources:
           AttributeType: S
         - AttributeName: sk
           AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
@@ -61,6 +112,19 @@ Resources:
   TranscriptBucket:
     Type: AWS::S3::Bucket
     Properties:
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Ref CORSOrigin
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            AllowedHeaders:
+              - "*"
+            ExposedHeaders:
+              - ETag
       LifecycleConfiguration:
         Rules:
           - Id: DeleteRule
@@ -68,6 +132,9 @@ Resources:
             ExpirationInDays: 7
       VersioningConfiguration:
         Status: Enabled
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
 
   AgentMemory:
     Type: AWS::BedrockAgentCore::Memory
@@ -86,6 +153,146 @@ Resources:
             Namespaces:
               - "{actorId}-topics"
 
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Delete
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-user-pool"
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: tenantId
+          AttributeDataType: String
+          Required: false
+          Mutable: true
+      LambdaConfig:
+        PostConfirmation: !GetAtt PostConfirmationTrigger.Arn
+        PreTokenGeneration: !GetAtt PreTokenGenerationTrigger.Arn
+      UserPoolTags:
+        Project: NullCheck
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: !Sub "${AWS::StackName}-client"
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      ExplicitAuthFlows:
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_AUTH
+      AuthSessionValidity: 3
+      EnableTokenRevocation: true
+      PreventUserExistenceErrors: ENABLED
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AccessTokenValidity: 24
+      IdTokenValidity: 24
+      RefreshTokenValidity: 30
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - !Ref Domain
+        - "http://localhost:5173"
+      LogoutURLs:
+        - !Ref Domain
+        - "http://localhost:5173"
+      SupportedIdentityProviders:
+        - COGNITO
+
+  ApiAuthorizer:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - auth/authorizer.mjs
+    Properties:
+      Handler: auth/authorizer.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:GetUser
+              Resource: "*"
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref CognitoUserPool
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+
+  PostConfirmationTrigger:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - auth/post-confirmation.mjs
+    Properties:
+      Handler: auth/post-confirmation.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminUpdateUserAttributes
+              Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+
+  PostConfirmationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PostConfirmationTrigger
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}"
+
+  PreTokenGenerationTrigger:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - auth/pre-token-generation.mjs
+    Properties:
+      Handler: auth/pre-token-generation.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  PreTokenGenerationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PreTokenGenerationTrigger
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPool}"
+
   ClipDetectorAgent:
     Type: AWS::Serverless::Function
     Metadata:
@@ -96,6 +303,7 @@ Resources:
           - agents/clip-detector.mjs
     Properties:
       Handler: agents/clip-detector.handler
+      Timeout: 300
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: 2012-10-17
@@ -135,6 +343,22 @@ Resources:
           TABLE_NAME: !Ref StreamPostProcessingTable
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        TranscriptAdded:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref TranscriptBucket
+                object:
+                  key:
+                    - suffix: .srt
 
   TranscriptIngestFunction:
     Type: AWS::Serverless::Function
@@ -152,14 +376,316 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - s3:GetObject
-              Resource:
-                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref TranscriptBucket
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        TranscriptAdded:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref TranscriptBucket
+                object:
+                  key:
+                    - suffix: .srt
+
+  ListEpisodesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/list-episodes.mjs
+    Properties:
+      Handler: episodes/list-episodes.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          ENCRYPTION_KEY: !Ref EncryptionKey
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes
+            Method: GET
+
+  CreateEpisodeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/create-episode.mjs
+    Properties:
+      Handler: episodes/create-episode.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
             - Effect: Allow
               Action:
                 - dynamodb:PutItem
               Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes
+            Method: POST
+
+  CreateTranscriptUploadFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/upload-transcript.mjs
+    Properties:
+      Handler: episodes/upload-transcript.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        CreatePresigned:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/transcripts
+            Method: POST
+
+  CreateTrackUploadFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/create-track-upload.mjs
+    Properties:
+      Handler: episodes/create-track-upload.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        InitiateTrackUpload:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks
+            Method: POST
+
+  SignTrackPartsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/sign-track-parts.mjs
+    Properties:
+      Handler: episodes/sign-track-parts.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        SignTrackParts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks/{trackName}/parts
+            Method: POST
+
+  CompleteTrackUploadFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/complete-track-upload.mjs
+    Properties:
+      Handler: episodes/complete-track-upload.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        CompleteTrackUpload:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks/{trackName}/complete
+            Method: POST
+
+  UpdateTrackFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/update-track.mjs
+    Properties:
+      Handler: episodes/update-track.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        UpdateTrack:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks/{trackName}
+            Method: PUT
+
+  MediaConvertRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: mediaconvert.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MediaConvertS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource: !Sub "${TranscriptBucket.Arn}/*"
+
+  MediaConvertTriggerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/start-preprocessing.mjs
+    Properties:
+      Handler: events/start-preprocessing.handler
+      Timeout: 60
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - mediaconvert:CreateJob
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource: !GetAtt MediaConvertRole.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          MEDIACONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
           BUCKET_NAME: !Ref TranscriptBucket
           TABLE_NAME: !Ref StreamPostProcessingTable

@@ -6,6 +6,9 @@ dev:
       region: us-east-1
       capabilities: CAPABILITY_IAM
       image_repositories: []
+      parameter_overrides:
+        - MaxTracksPerEpisode=50
+        - TrackSelectionLogLevel=INFO
       tags:
         - project=stream-post-processor
   global:

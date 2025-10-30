@@ -4,14 +4,35 @@ import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
 import { loadTranscript } from "../utils/transcripts.mjs";
 import { marshall } from "@aws-sdk/util-dynamodb";
+import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 
 const ddb = new DynamoDBClient();
 const tools = convertToBedrockTools([createClipTool]);
-const AGENT_ID = 'clipforge';
+
 export const handler = async (event) => {
   try {
-    const { tenantId, sessionId, transcriptId, transcriptKey } = event.detail;
-    const actorId = `${AGENT_ID}/${tenantId}/${transcriptId}`;
+    const rawKey = event?.detail?.object?.key;
+    if (!rawKey) {
+      console.log('Unsupported event shape (expecting EventBridge S3 event):', JSON.stringify(event?.detail || {}));
+      return { statusCode: 200 };
+    }
+
+    const transcriptKey = decodeURIComponent(rawKey);
+    let tenantId, episodeId;
+    try {
+      const parsed = parseEpisodeIdFromKey(transcriptKey);
+      tenantId = parsed.tenantId;
+      episodeId = parsed.episodeId;
+    } catch (e) {
+      console.warn(`Skipping object with unexpected key: ${transcriptKey}. Reason: ${e.message}`);
+      return { statusCode: 200 };
+    }
+
+    if (!tenantId) {
+      console.error('Missing tenantId in S3 key');
+      return { statusCode: 200 };
+    }
+
     const transcript = await loadTranscript(transcriptKey);
     if (!transcript) {
       console.error(`Could not find transcript with provided key ${transcriptKey}`);
@@ -27,6 +48,16 @@ Your job on each run:
 3. Record your findings once using the **createClip** tool (single call, array of clips).
 4. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
+### Transcript
+The transcript will be provided to you in .srt format. The speakers will be indicated with their name, a colon, then the text they spoke. The speaker does not change until you see more text in that format.
+
+#### Example
+00:00:20,925 --> 00:00:27,104
+Allen: Sometimes it's a breakthrough,
+sometimes a regret
+
+Andres: We try it out live
+
 ### Selection priorities
 
 Moments should:
@@ -36,6 +67,8 @@ Moments should:
 * Show personality: banter, laughter, debate, or confident takes.
 * Leave the viewer wanting more of Null Check.
 * Stand alone without requiring full-episode context.
+* Range from 25 to 45 seconds long
+* Be composed of one or more segments that tell a complete story
 
 Avoid filler talk, monotone technical explanation, inside jokes that depend on prior episodes, or sections with heavy cross-talk.
 
@@ -45,7 +78,8 @@ Each clip you pass to **createClip** must contain the schema:
 
 {
   "segments": [
-    { "startTime": "00:14:32", "endTime": "00:15:18", "text": "words that were said during the segment time" }
+    { "startTime": "00:14:32", "endTime": "00:15:18", "speaker": "Allen", "order": 1 }
+    { "startTime": "00:41:01", "endTime": "00:41:05", "speaker": "Andres": "order": 2 }
   ],
   "hook": "Why we let our AI agent go rogue (on purpose)",
   "summary": "Allen and Andres debate what happens when you remove safety guardrails from an agent and whether chaos teaches more than control.",
@@ -69,10 +103,10 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 * Total clip length (sum of all segment lengths in a clip) should not exceed 45 seconds
 * Mix clip types: at least one 'funny', one 'educational', and one 'hot_take' if available. Prioritize educational above all others as the majority clip type
 * Hooks should sound like strong YouTube titles: conversational, bold, and curiosity-driven—never clickbait.
-* Summaries must be factual and concise (1-2 sentences).
+* Summaries must be factual and concise without setup
 * Suggest b-roll that enhances storytelling: reactions, diagrams, or overlays.
-* If timestamps are unavailable, use the transcript text only.
-* Do not echo the entire transcript; include only the text from the segment
+* All segments must include startTime, endTime, speaker, and order fields.
+* Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
 
 ### Audience objective
 
@@ -84,36 +118,33 @@ Think like a YouTube growth editor, not a stenographer.
 ### Completion policy
 
 1. Call **createClip** exactly once with your full list of recommended clips.
-2. Return a short confirmation message indicating how many clips were created.
-3. Do not include raw transcript text or clip details in your message body.
+2. Return a short 3-4 sentence summary of what the transcript was about and key takeaways
+3. Do not mention the clips you created
 `;
 
     const userPrompt = `
-transcriptId: ${transcriptId}
-transcriptKey: ${transcriptKey}
+episodeId: ${episodeId}
 transcript:
 ${transcript}
 `;
-    const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, {
-      tenantId,
-      sessionId,
-      actorId
-    });
+    const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId });
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
-        pk: `${tenantId}#${transcriptId}`,
-        sk: 'episode'
+        pk: `${tenantId}#${episodeId}`,
+        sk: 'metadata'
       }),
-      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt',
+      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt, #status = :status',
       ExpressionAttributeNames: {
         '#summary': 'summary',
-        "#updatedAt": 'updatedAt'
+        '#updatedAt': 'updatedAt',
+        '#status': 'status'
       },
       ExpressionAttributeValues: marshall({
         ':summary': response,
-        ':updatedAt': new Date().toISOString()
+        ':updatedAt': new Date().toISOString(),
+        ':status': 'Analyzed'
       })
     }));
 
