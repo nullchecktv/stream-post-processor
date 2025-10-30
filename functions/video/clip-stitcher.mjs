@@ -8,20 +8,23 @@ export const handler = async (event) => {
   let tempDir = null;
 
   try {
-    const { tenantId, episodeId, clipId, segmentFiles } = event;
+    const { tenantId, episodeId, clipId, segments } = event;
 
     if (!tenantId) {
       console.error('Missing tenantId in event');
       throw new Error('Unauthorized');
     }
 
-    if (!episodeId || !clipId || !Array.isArray(segmentFiles)) {
-      throw new Error('Missing required parameters: episodeId, clipId, segmentFiles');
+    if (!episodeId || !clipId || !Array.isArray(segments)) {
+      throw new Error('Missing required parameters: episodeId, clipId, segments');
     }
 
-    if (segmentFiles.length === 0) {
-      throw new Error('No segment files provided for stitching');
+    if (segments.length === 0) {
+      throw new Error('No segments provided for stitching');
     }
+
+    // Extract segment file paths from the new format
+    const segmentFiles = segments.map(segment => segment.segmentFile);
 
     const ffmpegVersion = await checkFFmpegAvailability();
     tempDir = await createTempDir('clip-stitching-');

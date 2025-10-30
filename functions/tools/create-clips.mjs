@@ -3,6 +3,7 @@ import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import crypto, { randomUUID } from 'crypto';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
+import { initializeStatusHistory } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
 const MAX_CLIPS_PER_REQUEST = 10;
@@ -50,6 +51,7 @@ export const createClipTool = {
       const results = await Promise.allSettled(
         clips.map(async (clip) => {
           const id = randomUUID();
+          const now = new Date().toISOString();
 
           const segmentSignature = clip.segments
             .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}`)
@@ -61,6 +63,9 @@ export const createClipTool = {
             .digest('hex')
             .slice(0, 16);
 
+          const initialStatus = 'detected';
+          const statusHistory = initializeStatusHistory(initialStatus, now);
+
           await ddb.send(
             new PutItemCommand({
               TableName: process.env.TABLE_NAME,
@@ -69,7 +74,7 @@ export const createClipTool = {
                 pk: `${tenantId}#${episodeId}`,
                 sk: `clip#${id}`,
                 GSI1PK: `${tenantId}#clips`,
-                GSI1SK: `${new Date().toISOString()}#${episodeId}#${id}`,
+                GSI1SK: `${now}#${episodeId}#${id}`,
                 clipId: id,
                 clipHash,
                 segments: clip.segments,
@@ -79,9 +84,10 @@ export const createClipTool = {
                 summary: clip.summary,
                 bRollSuggestions: clip.bRollSuggestions,
                 clipType: clip.clipType,
-                status: 'pending',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+                status: initialStatus,
+                statusHistory,
+                createdAt: now,
+                updatedAt: now,
                 ttl: Math.floor(Date.now() / 1000) + (14 * 24 * 60 * 60)
               })
             })

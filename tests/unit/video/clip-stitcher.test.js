@@ -5,14 +5,14 @@ describe('Clip Stitcher Handler', () => {
   describe('Input validation', () => {
     test('should validate required parameters', () => {
       const validateInput = (event) => {
-        const { episodeId, clipId, segmentFiles } = event || {};
+        const { episodeId, clipId, segments } = event || {};
 
-        if (!episodeId || !clipId || !Array.isArray(segmentFiles)) {
-          throw new Error('Missing required parameters: episodeId, clipId, segmentFiles');
+        if (!episodeId || !clipId || !Array.isArray(segments)) {
+          throw new Error('Missing required parameters: episodeId, clipId, segments');
         }
 
-        if (segmentFiles.length === 0) {
-          throw new Error('No segment files provided for stitching');
+        if (segments.length === 0) {
+          throw new Error('No segments provided for stitching');
         }
 
         return true;
@@ -21,7 +21,10 @@ describe('Clip Stitcher Handler', () => {
       const validEvent = {
         episodeId: 'episode-123',
         clipId: 'clip-456',
-        segmentFiles: ['seg1.mp4', 'seg2.mp4']
+        segments: [
+          { segmentFile: 'seg1.mp4', metadata: {} },
+          { segmentFile: 'seg2.mp4', metadata: {} }
+        ]
       };
 
       expect(() => validateInput(validEvent)).not.toThrow();
@@ -30,39 +33,51 @@ describe('Clip Stitcher Handler', () => {
       expect(() => validateInput({
         episodeId: 'test',
         clipId: 'clip',
-        segmentFiles: []
-      })).toThrow('No segment files provided for stitching');
+        segments: []
+      })).toThrow('No segments provided for stitching');
       expect(() => validateInput({
         episodeId: 'test',
         clipId: 'clip',
-        segmentFiles: 'not-array'
+        segments: 'not-array'
       })).toThrow('Missing required parameters');
     });
 
-    test('should validate segment file array', () => {
-      const validateSegmentFiles = (segmentFiles) => {
-        if (!Array.isArray(segmentFiles)) {
-          throw new Error('Segment files must be an array');
+    test('should validate segments array', () => {
+      const validateSegments = (segments) => {
+        if (!Array.isArray(segments)) {
+          throw new Error('Segments must be an array');
         }
 
-        if (segmentFiles.length === 0) {
-          throw new Error('At least one segment file is required');
+        if (segments.length === 0) {
+          throw new Error('At least one segment is required');
         }
 
-        for (let i = 0; i < segmentFiles.length; i++) {
-          if (!segmentFiles[i] || typeof segmentFiles[i] !== 'string') {
-            throw new Error(`Invalid segment file at index ${i}: must be a non-empty string`);
+        for (let i = 0; i < segments.length; i++) {
+          const segment = segments[i];
+          if (!segment || typeof segment !== 'object') {
+            throw new Error(`Invalid segment at index ${i}: must be an object`);
+          }
+          if (!segment.segmentFile || typeof segment.segmentFile !== 'string') {
+            throw new Error(`Invalid segment at index ${i}: segmentFile must be a non-empty string`);
+          }
+          if (!segment.metadata || typeof segment.metadata !== 'object') {
+            throw new Error(`Invalid segment at index ${i}: metadata must be an object`);
           }
         }
 
         return true;
       };
 
-      expect(() => validateSegmentFiles(['seg1.mp4', 'seg2.mp4'])).not.toThrow();
-      expect(() => validateSegmentFiles(['single.mp4'])).not.toThrow();
-      expect(() => validateSegmentFiles([])).toThrow('At least one segment file is required');
-      expect(() => validateSegmentFiles(['valid.mp4', null])).toThrow('Invalid segment file at index 1');
-      expect(() => validateSegmentFiles(['valid.mp4', ''])).toThrow('Invalid segment file at index 1');
+      const validSegments = [
+        { segmentFile: 'seg1.mp4', metadata: { duration: 30 } },
+        { segmentFile: 'seg2.mp4', metadata: { duration: 45 } }
+      ];
+
+      expect(() => validateSegments(validSegments)).not.toThrow();
+      expect(() => validateSegments([{ segmentFile: 'single.mp4', metadata: {} }])).not.toThrow();
+      expect(() => validateSegments([])).toThrow('At least one segment is required');
+      expect(() => validateSegments([{ segmentFile: 'valid.mp4' }])).toThrow('Invalid segment at index 0: metadata must be an object');
+      expect(() => validateSegments([{ metadata: {} }])).toThrow('Invalid segment at index 0: segmentFile must be a non-empty string');
     });
   });
 

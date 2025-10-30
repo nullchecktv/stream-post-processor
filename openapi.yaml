@@ -34,11 +34,12 @@ x-amazon-apigateway-gateway-responses:
 tags:
   - name: Episodes
   - name: Uploads
+  - name: Clips
 paths:
   /episodes:
     get:
       summary: List all episodes
-      description: Gets a paginated list of episodes with their name, air date, and platform
+      description: Gets a paginated list of episodes with their name, air date, and current status
       tags: [Episodes]
       responses:
         200:
@@ -109,6 +110,33 @@ paths:
       x-amazon-apigateway-integration:
         uri:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateEpisodeFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: Get episode by ID
+      description: Retrieves a single episode with all its metadata and current status
+      tags: [Episodes]
+      responses:
+        200:
+          description: Episode details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Episode"
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEpisodeFunction.Arn}/invocations
         httpMethod: POST
         type: aws_proxy
 
@@ -366,6 +394,200 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/statuses:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    post:
+      summary: Update episode status
+      description: Updates episode status with prerequisite validation and triggers appropriate events
+      tags: [Episodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["Ready for Clip Gen"]
+                  description: The new status to set for the episode
+              required: [status]
+            examples:
+              ready_for_clip_gen:
+                summary: Mark episode ready for clip generation
+                value:
+                  status: "Ready for Clip Gen"
+      responses:
+        204:
+          description: Status updated successfully
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data or status value
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode not found
+        409:
+          $ref: "#/components/responses/PrerequisiteNotMet"
+          description: Prerequisites not met for status transition
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateEpisodeStatusFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}/clips:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: List clips for episode
+      description: Retrieves all clips for a specific episode with current status computed from status history
+      tags: [Clips]
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+          description: Number of items to return (default 10, max 25)
+        - in: query
+          name: nextToken
+          schema:
+            type: string
+          description: Opaque cursor returned by a previous call to continue paging
+      responses:
+        200:
+          description: List of clips for the episode with paging
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClipListView"
+                  count:
+                    type: integer
+                    description: Number of items in this page
+                  nextToken:
+                    type: string
+                    description: Opaque cursor to fetch the next page
+                required:
+                  - items
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListClipsFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}/clips/{clipId}:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+      - $ref: "#/components/parameters/ClipId"
+    get:
+      summary: Get clip by ID
+      description: Retrieves a specific clip with current status computed from status history
+      tags: [Clips]
+      responses:
+        200:
+          description: Clip details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClipDetail"
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode or clip not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetClipFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    patch:
+      summary: Update clip status
+      description: Updates the status of a clip for review workflow (reviewed, approved, rejected, published)
+      tags: [Clips]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["reviewed", "approved", "rejected", "published"]
+                  description: New status for the clip
+              required:
+                - status
+      responses:
+        200:
+          description: Clip status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clipId:
+                    type: string
+                    description: Clip identifier
+                  episodeId:
+                    type: string
+                    description: Episode identifier
+                  status:
+                    type: string
+                    description: Updated status
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp when status was updated
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateClipStatusFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    delete:
+      summary: Delete clip
+      description: Deletes a clip and all associated S3 files. Returns 204 on success or if clip doesn't exist (idempotent). Updates tenant statistics to increment clips deleted count.
+      tags: [Clips]
+      responses:
+        204:
+          description: Clip deleted successfully or clip not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteClipFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
 components:
   parameters:
     EpisodeId:
@@ -380,6 +602,12 @@ components:
       required: true
       schema:
         type: string
+    ClipId:
+      in: path
+      name: clipId
+      required: true
+      schema:
+        type: string
   schemas:
     EpisodeListView:
       type: object
@@ -388,16 +616,112 @@ components:
           type: string
         title:
           type: string
+        status:
+          type: string
+          description: Current episode status computed from the most recent status history entry
         airDate:
           type: string
           format: date-time
-        platforms:
-          type: array
-          items:
-            type: string
       required:
         - id
         - title
+
+    ClipListView:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          description: Current clip status
+          enum:
+            [
+              "detected",
+              "processing",
+              "processed",
+              "failed",
+              "reviewed",
+              "approved",
+              "rejected",
+              "published",
+            ]
+        duration:
+          type: string
+          description: Duration of the clip (HH:MM:SS format)
+          example: "00:02:15"
+        type:
+          type: string
+          description: Clip type identifier
+      required:
+        - id
+        - title
+        - status
+        - duration
+
+    Episode:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique episode identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          description: Episode title
+          example: "Tech Talk Episode 42"
+        status:
+          type: string
+          description: Current episode status computed from the most recent entry in the status history array. This field is maintained for backward compatibility while the complete status history is stored internally.
+          example: "Ready for Clip Gen"
+        episodeNumber:
+          type: integer
+          description: Episode number in the series
+          example: 42
+        summary:
+          type: string
+          description: Episode summary or description
+          example: "Discussion about AI and machine learning"
+        airDate:
+          type: string
+          format: date-time
+          description: When the episode was aired
+          example: "2025-01-15T10:30:00Z"
+        platforms:
+          type: array
+          description: Platforms where the episode was published
+          items:
+            type: string
+            enum: ["linkedin live", "X", "twitch", "youtube"]
+          example: ["twitch", "youtube"]
+        themes:
+          type: array
+          description: Episode themes or topics
+          items:
+            type: string
+          example: ["technology", "programming"]
+        seriesName:
+          type: string
+          description: Name of the series this episode belongs to
+          example: "Tech Talk Series"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the episode was created
+          example: "2025-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the episode was last updated
+          example: "2025-01-15T10:35:00Z"
+      required:
+        - id
+        - title
+        - status
+        - episodeNumber
+        - createdAt
+        - updatedAt
 
     TrackUpdateResponse:
       type: object
@@ -433,6 +757,233 @@ components:
             minLength: 1
             description: Speaker name (non-empty string, will be trimmed of whitespace)
           example: ["host", "guest1", "guest2"]
+
+    Clip:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique clip identifier
+          example: "clip-uuid"
+        episodeId:
+          type: string
+          description: Episode this clip belongs to
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          description: Clip title
+          example: "Interesting Discussion Point"
+        description:
+          type: string
+          description: AI-generated description of the clip content
+          example: "Discussion about machine learning applications"
+        status:
+          type: string
+          description: Current clip status computed from the most recent entry in the status history array. This field is maintained for backward compatibility while the complete status history is stored internally.
+          enum:
+            [
+              "detected",
+              "processing",
+              "processed",
+              "failed",
+              "reviewed",
+              "approved",
+              "rejected",
+              "published",
+            ]
+          example: "processed"
+        startTime:
+          type: string
+          description: Start time in the episode (HH:MM:SS format)
+          example: "00:15:30"
+        endTime:
+          type: string
+          description: End time in the episode (HH:MM:SS format)
+          example: "00:17:45"
+        duration:
+          type: string
+          description: Duration of the clip (HH:MM:SS format)
+          example: "00:02:15"
+        tags:
+          type: array
+          description: Tags associated with the clip
+          items:
+            type: string
+          example: ["discussion", "technical", "important"]
+        createdAt:
+          type: string
+          format: date-time
+          description: When the clip was created
+          example: "2025-01-15T10:40:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the clip was last updated
+          example: "2025-01-15T10:42:15Z"
+        processedAt:
+          type: string
+          format: date-time
+          description: When the clip was processed (optional)
+          example: "2025-01-15T10:42:15Z"
+        s3Key:
+          type: string
+          description: S3 key for the processed clip file (optional)
+          example: "123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid/clip.mp4"
+        fileSize:
+          type: integer
+          description: File size in bytes (optional)
+          example: 15728640
+      required:
+        - id
+        - episodeId
+        - title
+        - status
+        - startTime
+        - endTime
+        - duration
+        - tags
+        - createdAt
+        - updatedAt
+
+    ClipDetail:
+      allOf:
+        - $ref: "#/components/schemas/Clip"
+        - type: object
+          properties:
+            segments:
+              type: array
+              description: Detailed segments that make up this clip
+              items:
+                type: object
+                properties:
+                  startTime:
+                    type: string
+                    description: Segment start time (HH:MM:SS format)
+                    example: "00:15:30"
+                  endTime:
+                    type: string
+                    description: Segment end time (HH:MM:SS format)
+                    example: "00:16:15"
+                  text:
+                    type: string
+                    description: Transcript text for this segment
+                    example: "This is the transcript text for this segment..."
+                required:
+                  - startTime
+                  - endTime
+                  - text
+              example:
+                - startTime: "00:15:30"
+                  endTime: "00:16:15"
+                  text: "This is the transcript text for this segment..."
+            transcriptSegment:
+              type: string
+              description: Complete transcript text for the entire clip
+              example: "This is the complete transcript text for this clip..."
+            processingDuration:
+              type: number
+              format: float
+              description: Time taken to process this clip in seconds (optional)
+              example: 45.2
+            processingMetadata:
+              type: object
+              description: Metadata about the processing (optional)
+              properties:
+                segmentCount:
+                  type: integer
+                  example: 3
+                totalProcessingTime:
+                  type: number
+                  format: float
+                  example: 45.2
+                resolution:
+                  type: string
+                  example: "1920x1080"
+                codec:
+                  type: string
+                  example: "h264"
+            processingError:
+              type: object
+              description: Error information if processing failed (optional)
+              properties:
+                message:
+                  type: string
+                  example: "FFmpeg processing failed"
+                code:
+                  type: string
+                  example: "FFMPEG_ERROR"
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2025-01-15T10:42:00Z"
+              required:
+                - message
+                - timestamp
+            aiAnalysis:
+              type: object
+              description: AI analysis results (optional)
+              properties:
+                sentiment:
+                  type: string
+                  example: "positive"
+                topics:
+                  type: array
+                  items:
+                    type: string
+                  example: ["technology", "innovation"]
+                keyPhrases:
+                  type: array
+                  items:
+                    type: string
+                  example: ["machine learning", "artificial intelligence"]
+                speakerCount:
+                  type: integer
+                  example: 2
+
+    StatusHistoryEntry:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The status value
+          example: "Ready for Clip Gen"
+        timestamp:
+          type: string
+          format: date-time
+          description: When the status was set
+          example: "2025-01-15T10:30:00Z"
+      required:
+        - status
+        - timestamp
+
+    PrerequisiteError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+          example: "PrerequisiteNotMet"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Episode is not ready for clip generation"
+        details:
+          type: object
+          properties:
+            missingPrerequisites:
+              type: array
+              items:
+                type: string
+              description: List of specific prerequisite failures
+              example:
+                [
+                  "Episode does not have 'Track(s) Uploaded' status",
+                  "Track 'guest' has status 'uploading', expected 'Processed'",
+                ]
+      required:
+        - error
+        - message
+        - details
 
     ErrorResponse:
       type: object
@@ -499,6 +1050,23 @@ components:
               value:
                 error: "NotFound"
                 message: "Track 'main' not found for episode '123e4567-e89b-12d3-a456-426614174000'"
+
+    PrerequisiteNotMet:
+      description: Prerequisites not met for the requested operation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PrerequisiteError"
+          examples:
+            episode_not_ready:
+              summary: Episode not ready for clip generation
+              value:
+                error: "PrerequisiteNotMet"
+                message: "Episode is not ready for clip generation"
+                details:
+                  missingPrerequisites:
+                    - "Episode has status 'Draft', expected 'Track(s) Uploaded'"
+                    - "Track 'guest' has status 'Unprocessed', expected 'Processed'"
 
     InternalError:
       description: Internal server error

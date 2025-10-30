@@ -1,84 +1,116 @@
 import { loadHlsManifest, calculateChunkMapping, validateSegmentTiming, generateSegmentKey } from '../utils/video-processing.mjs';
 import { extractVideoSegment, createTempDir, cleanup, checkFFmpegAvailability, execFFmpeg } from '../utils/ffmpeg.mjs';
-import { downloadVideoFile, uploadSegmentFile, objectExists, verifySegmentIntegrity } from '../utils/s3-video.mjs';
+import { downloadVideoFile, uploadSegmentFile, objectExists, verifySegmentIntegrity, getS3FileSize } from '../utils/s3-video.mjs';
 import { selectTrackForSpeaker } from '../utils/track-selection.mjs';
+import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { join, dirname } from 'path';
 import { promises as fs } from 'fs';
+
+const s3 = new S3Client();
+
+async function getSegmentMetadata(bucketName, segmentS3Key) {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: bucketName,
+      Key: segmentS3Key
+    });
+
+    const response = await s3.send(command);
+    const metadata = response.Metadata || {};
+
+    return {
+      duration: parseFloat(metadata.duration || metadata['total-duration'] || '0'),
+      fileSize: response.ContentLength || 0,
+      resolution: metadata.resolution || "1920x1080"
+    };
+  } catch (error) {
+    console.error(`Failed to get segment metadata for ${segmentS3Key}:`, error);
+    // Return default metadata if we can't get it from S3
+    return {
+      duration: 0,
+      fileSize: 0,
+      resolution: "1920x1080"
+    };
+  }
+}
 
 export const handler = async (event) => {
   let tempDir = null;
 
   try {
-    const { tenantId, episodeId, trackName = 'main', clipId, segments } = event;
+    const { tenantId, episodeId, trackName = 'main', clipId, segment } = event;
 
     if (!tenantId) {
       console.error('Missing tenantId in event');
       throw new Error('Unauthorized');
     }
 
-    if (!episodeId || !clipId || !Array.isArray(segments)) {
-      throw new Error('Missing required parameters: episodeId, clipId, segments');
+    if (!episodeId || !clipId || !segment) {
+      throw new Error('Missing required parameters: episodeId, clipId, segment');
     }
 
-    segments.forEach((segment, index) => {
-      try {
-        validateSegmentTiming(segment);
-      } catch (error) {
-        throw new Error(`Invalid segment ${index}: ${error.message}`);
-      }
-    });
+    // Validate the single segment
+    try {
+      validateSegmentTiming(segment);
+    } catch (error) {
+      throw new Error(`Invalid segment: ${error.message}`);
+    }
 
     const ffmpegVersion = await checkFFmpegAvailability();
     tempDir = await createTempDir('segment-extraction-');
-    const segmentFiles = [];
     const bucketName = process.env.BUCKET_NAME;
 
-    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-      const segment = segments[segmentIndex];
-
-      // Simple track selection: if segment has a speaker, try to find their track
-      let useTrackName = trackName;
-      if (segment.speaker) {
-        try {
-          const speakerTrack = await selectTrackForSpeaker(episodeId, segment.speaker, tenantId);
-          if (speakerTrack) {
-            useTrackName = speakerTrack.trackName;
-            console.log(`Using track '${useTrackName}' for speaker '${segment.speaker}'`);
-          }
-        } catch (error) {
-          console.warn(`Failed to find track for speaker '${segment.speaker}', using default: ${error.message}`);
+    // Simple track selection: if segment has a speaker, try to find their track
+    let useTrackName = trackName;
+    if (segment.speaker) {
+      try {
+        const speakerTrack = await selectTrackForSpeaker(episodeId, segment.speaker, tenantId);
+        if (speakerTrack) {
+          useTrackName = speakerTrack.trackName;
+          console.log(`Using track '${useTrackName}' for speaker '${segment.speaker}'`);
         }
+      } catch (error) {
+        console.warn(`Failed to find track for speaker '${segment.speaker}', using default: ${error.message}`);
       }
+    }
 
-      const manifest = await loadHlsManifest(episodeId, useTrackName, tenantId);
-      const chunkMappings = calculateChunkMapping(segment, manifest.segments);
+    const manifest = await loadHlsManifest(episodeId, useTrackName, tenantId);
+    const chunkMappings = calculateChunkMapping(segment, manifest.segments);
 
-      if (chunkMappings.length === 0) {
-        throw new Error(`No chunks found for segment ${segmentIndex} (${segment.startTime} - ${segment.endTime})`);
-      }
+    if (chunkMappings.length === 0) {
+      throw new Error(`No chunks found for segment (${segment.startTime} - ${segment.endTime})`);
+    }
 
-      const segmentS3Key = generateSegmentKey(episodeId, clipId, segmentIndex, tenantId);
-      segmentFiles.push(segmentS3Key);
+    // Use segmentIndex 0 since we're processing a single segment
+    const segmentIndex = 0;
+    const segmentS3Key = generateSegmentKey(episodeId, clipId, segmentIndex, tenantId);
 
-      const segmentExists = await objectExists(bucketName, segmentS3Key);
-      if (segmentExists) {
-        continue;
-      }
+    const segmentExists = await objectExists(bucketName, segmentS3Key);
+    if (segmentExists) {
+      // Return existing segment metadata
+      const metadata = await getSegmentMetadata(bucketName, segmentS3Key);
+      return {
+        episodeId,
+        clipId,
+        segmentFile: segmentS3Key,
+        status: 'completed',
+        metadata
+      };
+    }
 
-      if (chunkMappings.length === 1) {
-        await extractSingleChunkSegment(chunkMappings[0], segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId);
-      } else {
-        await extractMultiChunkSegment(chunkMappings, segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId);
-      }
+    let metadata;
+    if (chunkMappings.length === 1) {
+      metadata = await extractSingleChunkSegment(chunkMappings[0], segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId, tenantId);
+    } else {
+      metadata = await extractMultiChunkSegment(chunkMappings, segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId, tenantId);
     }
 
     return {
       episodeId,
       clipId,
-      segmentFiles,
-      totalSegments: segments.length,
+      segmentFile: segmentS3Key,
       status: 'completed',
-      ffmpegVersion
+      metadata
     };
 
   } catch (error) {
@@ -91,7 +123,7 @@ export const handler = async (event) => {
   }
 };
 
-async function extractSingleChunkSegment(chunkMapping, segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId) {
+async function extractSingleChunkSegment(chunkMapping, segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId, tenantId) {
   const chunkLocalPath = join(tempDir, `chunk_${segmentIndex}.mp4`);
   const segmentLocalPath = join(tempDir, `segment_${segmentIndex}.mp4`);
 
@@ -105,13 +137,21 @@ async function extractSingleChunkSegment(chunkMapping, segmentS3Key, bucketName,
       'duration': chunkMapping.duration.toString()
     }, tenantId);
     await verifySegmentIntegrity(bucketName, segmentS3Key, uploadResult.fileSize);
+
+    // Get file stats for metadata
+    const stats = await fs.stat(segmentLocalPath);
+    return {
+      duration: chunkMapping.duration,
+      fileSize: uploadResult.fileSize,
+      resolution: uploadResult.resolution || "1920x1080" // Default resolution if not available
+    };
   } finally {
     await cleanup(chunkLocalPath);
     await cleanup(segmentLocalPath);
   }
 }
 
-async function extractMultiChunkSegment(chunkMappings, segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId) {
+async function extractMultiChunkSegment(chunkMappings, segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId, tenantId) {
   const chunkParts = [];
   const segmentLocalPath = join(tempDir, `segment_${segmentIndex}.mp4`);
 
@@ -135,6 +175,15 @@ async function extractMultiChunkSegment(chunkMappings, segmentS3Key, bucketName,
       'total-duration': chunkMappings.reduce((sum, m) => sum + m.duration, 0).toString()
     }, tenantId);
     await verifySegmentIntegrity(bucketName, segmentS3Key, uploadResult.fileSize);
+
+    // Get file stats for metadata
+    const stats = await fs.stat(segmentLocalPath);
+    const totalDuration = chunkMappings.reduce((sum, m) => sum + m.duration, 0);
+    return {
+      duration: totalDuration,
+      fileSize: uploadResult.fileSize,
+      resolution: uploadResult.resolution || "1920x1080" // Default resolution if not available
+    };
   } finally {
     for (const partPath of chunkParts) {
       await cleanup(partPath);

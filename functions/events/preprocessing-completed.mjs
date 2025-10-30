@@ -2,6 +2,7 @@ import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 
+
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
 
@@ -65,11 +66,13 @@ export const handler = async (event) => {
       }
     }
 
+    const newStatus = 'processed';
+
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
-      UpdateExpression: 'SET #status = :processed, #manifestKey = :manifestKey, #segmentIndex = :segmentIndex, #segmentCount = :segmentCount, #totalDurationSeconds = :total, #updatedAt = :now',
+      UpdateExpression: 'SET #status = :processed, #manifestKey = :manifestKey, #segmentIndex = :segmentIndex, #segmentCount = :segmentCount, #totalDurationSeconds = :total, #updatedAt = :now, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
       ExpressionAttributeNames: {
         '#status': 'status',
         '#manifestKey': 'manifestKey',
@@ -77,14 +80,20 @@ export const handler = async (event) => {
         '#segmentCount': 'segmentCount',
         '#totalDurationSeconds': 'totalDurationSeconds',
         '#updatedAt': 'updatedAt',
+        '#statusHistory': 'statusHistory'
       },
       ExpressionAttributeValues: marshall({
-        ':processed': 'Processed',
+        ':processed': newStatus,
         ':manifestKey': manifestKey || null,
         ':segmentIndex': segmentIndex,
         ':segmentCount': segmentCount,
         ':total': totalDurationSeconds,
         ':now': now,
+        ':emptyList': [],
+        ':newStatusEntry': [{
+          status: newStatus,
+          timestamp: now
+        }]
       })
     }));
 

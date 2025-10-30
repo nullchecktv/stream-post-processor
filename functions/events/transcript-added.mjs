@@ -39,20 +39,28 @@ export const handler = async (event) => {
     }
 
     const now = new Date().toISOString();
+    const newStatus = 'transcript uploaded';
+
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
-      UpdateExpression: 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt',
+      UpdateExpression: 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
       ExpressionAttributeNames: {
         '#transcriptKey': 'transcriptKey',
         '#status': 'status',
-        '#updatedAt': 'updatedAt'
+        '#updatedAt': 'updatedAt',
+        '#statusHistory': 'statusHistory'
       },
       ExpressionAttributeValues: marshall({
         ':key': key,
-        ':status': 'Transcript Uploaded',
+        ':status': newStatus,
         ':updatedAt': now,
+        ':emptyList': [],
+        ':newStatusEntry': [{
+          status: newStatus,
+          timestamp: now
+        }]
       }),
     }));
 

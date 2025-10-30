@@ -1,9 +1,9 @@
-import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
 import { loadTranscript } from "../utils/transcripts.mjs";
-import { marshall } from "@aws-sdk/util-dynamodb";
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 
 const ddb = new DynamoDBClient();
@@ -39,6 +39,24 @@ export const handler = async (event) => {
       throw new Error('Could not find transcript');
     }
 
+    let episodeMeta;
+    try {
+      const episodeResponse = await ddb.send(new GetItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
+      }));
+      episodeMeta = episodeResponse?.Item ? unmarshall(episodeResponse.Item) : undefined;
+    } catch (e) {
+      console.warn('Failed to load episode metadata for prompt enrichment', e);
+    }
+
+    const hasDescription = Boolean(episodeMeta?.description);
+    const hasThemes = Array.isArray(episodeMeta?.themes) && episodeMeta.themes.length > 0;
+    const episodeContextForUser = [
+      hasDescription ? `description: ${episodeMeta.description}` : null,
+      hasThemes ? `themes: ${episodeMeta.themes.join(', ')}` : null,
+    ].filter(Boolean).join('\n');
+
     const systemPrompt = `
 You are ClipForge, an autonomous clip discovery editor for the YouTube show **Null Check** hosted by Allen Helton and Andres Moreno.
 Your job on each run:
@@ -69,6 +87,7 @@ Moments should:
 * Stand alone without requiring full-episode context.
 * Range from 25 to 45 seconds long
 * Be composed of one or more segments that tell a complete story
+* Be relevant to the episode's description and themes when provided. Prefer moments that align with that context; deprioritize off-topic content.
 
 Avoid filler talk, monotone technical explanation, inside jokes that depend on prior episodes, or sections with heavy cross-talk.
 
@@ -124,10 +143,14 @@ Think like a YouTube growth editor, not a stenographer.
 
     const userPrompt = `
 episodeId: ${episodeId}
+${episodeContextForUser ? `episodeContext:\n${episodeContextForUser}\n` : ''}
 transcript:
 ${transcript}
 `;
     const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId });
+
+    const now = new Date().toISOString();
+    const newStatus = 'analyzed';
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -135,16 +158,22 @@ ${transcript}
         pk: `${tenantId}#${episodeId}`,
         sk: 'metadata'
       }),
-      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt, #status = :status',
+      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt, #status = :status, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
       ExpressionAttributeNames: {
         '#summary': 'summary',
         '#updatedAt': 'updatedAt',
-        '#status': 'status'
+        '#status': 'status',
+        '#statusHistory': 'statusHistory'
       },
       ExpressionAttributeValues: marshall({
         ':summary': response,
-        ':updatedAt': new Date().toISOString(),
-        ':status': 'Analyzed'
+        ':updatedAt': now,
+        ':status': newStatus,
+        ':emptyList': [],
+        ':newStatusEntry': [{
+          status: newStatus,
+          timestamp: now
+        }]
       })
     }));
 
