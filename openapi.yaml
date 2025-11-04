@@ -35,6 +35,8 @@ tags:
   - name: Episodes
   - name: Uploads
   - name: Clips
+  - name: Teams
+  - name: Users
 paths:
   /episodes:
     get:
@@ -690,6 +692,333 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /teams:
+    get:
+      summary: List user's teams
+      description: Gets a list of all teams where the user is a member
+      tags: [Teams]
+      responses:
+        200:
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamListView"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListTeamsFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      summary: Create team
+      description: Creates a new team with the user as owner
+      tags: [Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: Team name (must be unique within user scope)
+                description:
+                  type: string
+                  maxLength: 500
+                  description: Optional team description
+                settings:
+                  type: object
+                  description: Optional team settings
+                  properties:
+                    defaultPlatforms:
+                      type: array
+                      items:
+                        type: string
+                        enum: ["linkedin live", "X", "twitch", "youtube"]
+                      description: Default platforms for team episodes
+                    timezone:
+                      type: string
+                      description: Team timezone
+                      example: "America/New_York"
+              required: [name]
+      responses:
+        201:
+          description: Team created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Team identifier
+                  name:
+                    type: string
+                    description: Team name
+                  ownerId:
+                    type: string
+                    description: User ID of team owner
+                  createdAt:
+                    type: string
+                    format: date-time
+                required: [id, name, ownerId, createdAt]
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data or team name already exists
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateTeamFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /teams/{teamId}:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+    get:
+      summary: Get team details
+      description: Retrieves team information for authorized users
+      tags: [Teams]
+      responses:
+        200:
+          description: Team details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not a member of this team
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team not found
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetTeamFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    put:
+      summary: Update team
+      description: Updates team information (owner only)
+      tags: [Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: Team name
+                description:
+                  type: string
+                  maxLength: 500
+                  description: Team description
+                settings:
+                  type: object
+                  description: Team settings
+                  properties:
+                    defaultPlatforms:
+                      type: array
+                      items:
+                        type: string
+                        enum: ["linkedin live", "X", "twitch", "youtube"]
+                    timezone:
+                      type: string
+      responses:
+        200:
+          description: Team updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not the team owner
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateTeamFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    delete:
+      summary: Delete team
+      description: Deletes team and all associated data (owner only)
+      tags: [Teams]
+      responses:
+        204:
+          description: Team deleted successfully
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not the team owner
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteTeamFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /me:
+    get:
+      summary: Get user profile
+      description: Retrieves the current user's profile information including active team
+      tags: [Users]
+      responses:
+        200:
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUserProfileFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    put:
+      summary: Update user profile
+      description: Updates user profile information and preferences
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                  description: User display name
+                preferences:
+                  type: object
+                  description: User preferences and settings
+                  properties:
+                    timezone:
+                      type: string
+                      description: User timezone
+                      example: "America/New_York"
+                    notifications:
+                      type: boolean
+                      description: Enable notifications
+                      example: true
+      responses:
+        200:
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateUserProfileFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /me/teams:
+    post:
+      summary: Set active team
+      description: Sets the user's active team context or clears it for individual mode
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teamId:
+                  type: string
+                  description: Team ID to activate, or null to switch to individual mode
+                  nullable: true
+                  example: "team-123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        200:
+          description: Active team updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activeTeamId:
+                    type: string
+                    nullable: true
+                    description: Current active team ID
+                  message:
+                    type: string
+                    description: Success message
+                    example: "Active team updated successfully"
+                  requiresTokenRefresh:
+                    type: boolean
+                    description: Always false - cache is automatically flushed server-side
+                    example: false
+                required: [activeTeamId, message, requiresTokenRefresh]
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid team ID or user not a member of specified team
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team not found
+        422:
+          description: User not a member of specified team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "UnprocessableEntity"
+                message: "User is not a member of the specified team"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SetActiveTeamFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
 components:
   parameters:
     EpisodeId:
@@ -707,6 +1036,12 @@ components:
     ClipId:
       in: path
       name: clipId
+      required: true
+      schema:
+        type: string
+    TeamId:
+      in: path
+      name: teamId
       required: true
       schema:
         type: string
@@ -1042,6 +1377,167 @@ components:
                   type: integer
                   example: 2
 
+    TeamListView:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Team identifier
+          example: "team-123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: Team name
+          example: "Content Team Alpha"
+        role:
+          type: string
+          description: User's role in the team
+          enum: ["owner", "member"]
+          example: "owner"
+        memberCount:
+          type: integer
+          description: Number of team members
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          description: When the team was created
+          example: "2025-01-15T10:30:00Z"
+      required:
+        - id
+        - name
+        - role
+        - createdAt
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Team identifier
+          example: "team-123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: Team name
+          example: "Content Team Alpha"
+        description:
+          type: string
+          description: Team description
+          example: "Main content creation team"
+        ownerId:
+          type: string
+          description: User ID of team owner
+          example: "user-456e7890-e89b-12d3-a456-426614174001"
+        status:
+          type: string
+          description: Team status
+          enum: ["active", "archived"]
+          example: "active"
+        settings:
+          type: object
+          description: Team settings
+          properties:
+            defaultPlatforms:
+              type: array
+              items:
+                type: string
+                enum: ["linkedin live", "X", "twitch", "youtube"]
+              example: ["twitch", "youtube"]
+            timezone:
+              type: string
+              example: "America/New_York"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the team was created
+          example: "2025-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the team was last updated
+          example: "2025-01-15T10:35:00Z"
+      required:
+        - id
+        - name
+        - ownerId
+        - status
+        - createdAt
+        - updatedAt
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User identifier
+          example: "user-456e7890-e89b-12d3-a456-426614174001"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+        name:
+          type: string
+          description: User display name
+          example: "John Doe"
+        activeTeamId:
+          type: string
+          nullable: true
+          description: Currently active team ID, null for individual mode
+          example: "team-123e4567-e89b-12d3-a456-426614174000"
+        preferences:
+          type: object
+          description: User preferences and settings
+          properties:
+            timezone:
+              type: string
+              example: "America/New_York"
+            notifications:
+              type: boolean
+              example: true
+        teams:
+          type: array
+          description: Teams the user belongs to
+          items:
+            type: object
+            properties:
+              teamId:
+                type: string
+                description: Team identifier
+                example: "team-123e4567-e89b-12d3-a456-426614174000"
+              teamName:
+                type: string
+                description: Team name
+                example: "Content Team Alpha"
+              role:
+                type: string
+                enum: ["owner", "member"]
+                description: User's role in the team
+                example: "owner"
+              joinedAt:
+                type: string
+                format: date-time
+                description: When user joined the team
+                example: "2025-01-15T10:30:00Z"
+            required: [teamId, teamName, role, joinedAt]
+        createdAt:
+          type: string
+          format: date-time
+          description: When the user account was created
+          example: "2025-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the profile was last updated
+          example: "2025-01-15T10:35:00Z"
+      required:
+        - id
+        - email
+        - name
+        - activeTeamId
+        - teams
+        - createdAt
+        - updatedAt
+
     StatusHistoryEntry:
       type: object
       properties:
@@ -1134,6 +1630,24 @@ components:
           example:
             error: "Unauthorized"
             message: "Valid JWT token required"
+
+    Forbidden:
+      description: Access denied - user lacks required permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            team_access_denied:
+              summary: Team access denied
+              value:
+                error: "Forbidden"
+                message: "User is not a member of this team"
+            owner_required:
+              summary: Owner privileges required
+              value:
+                error: "Forbidden"
+                message: "Only team owners can perform this action"
 
     NotFound:
       description: Resource not found

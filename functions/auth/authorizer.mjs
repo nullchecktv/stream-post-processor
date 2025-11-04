@@ -1,8 +1,11 @@
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
 let verifier;
 const cognito = new CognitoIdentityProviderClient();
+const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   try {
@@ -31,23 +34,23 @@ export const handler = async (event) => {
     const decoded = await verifier.verify(token);
     const userInfo = await getUserAttributes(token);
     const userId = userInfo.sub || decoded.sub;
-    const tenantId = userInfo['custom:tenantId'] || null;
     const email = userInfo.email;
+    const tokenTenantId = userInfo['custom:tenantId'] || decoded.tenantId || userId;
 
     if (!userId) {
       console.error('Missing userId (sub) in user attributes');
       throw new Error('Unauthorized');
     }
 
-    if (!tenantId) {
-      console.error('Missing tenantId in user attributes');
-      throw new Error('Unauthorized');
-    }
+    const userProfile = await getUserProfile(userId);
+    const tenantId = userProfile?.activeTeamId || tokenTenantId;
+    const activeTeamId = userProfile?.activeTeamId || null;
 
     const apiArn = getApiArnPattern(event.methodArn);
     const policy = generatePolicy(userId, 'Allow', apiArn, {
       tenantId,
       userId,
+      ...activeTeamId && { activeTeamId },
       email: email || '',
     });
 
@@ -73,6 +76,27 @@ const getUserAttributes = async (accessToken) => {
   } catch (err) {
     console.error("Error fetching user attributes:", err);
     throw new Error('Failed to fetch user attributes');
+  }
+};
+
+const getUserProfile = async (userId) => {
+  try {
+    const response = await ddb.send(new GetItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({
+        pk: `user#${userId}`,
+        sk: 'profile'
+      })
+    }));
+
+    if (!response.Item) {
+      return null;
+    }
+
+    return unmarshall(response.Item);
+  } catch (err) {
+    console.error("Error fetching user profile:", err);
+    return null;
   }
 };
 

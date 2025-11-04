@@ -240,8 +240,13 @@ Resources:
               Action:
                 - cognito-idp:GetUser
               Resource: "*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
           USER_POOL_ID: !Ref CognitoUserPool
           USER_POOL_CLIENT_ID: !Ref UserPoolClient
 
@@ -284,6 +289,15 @@ Resources:
       Handler: auth/pre-token-generation.handler
       Policies:
         - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
 
   PreTokenGenerationTriggerPermission:
     Type: AWS::Lambda::Permission
@@ -852,6 +866,261 @@ Resources:
             RestApiId: !Ref Api
             Path: /episodes/{episodeId}/tracks/{trackName}
             Method: PUT
+
+  CreateTeamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/create-team.mjs
+    Properties:
+      Handler: teams/create-team.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams
+            Method: POST
+
+  ListTeamsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/list-teams.mjs
+    Properties:
+      Handler: teams/list-teams.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:BatchGetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams
+            Method: GET
+
+  GetTeamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/get-team.mjs
+    Properties:
+      Handler: teams/get-team.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Get:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}
+            Method: GET
+
+  UpdateTeamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/update-team.mjs
+    Properties:
+      Handler: teams/update-team.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Update:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}
+            Method: PUT
+
+  DeleteTeamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/delete-team.mjs
+    Properties:
+      Handler: teams/delete-team.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Delete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}
+            Method: DELETE
+
+  GetUserProfileFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - users/get-profile.mjs
+    Properties:
+      Handler: users/get-profile.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Get:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /me
+            Method: GET
+
+  UpdateUserProfileFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - users/update-profile.mjs
+    Properties:
+      Handler: users/update-profile.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Update:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /me
+            Method: PUT
+
+  SetActiveTeamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - users/set-active-team.mjs
+    Properties:
+      Handler: users/set-active-team.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - apigateway:DELETE
+              Resource: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/*/stages/api/cache/authorizers"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        SetActive:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /me/teams
+            Method: POST
 
   MediaConvertRole:
     Type: AWS::IAM::Role
