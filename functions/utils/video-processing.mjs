@@ -221,7 +221,7 @@ export const generateClipKey = (episodeId, clipId, tenantId) => {
     throw new Error('tenantId is required for generating clip keys');
   }
 
-  return `${tenantId}/${episodeId}/clips/${clipId}/clip.mp4`;
+  return `${tenantId}/${episodeId}/clips/${clipId}.mp4`;
 };
 
 export const createConcatFileContent = (segmentFiles) => {

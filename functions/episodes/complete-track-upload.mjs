@@ -3,6 +3,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { initializeStatusHistory } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -53,6 +54,8 @@ export const handler = async (event) => {
     }));
 
     const now = new Date().toISOString();
+    const newStatus = 'tracks uploaded';
+
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
@@ -60,18 +63,27 @@ export const handler = async (event) => {
         sk: 'metadata'
       }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
-      UpdateExpression: 'SET #updatedAt = :updatedAt, #status = :status ADD #numTracks :one',
+      UpdateExpression: 'SET #updatedAt = :updatedAt, #status = :status, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry) ADD #numTracks :one',
       ExpressionAttributeNames: {
         '#updatedAt': 'updatedAt',
         '#status': 'status',
+        '#statusHistory': 'statusHistory',
         '#numTracks': 'numTracks'
       },
       ExpressionAttributeValues: marshall({
         ':updatedAt': now,
-        ':status': 'Track(s) Uploaded',
+        ':status': newStatus,
+        ':emptyList': [],
+        ':newStatusEntry': [{
+          status: newStatus,
+          timestamp: now
+        }],
         ':one': 1
       })
     }));
+
+    const trackStatus = 'uploaded';
+    const trackStatusHistory = initializeStatusHistory(trackStatus, now);
 
     try {
       await ddb.send(new PutItemCommand({
@@ -80,7 +92,8 @@ export const handler = async (event) => {
         Item: marshall({
           pk: `${tenantId}#${episodeId}`,
           sk: `track#${trackName}`,
-          status: 'Unprocessed',
+          status: trackStatus,
+          statusHistory: trackStatusHistory,
           trackName,
           uploadKey: key,
           speakers: speakers,
@@ -96,12 +109,22 @@ export const handler = async (event) => {
             pk: `${tenantId}#${episodeId}`,
             sk: `track#${trackName}`
           }),
-          UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name, speakers = :speakers',
+          UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name, speakers = :speakers, #status = :status, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
+          ExpressionAttributeNames: {
+            '#status': 'status',
+            '#statusHistory': 'statusHistory'
+          },
           ExpressionAttributeValues: marshall({
             ':key': key,
             ':updatedAt': now,
             ':name': trackName,
-            ':speakers': speakers
+            ':speakers': speakers,
+            ':status': trackStatus,
+            ':emptyList': [],
+            ':newStatusEntry': [{
+              status: trackStatus,
+              timestamp: now
+            }]
           })
         }));
       } else {

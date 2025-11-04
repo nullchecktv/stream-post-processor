@@ -144,7 +144,11 @@ describe('Track-Speaker Management Integration Tests', () => {
       };
 
       const selectTrackForSpeaker = (tracks, speaker) => {
-        return tracks.find(track => (track.speakers || []).includes(speaker)) || null;
+        return tracks.find(track =>
+          (track.speakers || []).some(trackSpeaker =>
+            trackSpeaker.toLowerCase() === speaker.toLowerCase()
+          )
+        ) || null;
       };
 
       for (const segment of clipData.segments) {

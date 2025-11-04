@@ -33,12 +33,18 @@ describe('Video Processing Utilities', () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const generateSegmentKey = (episodeId, clipId, segmentIndex) => {
-    return `${episodeId}/clips/${clipId}/segments/${segmentIndex.toString().padStart(3, '0')}.mp4`;
+  const generateSegmentKey = (episodeId, clipId, segmentIndex, tenantId) => {
+    if (!tenantId) {
+      throw new Error('tenantId is required for generating segment keys');
+    }
+    return `${tenantId}/${episodeId}/clips/${clipId}/segments/${segmentIndex.toString().padStart(3, '0')}.mp4`;
   };
 
-  const generateClipKey = (episodeId, clipId) => {
-    return `${episodeId}/clips/${clipId}/clip.mp4`;
+  const generateClipKey = (episodeId, clipId, tenantId) => {
+    if (!tenantId) {
+      throw new Error('tenantId is required for generating clip keys');
+    }
+    return `${tenantId}/${episodeId}/clips/${clipId}.mp4`;
   };
 
   const createConcatFileContent = (segmentFiles) => {
@@ -109,15 +115,23 @@ describe('Video Processing Utilities', () => {
 
   describe('generateSegmentKey', () => {
     test('should generate correct S3 key', () => {
-      expect(generateSegmentKey('episode-123', 'clip-456', 0)).toBe('episode-123/clips/clip-456/segments/000.mp4');
-      expect(generateSegmentKey('episode-123', 'clip-456', 5)).toBe('episode-123/clips/clip-456/segments/005.mp4');
-      expect(generateSegmentKey('episode-123', 'clip-456', 123)).toBe('episode-123/clips/clip-456/segments/123.mp4');
+      expect(generateSegmentKey('episode-123', 'clip-456', 0, 'tenant123')).toBe('tenant123/episode-123/clips/clip-456/segments/000.mp4');
+      expect(generateSegmentKey('episode-123', 'clip-456', 5, 'tenant123')).toBe('tenant123/episode-123/clips/clip-456/segments/005.mp4');
+      expect(generateSegmentKey('episode-123', 'clip-456', 123, 'tenant123')).toBe('tenant123/episode-123/clips/clip-456/segments/123.mp4');
+    });
+
+    test('should throw error when tenantId is missing', () => {
+      expect(() => generateSegmentKey('episode-123', 'clip-456', 0)).toThrow('tenantId is required for generating segment keys');
     });
   });
 
   describe('generateClipKey', () => {
     test('should generate correct clip key', () => {
-      expect(generateClipKey('episode-123', 'clip-456')).toBe('episode-123/clips/clip-456/clip.mp4');
+      expect(generateClipKey('episode-123', 'clip-456', 'tenant123')).toBe('tenant123/episode-123/clips/clip-456.mp4');
+    });
+
+    test('should throw error when tenantId is missing', () => {
+      expect(() => generateClipKey('episode-123', 'clip-456')).toThrow('tenantId is required for generating clip keys');
     });
   });
 

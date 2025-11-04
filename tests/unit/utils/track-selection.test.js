@@ -3,9 +3,13 @@
 
 describe('Track Selection Algorithm', () => {
   describe('Speaker Matching Logic', () => {
-    // Mock track selection function
+    // Mock track selection function with case-insensitive matching
     const selectTrackForSpeaker = (tracks, speaker) => {
-      return tracks.find(track => (track.speakers || []).includes(speaker)) || null;
+      return tracks.find(track =>
+        (track.speakers || []).some(trackSpeaker =>
+          trackSpeaker.toLowerCase() === speaker.toLowerCase()
+        )
+      ) || null;
     };
 
     test('should select track with matching speaker', () => {
@@ -106,7 +110,7 @@ describe('Track Selection Algorithm', () => {
       expect(result).toBeNull();
     });
 
-    test('should handle case-sensitive speaker matching', () => {
+    test('should handle case-insensitive speaker matching', () => {
       const tracks = [
         {
           trackName: 'main',
@@ -116,16 +120,21 @@ describe('Track Selection Algorithm', () => {
 
       const result = selectTrackForSpeaker(tracks, 'Host'); // Different case
 
-      expect(result).toBeNull(); // Case-sensitive matching
+      expect(result).not.toBeNull(); // Case-insensitive matching
+      expect(result.trackName).toBe('main');
     });
   });
 
   describe('Multiple Speaker Selection', () => {
-    // Mock function for selecting tracks for multiple speakers
+    // Mock function for selecting tracks for multiple speakers with case-insensitive matching
     const selectTracksForSpeakers = (tracks, speakers) => {
       const results = {};
       for (const speaker of speakers) {
-        results[speaker] = tracks.find(track => (track.speakers || []).includes(speaker)) || null;
+        results[speaker] = tracks.find(track =>
+          (track.speakers || []).some(trackSpeaker =>
+            trackSpeaker.toLowerCase() === speaker.toLowerCase()
+          )
+        ) || null;
       }
       return results;
     };
@@ -190,7 +199,17 @@ describe('Track Selection Algorithm', () => {
 
   describe('Error Handling and Edge Cases', () => {
     const selectTrackForSpeaker = (tracks, speaker) => {
-      return tracks.find(track => (track.speakers || []).includes(speaker)) || null;
+      if (!speaker || typeof speaker !== 'string') return null;
+
+      return tracks.find(track => {
+        const speakers = track.speakers;
+        if (!Array.isArray(speakers)) return false;
+
+        return speakers.some(trackSpeaker =>
+          typeof trackSpeaker === 'string' &&
+          trackSpeaker.toLowerCase() === speaker.toLowerCase()
+        );
+      }) || null;
     };
 
     test('should handle malformed track data', () => {
@@ -258,7 +277,11 @@ describe('Track Selection Algorithm', () => {
 
   describe('Speaker Name Validation', () => {
     const selectTrackForSpeaker = (tracks, speaker) => {
-      return tracks.find(track => (track.speakers || []).includes(speaker)) || null;
+      return tracks.find(track =>
+        (track.speakers || []).some(trackSpeaker =>
+          trackSpeaker.toLowerCase() === speaker.toLowerCase()
+        )
+      ) || null;
     };
 
     test('should match exact speaker names', () => {
@@ -388,7 +411,9 @@ describe('Track Selection Algorithm', () => {
       const efficientFind = (tracks, targetSpeaker) => {
         for (const track of tracks) {
           searchCount++;
-          if ((track.speakers || []).includes(targetSpeaker)) {
+          if ((track.speakers || []).some(trackSpeaker =>
+            trackSpeaker.toLowerCase() === targetSpeaker.toLowerCase()
+          )) {
             return track;
           }
         }
@@ -411,7 +436,11 @@ describe('Track Selection Algorithm', () => {
       ];
 
       const selectTrackForSpeaker = (tracks, speaker) => {
-        return tracks.find(track => (track.speakers || []).includes(speaker)) || null;
+        return tracks.find(track =>
+          (track.speakers || []).some(trackSpeaker =>
+            trackSpeaker.toLowerCase() === speaker.toLowerCase()
+          )
+        ) || null;
       };
 
       // Should handle large arrays without issues
@@ -429,7 +458,11 @@ describe('Track Selection Algorithm', () => {
       };
 
       const selectTrackWithLogging = (tracks, speaker, logger) => {
-        const result = tracks.find(track => (track.speakers || []).includes(speaker));
+        const result = tracks.find(track =>
+          (track.speakers || []).some(trackSpeaker =>
+            trackSpeaker.toLowerCase() === speaker.toLowerCase()
+          )
+        );
         if (!result) {
           logger.warn(`No track found for speaker: ${speaker}`);
           return null;
@@ -454,7 +487,11 @@ describe('Track Selection Algorithm', () => {
       const processSegments = (segments, tracks) => {
         const results = [];
         const selectTrackForSpeaker = (tracks, speaker) => {
-          return tracks.find(track => (track.speakers || []).includes(speaker)) || null;
+          return tracks.find(track =>
+            (track.speakers || []).some(trackSpeaker =>
+              trackSpeaker.toLowerCase() === speaker.toLowerCase()
+            )
+          ) || null;
         };
 
         for (const segment of segments) {

@@ -7,10 +7,10 @@ This directory contains Lambda functions for the video clip processing workflow 
 The video clip processing system uses a Step Functions state machine to coordinate the following workflow:
 
 1. **Initialize Processing**: Parse clip recommendations and prepare processing context
-2. **Parallel Processing**: Process multiple clips concurrently (up to 5)
+2. **Set Status**: Update clip status to "Generation in Progress" using direct DynamoDB integration
 3. **Extract Segments**: Extract video segments from chunked video files
 4. **Stitch Clips**: Combine segments into final clip files
-5. **Update Records**: Update DynamoDB with processing results
+5. **Update Records**: Update DynamoDB with final metadata using direct DynamoDB integration
 
 ## Functions
 
@@ -26,11 +26,10 @@ The video clip processing system uses a Step Functions state machine to coordina
 - **Timeout**: 10 minutes
 - **Status**: Placeholder implementation (to be completed in task 3)
 
-### update-clip-record.mjs
-- **Purpose**: Updates DynamoDB clip records with processing results
-- **Memory**: 512 MB (default)
-- **Timeout**: 30 seconds
-- **Status**: Fully implemented
+### Direct DynamoDB Integration
+- **Purpose**: Status updates and metadata storage handled directly by Step Functions
+- **Implementation**: Native DynamoDB updateItem operations in the state machine
+- **Benefits**: Reduced latency, fewer moving parts, improved reliability
 
 ## Step Functions State Machine
 

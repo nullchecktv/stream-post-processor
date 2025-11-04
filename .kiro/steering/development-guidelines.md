@@ -253,3 +253,7 @@ try {
 - **Tracing enabled**: X-Ray tracing is enabled globally
 - **Custom segments**: Add custom segments for detailed tracing
 - **Error tracking**: Use tracing to identify performance bottlenecks
+
+## General build rules
+- **No SAM Validate** - This CLI command always fails when open api specs are involved. Use `sam build` instead.
+- **No comments** - Code should be self documenting, adding comments is unnecessary and should be avoided

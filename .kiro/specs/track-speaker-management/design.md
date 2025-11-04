@@ -117,9 +117,11 @@ const selectTrackForSpeaker = async (episodeId, speaker) => {
   // 1. Query all tracks for episode
   const tracks = await queryTracks(episodeId);
 
-  // 2. Find tracks containing speaker
+  // 2. Find tracks containing speaker (case-insensitive)
   const matchingTracks = tracks.filter(track =>
-    track.speakers && track.speakers.includes(speaker)
+    track.speakers && track.speakers.some(trackSpeaker =>
+      trackSpeaker.toLowerCase() === speaker.toLowerCase()
+    )
   );
 
   // 3. Return first match or null

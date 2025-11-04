@@ -1,0 +1,64 @@
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { formatResponse } from '../utils/api.mjs';
+import { getCurrentClipStatus } from '../utils/clips.mjs';
+
+const ddb = new DynamoDBClient();
+
+export const handler = async (event) => {
+  try {
+    const { tenantId } = event.requestContext.authorizer;
+    const { episodeId, clipId } = event.pathParameters;
+
+    if (!tenantId) {
+      console.error('Missing tenantId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
+
+    if (!episodeId || !clipId) {
+      return formatResponse(400, {
+        error: 'BadRequest',
+        message: 'Episode ID and Clip ID are required'
+      });
+    }
+
+    const result = await ddb.send(new GetItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({
+        pk: `${tenantId}#${episodeId}`,
+        sk: `clip#${clipId}`
+      })
+    }));
+
+    if (!result.Item) {
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Clip with ID '${clipId}' was not found in episode '${episodeId}'`
+      });
+    }
+
+    const clip = unmarshall(result.Item);
+
+    const currentStatus = getCurrentClipStatus(clip);
+
+    const response = {
+      id: clip.clipId,
+      episodeId: episodeId,
+      title: clip.hook || clip.title,
+      description: clip.summary || clip.description,
+      status: currentStatus,
+      duration: clip.duration,
+      tags: clip.tags || [],
+      segments: clip.segments || [],
+      createdAt: clip.createdAt,
+      updatedAt: clip.updatedAt,
+      ...clip.fileSize && { fileSize: clip.fileSize }
+    };
+
+    return formatResponse(200, response);
+
+  } catch (err) {
+    console.error('Error getting clip:', err);
+    return formatResponse(500, {   message: 'Something went wrong'    });
+  }
+};

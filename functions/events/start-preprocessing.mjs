@@ -44,7 +44,7 @@ export const handler = async (event) => {
         Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` }),
         ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk) AND attribute_not_exists(#jobId) AND attribute_not_exists(#lock)',
         UpdateExpression: [
-          'SET #status = :processing',
+          'SET #status = :processing, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
           '#chunkDuration = :chunkDuration',
           '#outputPrefix = :outputPrefix',
           '#uploadKey = :uploadKey',
@@ -53,6 +53,7 @@ export const handler = async (event) => {
         ].join(', '),
         ExpressionAttributeNames: {
           '#status': 'status',
+          '#statusHistory': 'statusHistory',
           '#chunkDuration': 'chunkDuration',
           '#outputPrefix': 'outputPrefix',
           '#uploadKey': 'uploadKey',
@@ -61,7 +62,12 @@ export const handler = async (event) => {
           '#updatedAt': 'updatedAt',
         },
         ExpressionAttributeValues: marshall({
-          ':processing': 'Processing',
+          ':processing': 'processing',
+          ':emptyList': [],
+          ':newStatusEntry': [{
+            status: 'processing',
+            timestamp: now
+          }],
           ':chunkDuration': CHUNK_SECONDS,
           ':outputPrefix': outputPrefix,
           ':uploadKey': s3Key,

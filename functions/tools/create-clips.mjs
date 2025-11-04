@@ -3,6 +3,7 @@ import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import crypto, { randomUUID } from 'crypto';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
+import { initializeStatusHistory } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
 const MAX_CLIPS_PER_REQUEST = 10;
@@ -50,6 +51,9 @@ export const createClipTool = {
       const results = await Promise.allSettled(
         clips.map(async (clip) => {
           const id = randomUUID();
+          const now = new Date().toISOString();
+
+          const paddedSegments = addPaddingToSegments(clip.segments);
 
           const segmentSignature = clip.segments
             .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}`)
@@ -61,6 +65,9 @@ export const createClipTool = {
             .digest('hex')
             .slice(0, 16);
 
+          const initialStatus = 'detected';
+          const statusHistory = initializeStatusHistory(initialStatus, now);
+
           await ddb.send(
             new PutItemCommand({
               TableName: process.env.TABLE_NAME,
@@ -69,19 +76,20 @@ export const createClipTool = {
                 pk: `${tenantId}#${episodeId}`,
                 sk: `clip#${id}`,
                 GSI1PK: `${tenantId}#clips`,
-                GSI1SK: `${new Date().toISOString()}#${episodeId}#${id}`,
+                GSI1SK: `${now}#${episodeId}#${id}`,
                 clipId: id,
                 clipHash,
-                segments: clip.segments,
-                segmentCount: clip.segments.length,
-                totalDurationSeconds: calcTotalDuration(clip.segments),
+                segments: paddedSegments,
+                segmentCount: paddedSegments.length,
+                totalDurationSeconds: calcTotalDuration(paddedSegments),
                 hook: clip.hook,
                 summary: clip.summary,
                 bRollSuggestions: clip.bRollSuggestions,
                 clipType: clip.clipType,
-                status: 'pending',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+                status: initialStatus,
+                statusHistory,
+                createdAt: now,
+                updatedAt: now,
                 ttl: Math.floor(Date.now() / 1000) + (14 * 24 * 60 * 60)
               })
             })
@@ -110,16 +118,54 @@ export const createClipTool = {
 };
 
 /**
+ * Convert time string to seconds
+ */
+function timeToSeconds(timeStr) {
+  const [hh, mm, ss] = timeStr.split(':').map(Number);
+  return hh * 3600 + mm * 60 + ss;
+}
+
+/**
+ * Convert seconds to time string
+ */
+function secondsToTime(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Add padding to segment timestamps for smoother clips
+ */
+function addPaddingToSegments(segments) {
+  const PADDING_SECONDS = 1;
+
+  return segments.map(segment => {
+    const startSeconds = timeToSeconds(segment.startTime);
+    const endSeconds = timeToSeconds(segment.endTime);
+
+    const paddedStart = Math.max(0, startSeconds - PADDING_SECONDS);
+    const paddedEnd = endSeconds + PADDING_SECONDS;
+
+    return {
+      ...segment,
+      startTime: secondsToTime(paddedStart),
+      endTime: secondsToTime(paddedEnd),
+      originalStartTime: segment.startTime,
+      originalEndTime: segment.endTime
+    };
+  });
+}
+
+/**
  * Compute total duration from segments with required timestamps
  */
 function calcTotalDuration(segments) {
-  const toSeconds = (t) => {
-    const [hh, mm, ss] = t.split(':').map(Number);
-    return hh * 3600 + mm * 60 + ss;
-  };
   return segments.reduce((acc, seg) => {
-    const start = toSeconds(seg.startTime);
-    const end = toSeconds(seg.endTime);
+    const start = timeToSeconds(seg.startTime);
+    const end = timeToSeconds(seg.endTime);
     return acc + Math.max(0, end - start);
   }, 0);
 }

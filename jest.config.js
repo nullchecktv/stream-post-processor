@@ -6,7 +6,8 @@ module.exports = {
     '!**/node_modules/**'
   ],
   testMatch: [
-    '**/tests/**/*.test.js'
+    '**/tests/**/*.test.js',
+    '**/tests/**/*.test.mjs'
   ],
   transform: {
     '^.+\\.mjs$': 'babel-jest'

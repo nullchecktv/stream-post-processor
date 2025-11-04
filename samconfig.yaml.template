@@ -4,7 +4,7 @@ dev:
       stack_name: $STACK_NAME
       s3_prefix: $STACK_NAME
       region: us-east-1
-      capabilities: CAPABILITY_IAM
+      capabilities: CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
       image_repositories: []
       tags:
         - project=stream-post-processor

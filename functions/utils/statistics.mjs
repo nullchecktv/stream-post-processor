@@ -24,6 +24,7 @@ export async function getOrCreateClipStats(tenantId) {
       pk: tenantId,
       sk: 'stats',
       totalClips: 0,
+      clipsDeleted: 0,
       clipsByType: {
         educational: 0,
         funny: 0,

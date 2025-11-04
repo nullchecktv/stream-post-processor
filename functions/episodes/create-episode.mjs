@@ -2,6 +2,7 @@ import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import crypto from 'crypto';
 import { parseBody, formatResponse } from '../utils/api.mjs';
+import { initializeStatusHistory } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
 
@@ -50,6 +51,9 @@ export const handler = async (event) => {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
 
+    const initialStatus = 'draft';
+    const statusHistory = initializeStatusHistory(initialStatus, now);
+
     const item = {
       pk: `${tenantId}#${id}`,
       sk: 'metadata',
@@ -57,7 +61,8 @@ export const handler = async (event) => {
       GSI1SK: now,
       title,
       episodeNumber,
-      status: 'Draft',
+      status: initialStatus,
+      statusHistory,
       ...(description && { description }),
       ...(airDate && { airDate }),
       ...(platforms?.length && { platforms }),

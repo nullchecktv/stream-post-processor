@@ -28,7 +28,7 @@ If any answer is "no", don't abstract.
 ### Write Explicit Code
 ```javascript
 // Good: Clear and direct
-const episode = await docClient.send(new GetCommand({
+const episode = await docClient.send(new GetItemCommand({
   TableName: TABLE_NAME,
   Key: { pk: episodeId, sk: 'metadata' }
 }));

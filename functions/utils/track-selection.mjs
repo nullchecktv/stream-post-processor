@@ -12,6 +12,10 @@ const ddb = new DynamoDBClient();
  * @returns {Promise<Object|null>} The track object or null if no match
  */
 export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
+  if (!speaker || typeof speaker !== 'string') {
+    console.warn(`Invalid speaker parameter: ${speaker}`);
+    return null;
+  }
 
   const tracks = await getTracksForEpisode(episodeId, tenantId);
 
@@ -20,7 +24,31 @@ export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
     return null;
   }
 
-  const matchingTrack = tracks.find(track => (track.speakers || []).includes(speaker));
+  console.log(`Found ${tracks.length} tracks for episode '${episodeId}':`);
+  tracks.forEach(track => {
+    console.log(`  Track '${track.trackName}': speakers = ${JSON.stringify(track.speakers)}`);
+  });
+
+  const matchingTrack = tracks.find(track => {
+    const speakers = track.speakers;
+    if (!Array.isArray(speakers)) {
+      console.warn(`Track '${track.trackName}' has no speakers array`);
+      return false;
+    }
+
+    const hasMatch = speakers.some(trackSpeaker =>
+      typeof trackSpeaker === 'string' &&
+      trackSpeaker.toLowerCase() === speaker.toLowerCase()
+    );
+
+    return hasMatch;
+  });
+
+  if (matchingTrack) {
+    console.log(`FOUND matching track '${matchingTrack.trackName}' for speaker '${speaker}'`);
+  } else {
+    console.log(`NO matching track found for speaker '${speaker}'`);
+  }
 
   return matchingTrack || null;
 };
@@ -41,7 +69,21 @@ export const selectTracksForSpeakers = async (episodeId, speakers, tenantId) => 
   const unmatchedSpeakers = [];
 
   for (const speaker of speakers) {
-    const matchingTrack = tracks.find(track => (track.speakers || []).includes(speaker));
+    if (!speaker || typeof speaker !== 'string') {
+      results[speaker] = null;
+      unmatchedSpeakers.push(speaker);
+      continue;
+    }
+
+    const matchingTrack = tracks.find(track => {
+      const trackSpeakers = track.speakers;
+      if (!Array.isArray(trackSpeakers)) return false;
+
+      return trackSpeakers.some(trackSpeaker =>
+        typeof trackSpeaker === 'string' &&
+        trackSpeaker.toLowerCase() === speaker.toLowerCase()
+      );
+    });
     results[speaker] = matchingTrack || null;
 
     if (matchingTrack) {

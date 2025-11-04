@@ -1,0 +1,613 @@
+{
+  "StartAt": "Set In Progress",
+  "States": {
+    "Set In Progress": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key": {
+          "pk": {
+            "S.$": "States.Format('{}#{}', $.tenantId, $.episodeId)"
+          },
+          "sk": {
+            "S.$": "States.Format('clip#{}', $.clipId)"
+          }
+        },
+        "UpdateExpression": "SET #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatus), #status = :status, #updatedAt = :updatedAt, #processingStartedAt = :processingStartedAt",
+        "ExpressionAttributeNames": {
+          "#statusHistory": "statusHistory",
+          "#status": "status",
+          "#updatedAt": "updatedAt",
+          "#processingStartedAt": "processingStartedAt"
+        },
+        "ExpressionAttributeValues": {
+          ":status": {
+            "S": "processing"
+          },
+          ":newStatus": {
+            "L": [
+              {
+                "M": {
+                  "status": {
+                    "S": "processing"
+                  },
+                  "timestamp": {
+                    "S.$": "$$.State.EnteredTime"
+                  },
+                  "segmentCount": {
+                    "N.$": "States.Format('{}', States.ArrayLength($.segments))"
+                  }
+                }
+              }
+            ]
+          },
+          ":updatedAt": {
+            "S.$": "$$.State.EnteredTime"
+          },
+          ":processingStartedAt": {
+            "S.$": "$$.State.EnteredTime"
+          },
+          ":emptyList": {
+            "L": []
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ServiceException",
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Error Handler"
+        }
+      ],
+      "Next": "Iterate Segments",
+      "ResultPath": null
+    },
+    "Iterate Segments": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "Check Segment Exists",
+        "States": {
+          "Check Segment Exists": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::dynamodb:getItem",
+            "Parameters": {
+              "TableName": "${TableName}",
+              "Key": {
+                "pk": {
+                  "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
+                },
+                "sk": {
+                  "S.$": "States.Format('segment#{}#{}', $$.Execution.Input.clipId, $.order)"
+                }
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "DynamoDB.ServiceException",
+                  "DynamoDB.ProvisionedThroughputExceededException",
+                  "DynamoDB.ThrottlingException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "Next": "Segment Error Handler"
+              }
+            ],
+            "Next": "Segment Exists Choice",
+            "ResultPath": "$.existingSegment"
+          },
+          "Segment Exists Choice": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.existingSegment.Item",
+                "IsPresent": true,
+                "Next": "Return Existing Segment"
+              }
+            ],
+            "Default": "Create Segment Record"
+          },
+          "Return Existing Segment": {
+            "Type": "Pass",
+            "Parameters": {
+              "order.$": "$.existingSegment.Item.order.N",
+              "s3Key.$": "$.existingSegment.Item.s3Key.S",
+              "duration.$": "$.existingSegment.Item.duration.N",
+              "startTime.$": "$.existingSegment.Item.startTime.S",
+              "endTime.$": "$.existingSegment.Item.endTime.S",
+              "status": "existing"
+            },
+            "End": true
+          },
+          "Create Segment Record": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::dynamodb:putItem",
+            "Parameters": {
+              "TableName": "${TableName}",
+              "Item": {
+                "pk": {
+                  "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
+                },
+                "sk": {
+                  "S.$": "States.Format('segment#{}#{}', $$.Execution.Input.clipId, $.order)"
+                },
+                "order": {
+                  "N.$": "States.Format('{}', $.order)"
+                },
+                "clipId": {
+                  "S.$": "$$.Execution.Input.clipId"
+                },
+                "startTime": {
+                  "S.$": "$.startTime"
+                },
+                "endTime": {
+                  "S.$": "$.endTime"
+                },
+                "status": {
+                  "S": "processing"
+                },
+                "createdAt": {
+                  "S.$": "$$.State.EnteredTime"
+                },
+                "updatedAt": {
+                  "S.$": "$$.State.EnteredTime"
+                }
+              },
+              "ConditionExpression": "attribute_not_exists(pk) AND attribute_not_exists(sk)"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "DynamoDB.ServiceException",
+                  "DynamoDB.ProvisionedThroughputExceededException",
+                  "DynamoDB.ThrottlingException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              },
+              {
+                "ErrorEquals": [
+                  "DynamoDB.ConditionalCheckFailedException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 2,
+                "BackoffRate": 1.5,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": [
+                  "DynamoDB.ConditionalCheckFailedException"
+                ],
+                "Next": "Check Segment Exists"
+              },
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "Next": "Segment Error Handler"
+              }
+            ],
+            "Next": "Extract and store segment",
+            "ResultPath": "$.segmentRecord"
+          },
+          "Extract and store segment": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "OutputPath": "$.Payload",
+            "Parameters": {
+              "FunctionName": "${SegmentExtractor}",
+              "Payload": {
+                "tenantId.$": "$$.Execution.Input.tenantId",
+                "episodeId.$": "$$.Execution.Input.episodeId",
+                "clipId.$": "$$.Execution.Input.clipId",
+                "order.$": "$.order",
+                "segment": {
+                  "startTime.$": "$.startTime",
+                  "endTime.$": "$.endTime",
+                  "speaker.$": "$.speaker",
+                  "order.$": "$.order"
+                }
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "Next": "Segment Error Handler"
+              }
+            ],
+            "Next": "Update Segment Complete"
+          },
+          "Update Segment Complete": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::dynamodb:updateItem",
+            "Parameters": {
+              "TableName": "${TableName}",
+              "Key": {
+                "pk": {
+                  "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
+                },
+                "sk": {
+                  "S.$": "States.Format('segment#{}#{}', $$.Execution.Input.clipId, $.order)"
+                }
+              },
+              "UpdateExpression": "SET #status = :status, #s3Key = :s3Key, #duration = :duration, #updatedAt = :updatedAt",
+              "ExpressionAttributeNames": {
+                "#status": "status",
+                "#s3Key": "s3Key",
+                "#duration": "duration",
+                "#updatedAt": "updatedAt"
+              },
+              "ExpressionAttributeValues": {
+                ":status": {
+                  "S": "completed"
+                },
+                ":s3Key": {
+                  "S.$": "$.segmentFile"
+                },
+                ":duration": {
+                  "N.$": "States.Format('{}', $.metadata.duration)"
+                },
+                ":updatedAt": {
+                  "S.$": "$$.State.EnteredTime"
+                }
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "DynamoDB.ServiceException",
+                  "DynamoDB.ProvisionedThroughputExceededException",
+                  "DynamoDB.ThrottlingException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "Next": "Segment Error Handler"
+              }
+            ],
+            "ResultPath": null,
+            "End": true
+          },
+          "Segment Error Handler": {
+            "Type": "Pass",
+            "Parameters": {
+              "status": "failed",
+              "error": {
+                "message": "Segment extraction failed",
+                "timestamp.$": "$$.State.EnteredTime",
+                "segmentData.$": "$"
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "ItemsPath": "$.segments",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Error Handler"
+        }
+      ],
+      "Next": "Update Segments Complete Status",
+      "ResultPath": "$.generated"
+    },
+    "Update Segments Complete Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key": {
+          "pk": {
+            "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
+          },
+          "sk": {
+            "S.$": "States.Format('clip#{}', $$.Execution.Input.clipId)"
+          }
+        },
+        "UpdateExpression": "SET #statusHistory = list_append(#statusHistory, :newStatus), #updatedAt = :updatedAt",
+        "ExpressionAttributeNames": {
+          "#statusHistory": "statusHistory",
+          "#updatedAt": "updatedAt"
+        },
+        "ExpressionAttributeValues": {
+          ":newStatus": {
+            "L": [
+              {
+                "M": {
+                  "status": {
+                    "S": "processing"
+                  },
+                  "timestamp": {
+                    "S.$": "$$.State.EnteredTime"
+                  },
+                  "segmentCount": {
+                    "N.$": "States.Format('{}', States.ArrayLength($.generated))"
+                  },
+                  "processingStep": {
+                    "S": "segment_extraction_complete"
+                  }
+                }
+              }
+            ]
+          },
+          ":updatedAt": {
+            "S.$": "$$.State.EnteredTime"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ServiceException",
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Error Handler"
+        }
+      ],
+      "Next": "Compose Clip From Segments",
+      "ResultPath": null
+    },
+    "Compose Clip From Segments": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "FunctionName": "${ClipStitcher}",
+        "Payload": {
+          "tenantId.$": "$$.Execution.Input.tenantId",
+          "episodeId.$": "$$.Execution.Input.episodeId",
+          "clipId.$": "$$.Execution.Input.clipId",
+          "segments.$": "$.generated"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Error Handler"
+        }
+      ],
+      "Next": "Set Complete"
+    },
+    "Set Complete": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key": {
+          "pk": {
+            "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
+          },
+          "sk": {
+            "S.$": "States.Format('clip#{}', $$.Execution.Input.clipId)"
+          }
+        },
+        "UpdateExpression": "SET #statusHistory = list_append(#statusHistory, :newStatus), #status = :status, #updatedAt = :updatedAt, #s3Key = :s3Key, #duration = :duration",
+        "ExpressionAttributeNames": {
+          "#statusHistory": "statusHistory",
+          "#status": "status",
+          "#updatedAt": "updatedAt",
+          "#s3Key": "s3Key",
+          "#duration": "duration"
+        },
+        "ExpressionAttributeValues": {
+          ":status": {
+            "S": "processed"
+          },
+          ":newStatus": {
+            "L": [
+              {
+                "M": {
+                  "status": {
+                    "S": "processed"
+                  },
+                  "timestamp": {
+                    "S.$": "$$.State.EnteredTime"
+                  }
+                }
+              }
+            ]
+          },
+          ":updatedAt": {
+            "S.$": "$$.State.EnteredTime"
+          },
+          ":s3Key": {
+            "S.$": "$.clipS3Key"
+          },
+          ":duration": {
+            "S.$": "$.duration"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ServiceException",
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Error Handler"
+        }
+      ],
+      "End": true
+    },
+    "Error Handler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key": {
+          "pk": {
+            "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
+          },
+          "sk": {
+            "S.$": "States.Format('clip#{}', $$.Execution.Input.clipId)"
+          }
+        },
+        "UpdateExpression": "SET #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :failureStatus), #status = :status, #updatedAt = :updatedAt",
+        "ExpressionAttributeNames": {
+          "#statusHistory": "statusHistory",
+          "#status": "status",
+          "#updatedAt": "updatedAt"
+        },
+        "ExpressionAttributeValues": {
+          ":status": {
+            "S": "failed"
+          },
+          ":failureStatus": {
+            "L": [
+              {
+                "M": {
+                  "status": {
+                    "S": "failed"
+                  },
+                  "timestamp": {
+                    "S.$": "$$.State.EnteredTime"
+                  }
+                }
+              }
+            ]
+          },
+          ":updatedAt": {
+            "S.$": "$$.State.EnteredTime"
+          },
+          ":emptyList": {
+            "L": []
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ServiceException",
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Final Error State"
+        }
+      ],
+      "Next": "Fail State"
+    },
+    "Final Error State": {
+      "Type": "Pass",
+      "Parameters": {
+        "status": "failed",
+        "message": "Critical error: Unable to update clip status in database",
+        "timestamp.$": "$$.State.EnteredTime"
+      },
+      "Next": "Fail State"
+    },
+    "Fail State": {
+      "Type": "Fail",
+      "Cause": "Clip generation workflow failed",
+      "Error": "ClipGenerationError"
+    }
+  }
+}

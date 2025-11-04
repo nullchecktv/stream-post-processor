@@ -1,27 +1,33 @@
-import { generateClipKey, createConcatFileContent, secondsToTime } from '../utils/video-processing.mjs';
-import { downloadSegmentFiles, uploadFinalClip, cleanupSegmentFiles, verifyFinalClipIntegrity } from '../utils/s3-video.mjs';
+import { createConcatFileContent, secondsToTime } from '../utils/video-processing.mjs';
+import { downloadSegmentFiles, uploadFinalClip, cleanupSegmentFiles, verifyFinalClipIntegrity, cleanupEmptyFolders } from '../utils/s3-video.mjs';
 import { execFFmpeg, getVideoInfo, createTempDir, cleanup, checkFFmpegAvailability } from '../utils/ffmpeg.mjs';
+import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { join } from 'path';
 import { promises as fs } from 'fs';
+
+const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   let tempDir = null;
 
   try {
-    const { tenantId, episodeId, clipId, segmentFiles } = event;
+    const { tenantId, episodeId, clipId, segments } = event;
 
     if (!tenantId) {
       console.error('Missing tenantId in event');
       throw new Error('Unauthorized');
     }
 
-    if (!episodeId || !clipId || !Array.isArray(segmentFiles)) {
-      throw new Error('Missing required parameters: episodeId, clipId, segmentFiles');
+    if (!episodeId || !clipId || !Array.isArray(segments)) {
+      throw new Error('Missing required parameters: episodeId, clipId, segments');
     }
 
-    if (segmentFiles.length === 0) {
-      throw new Error('No segment files provided for stitching');
+    if (segments.length === 0) {
+      throw new Error('No segments provided for stitching');
     }
+
+    // Extract segment file paths from the new format
+    const segmentFiles = segments.map(segment => segment.segmentFile);
 
     const ffmpegVersion = await checkFFmpegAvailability();
     tempDir = await createTempDir('clip-stitching-');
@@ -33,7 +39,7 @@ export const handler = async (event) => {
     });
 
     const concatFile = await createConcatFile(localSegments, tempDir);
-    const outputFile = join(tempDir, `${clipId}_final.mp4`);
+    const outputFile = join(tempDir, `${clipId}.mp4`);
     await stitchSegments(concatFile, outputFile);
 
     const metadata = await extractVideoMetadata(outputFile);
@@ -57,9 +63,12 @@ export const handler = async (event) => {
       }
     );
 
-    const cleanupResults = await cleanupSegmentFiles(bucketName, segmentFiles, {
-      maxRetries: 2
-    });
+    const shouldCleanUp = process.env.CLEAN_SEGMENTS === 'true';
+    if (shouldCleanUp) {
+      await cleanupSegmentFiles(bucketName, segmentFiles, { maxRetries: 2 });
+      await cleanupSegmentRecords(tenantId, episodeId, clipId, segments);
+      await cleanupEmptySegmentFolders(bucketName, tenantId, episodeId, clipId);
+    }
 
     return {
       episodeId,
@@ -71,19 +80,8 @@ export const handler = async (event) => {
       metadata: {
         ...metadata,
         segmentCount: segmentFiles.length,
-        ffmpegVersion,
         processedAt: new Date().toISOString(),
-        uploadedAt: uploadResult.uploadedAt,
-        cleanup: {
-          segmentsDeleted: cleanupResults.deleted,
-          segmentsFailed: cleanupResults.failed
-        },
-        verification: {
-          valid: verificationResult.valid,
-          sizeMatch: verificationResult.sizeMatch,
-          metadataValid: verificationResult.metadataChecks ?
-            Object.values(verificationResult.metadataChecks).every(check => check.match) : false
-        }
+        uploadedAt: uploadResult.uploadedAt
       },
       status: 'completed'
     };
@@ -97,7 +95,6 @@ export const handler = async (event) => {
     }
   }
 };
-
 
 async function createConcatFile(segmentPaths, tempDir) {
   const concatFilePath = join(tempDir, 'concat.txt');
@@ -223,6 +220,65 @@ async function extractVideoMetadata(filePath) {
       formatLongName: 'unknown',
       extractedAt: new Date().toISOString(),
       metadataError: error.message
+    };
+  }
+}
+
+async function cleanupSegmentRecords(tenantId, episodeId, clipId, segments) {
+  const results = {
+    deleted: [],
+    failed: []
+  };
+
+  for (const segment of segments) {
+    try {
+      const segmentKey = {
+        pk: { S: `${tenantId}#${episodeId}` },
+        sk: { S: `segment#${clipId}#${segment.order}` }
+      };
+
+      await ddb.send(new DeleteItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: segmentKey
+      }));
+
+      results.deleted.push(`segment#${clipId}#${segment.order}`);
+      console.log(`Deleted segment record: segment#${clipId}#${segment.order}`);
+
+    } catch (error) {
+      console.error(`Failed to delete segment record segment#${clipId}#${segment.order}:`, error);
+      results.failed.push({
+        segmentKey: `segment#${clipId}#${segment.order}`,
+        error: error.message
+      });
+    }
+  }
+
+  console.log(`Segment record cleanup completed: ${results.deleted.length} deleted, ${results.failed.length} failed`);
+  return results;
+}
+
+async function cleanupEmptySegmentFolders(bucketName, tenantId, episodeId, clipId) {
+  const foldersToClean = [
+    `${tenantId}/${episodeId}/clips/${clipId}/segments`,
+    `${tenantId}/${episodeId}/clips/${clipId}`
+  ];
+
+  try {
+    const cleanupResults = await cleanupEmptyFolders(bucketName, foldersToClean, {
+      maxRetries: 2
+    });
+
+    console.log(`Folder cleanup completed: ${cleanupResults.cleaned} cleaned, ${cleanupResults.failed} failed, ${cleanupResults.skipped} skipped`);
+    return cleanupResults;
+
+  } catch (error) {
+    console.error('Failed to cleanup empty folders:', error);
+    return {
+      cleaned: 0,
+      failed: foldersToClean.length,
+      skipped: 0,
+      errors: [{ error: error.message }]
     };
   }
 }

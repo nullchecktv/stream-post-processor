@@ -1,9 +1,9 @@
-import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
-import { loadTranscript } from "../utils/transcripts.mjs";
-import { marshall } from "@aws-sdk/util-dynamodb";
+import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 
 const ddb = new DynamoDBClient();
@@ -33,11 +33,29 @@ export const handler = async (event) => {
       return { statusCode: 200 };
     }
 
-    const transcript = await loadTranscript(transcriptKey);
+    const transcript = await loadAndPreprocessTranscript(transcriptKey);
     if (!transcript) {
       console.error(`Could not find transcript with provided key ${transcriptKey}`);
       throw new Error('Could not find transcript');
     }
+
+    let episodeMeta;
+    try {
+      const episodeResponse = await ddb.send(new GetItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
+      }));
+      episodeMeta = episodeResponse?.Item ? unmarshall(episodeResponse.Item) : undefined;
+    } catch (e) {
+      console.warn('Failed to load episode metadata for prompt enrichment', e);
+    }
+
+    const hasDescription = Boolean(episodeMeta?.description);
+    const hasThemes = Array.isArray(episodeMeta?.themes) && episodeMeta.themes.length > 0;
+    const episodeContextForUser = [
+      hasDescription ? `description: ${episodeMeta.description}` : null,
+      hasThemes ? `themes: ${episodeMeta.themes.join(', ')}` : null,
+    ].filter(Boolean).join('\n');
 
     const systemPrompt = `
 You are ClipForge, an autonomous clip discovery editor for the YouTube show **Null Check** hosted by Allen Helton and Andres Moreno.
@@ -49,13 +67,19 @@ Your job on each run:
 4. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
 ### Transcript
-The transcript will be provided to you in .srt format. The speakers will be indicated with their name, a colon, then the text they spoke. The speaker does not change until you see more text in that format.
+The transcript has been preprocessed from SRT format to merge fragmented segments and remove filler words. Each segment represents a coherent thought or statement from a speaker. Speakers are indicated with their name followed by a colon.
+
+**Important Notes:**
+- There may still be some speaker bleed where words from one speaker appear under another speaker's name
+- Always verify that the words make logical sense for the attributed speaker
+- When selecting segments, ensure the content flows naturally and makes sense in context
+- The system will automatically add 1-2 seconds of padding to start/end times for smoother clips
 
 #### Example
 00:00:20,925 --> 00:00:27,104
-Allen: Sometimes it's a breakthrough,
-sometimes a regret
+Allen: Sometimes it's a breakthrough, sometimes a regret
 
+00:00:28,000 --> 00:00:30,500
 Andres: We try it out live
 
 ### Selection priorities
@@ -69,6 +93,7 @@ Moments should:
 * Stand alone without requiring full-episode context.
 * Range from 25 to 45 seconds long
 * Be composed of one or more segments that tell a complete story
+* Be relevant to the episode's description and themes when provided. Prefer moments that align with that context; deprioritize off-topic content.
 
 Avoid filler talk, monotone technical explanation, inside jokes that depend on prior episodes, or sections with heavy cross-talk.
 
@@ -107,6 +132,8 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 * Suggest b-roll that enhances storytelling: reactions, diagrams, or overlays.
 * All segments must include startTime, endTime, speaker, and order fields.
 * Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
+* Verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
+* Use the exact timestamps from the transcript - padding will be added automatically during processing.
 
 ### Audience objective
 
@@ -124,10 +151,14 @@ Think like a YouTube growth editor, not a stenographer.
 
     const userPrompt = `
 episodeId: ${episodeId}
+${episodeContextForUser ? `episodeContext:\n${episodeContextForUser}\n` : ''}
 transcript:
 ${transcript}
 `;
     const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId });
+
+    const now = new Date().toISOString();
+    const newStatus = 'analyzed';
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -135,16 +166,22 @@ ${transcript}
         pk: `${tenantId}#${episodeId}`,
         sk: 'metadata'
       }),
-      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt, #status = :status',
+      UpdateExpression: 'SET #summary = :summary, #updatedAt = :updatedAt, #status = :status, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
       ExpressionAttributeNames: {
         '#summary': 'summary',
         '#updatedAt': 'updatedAt',
-        '#status': 'status'
+        '#status': 'status',
+        '#statusHistory': 'statusHistory'
       },
       ExpressionAttributeValues: marshall({
         ':summary': response,
-        ':updatedAt': new Date().toISOString(),
-        ':status': 'Analyzed'
+        ':updatedAt': now,
+        ':status': newStatus,
+        ':emptyList': [],
+        ':newStatusEntry': [{
+          status: newStatus,
+          timestamp: now
+        }]
       })
     }));
 
