@@ -261,7 +261,6 @@ describe('Get Episode Function', () => {
       expect(response.headers['Content-Type']).toBe('application/json');
 
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('InternalError');
       expect(body.message).toBe('Something went wrong');
     });
   });

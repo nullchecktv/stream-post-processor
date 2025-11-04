@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { getCurrentClipStatus } from '../utils/clips.mjs';
@@ -22,8 +22,7 @@ export const handler = async (event) => {
       });
     }
 
-    // Get clip from DynamoDB
-    const result = await ddb.send(new GetCommand({
+    const result = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
@@ -40,14 +39,12 @@ export const handler = async (event) => {
 
     const clip = unmarshall(result.Item);
 
-    // Compute current status from statusHistory, fallback to status field
     const currentStatus = getCurrentClipStatus(clip);
 
-    // Build response with current status and maintain backward compatibility
     const response = {
       id: clip.clipId,
       episodeId: episodeId,
-      title: clip.hook || clip.title, // Use hook as title if available
+      title: clip.hook || clip.title,
       description: clip.summary || clip.description,
       status: currentStatus,
       duration: clip.duration,
@@ -57,7 +54,6 @@ export const handler = async (event) => {
       updatedAt: clip.updatedAt
     };
 
-    // Add optional fields if they exist
     if (clip.processedAt) response.processedAt = clip.processedAt;
     if (clip.s3Key) response.s3Key = clip.s3Key;
     if (clip.fileSize) response.fileSize = clip.fileSize;
@@ -70,9 +66,6 @@ export const handler = async (event) => {
 
   } catch (err) {
     console.error('Error getting clip:', err);
-    return formatResponse(500, {
-      error: 'InternalError',
-      message: 'Something went wrong'
-    });
+    return formatResponse(500, {   message: 'Something went wrong'    });
   }
 };

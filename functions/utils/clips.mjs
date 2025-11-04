@@ -239,8 +239,11 @@ export const secondsToTime = (seconds) => {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-export const generateClipS3Key = (episodeId, clipId) => {
-  return `${episodeId}/clips/${clipId}/clip.mp4`;
+export const generateClipS3Key = (episodeId, clipId, tenantId) => {
+  if (!tenantId) {
+    throw new Error('tenantId is required for generating clip S3 keys');
+  }
+  return `${tenantId}/${episodeId}/clips/${clipId}.mp4`;
 };
 
 export const generateSegmentS3Key = (episodeId, clipId, segmentIndex) => {

@@ -12,6 +12,9 @@ const ddb = new DynamoDBClient();
  * @returns {Promise<Object|null>} The track object or null if no match
  */
 export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
+  if (!speaker || typeof speaker !== 'string') {
+    return null;
+  }
 
   const tracks = await getTracksForEpisode(episodeId, tenantId);
 
@@ -20,7 +23,15 @@ export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
     return null;
   }
 
-  const matchingTrack = tracks.find(track => (track.speakers || []).includes(speaker));
+  const matchingTrack = tracks.find(track => {
+    const speakers = track.speakers;
+    if (!Array.isArray(speakers)) return false;
+
+    return speakers.some(trackSpeaker =>
+      typeof trackSpeaker === 'string' &&
+      trackSpeaker.toLowerCase() === speaker.toLowerCase()
+    );
+  });
 
   return matchingTrack || null;
 };
@@ -41,7 +52,21 @@ export const selectTracksForSpeakers = async (episodeId, speakers, tenantId) => 
   const unmatchedSpeakers = [];
 
   for (const speaker of speakers) {
-    const matchingTrack = tracks.find(track => (track.speakers || []).includes(speaker));
+    if (!speaker || typeof speaker !== 'string') {
+      results[speaker] = null;
+      unmatchedSpeakers.push(speaker);
+      continue;
+    }
+
+    const matchingTrack = tracks.find(track => {
+      const trackSpeakers = track.speakers;
+      if (!Array.isArray(trackSpeakers)) return false;
+
+      return trackSpeakers.some(trackSpeaker =>
+        typeof trackSpeaker === 'string' &&
+        trackSpeaker.toLowerCase() === speaker.toLowerCase()
+      );
+    });
     results[speaker] = matchingTrack || null;
 
     if (matchingTrack) {

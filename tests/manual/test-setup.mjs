@@ -258,9 +258,12 @@ async function main() {
     console.log('\n📋 Next steps:');
     console.log('1. Open tests/manual/test-harness-configured.html in your browser');
     console.log('2. The API URL and authorization token are pre-configured');
-    console.log('3. Use the "List Episodes" button to see existing episodes');
-    console.log('4. Create new episodes or upload content to existing ones');
-    console.log('\n🎯 You can now test all API endpoints through the web interface!');
+    console.log('3. Test all available endpoints:');
+    console.log('   • Episodes: Create, list, get details, update status');
+    console.log('   • Uploads: Transcript and video track uploads');
+    console.log('   • Clips: List, get details, update status, delete');
+    console.log('   • Tracks: Update metadata (speakers)');
+    console.log('\n🎯 You can now test all API endpoints through the comprehensive web interface!');
 
   } catch (error) {
     console.error('\n❌ Test setup failed:', error.message);

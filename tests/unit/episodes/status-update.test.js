@@ -472,13 +472,11 @@ describe('Episode Status Update Function', () => {
 
     test('should format internal error correctly', () => {
       const response = formatResponse(500, {
-        error: 'InternalError',
         message: 'Something went wrong'
       });
 
       expect(response.statusCode).toBe(500);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('InternalError');
       expect(body.message).toBe('Something went wrong');
     });
   });

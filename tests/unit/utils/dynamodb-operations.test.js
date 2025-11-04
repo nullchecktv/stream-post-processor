@@ -107,7 +107,7 @@ describe('DynamoDB Integration Operations', () => {
       };
 
       const clipData = {
-        s3Key: 'episode-456/clips/clip-789/clip.mp4',
+        s3Key: 'tenant-123/episode-456/clips/clip-789.mp4',
         fileSize: 45728640,
         duration: '00:02:15'
       };
@@ -119,7 +119,7 @@ describe('DynamoDB Integration Operations', () => {
       expect(params.UpdateExpression).toContain('#duration = :duration');
       expect(params.UpdateExpression).toContain('#processingMetadata = :processingMetadata');
       expect(params.ExpressionAttributeValues[':status'].S).toBe('Generation Complete');
-      expect(params.ExpressionAttributeValues[':s3Key'].S).toBe('episode-456/clips/clip-789/clip.mp4');
+      expect(params.ExpressionAttributeValues[':s3Key'].S).toBe('tenant-123/episode-456/clips/clip-789.mp4');
       expect(params.ExpressionAttributeValues[':fileSize'].N).toBe('45728640');
     });
 

@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
@@ -15,7 +15,7 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const result = await ddb.send(new GetCommand({
+    const result = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
@@ -48,6 +48,6 @@ export const handler = async (event) => {
 
   } catch (err) {
     console.error('Error getting episode:', err);
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

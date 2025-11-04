@@ -220,7 +220,7 @@ The status history will track all state transitions:
       "timestamp": "2025-01-15T10:42:00Z"
     }
   ],
-  "s3Key": "episode-456/clips/clip-789/clip.mp4",
+  "s3Key": "tenant123/episode-456/clips/clip-789.mp4",
   "fileSize": 45728640,
   "duration": "00:02:15",
   "updatedAt": "2025-01-15T10:42:00Z"

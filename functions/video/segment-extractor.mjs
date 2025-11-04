@@ -38,7 +38,7 @@ export const handler = async (event) => {
   let tempDir = null;
 
   try {
-    const { tenantId, episodeId, trackName = 'main', clipId, segment } = event;
+    const { tenantId, episodeId, trackName = 'main', clipId, segment, order } = event;
 
     if (!tenantId) {
       console.error('Missing tenantId in event');
@@ -56,7 +56,6 @@ export const handler = async (event) => {
       throw new Error(`Invalid segment: ${error.message}`);
     }
 
-    const ffmpegVersion = await checkFFmpegAvailability();
     tempDir = await createTempDir('segment-extraction-');
     const bucketName = process.env.BUCKET_NAME;
 
@@ -93,6 +92,7 @@ export const handler = async (event) => {
         episodeId,
         clipId,
         segmentFile: segmentS3Key,
+        order,
         status: 'completed',
         metadata
       };
@@ -109,6 +109,7 @@ export const handler = async (event) => {
       episodeId,
       clipId,
       segmentFile: segmentS3Key,
+      order,
       status: 'completed',
       metadata
     };

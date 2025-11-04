@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetCommand, DeleteCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, DeleteCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
 import { S3Client, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
@@ -23,8 +23,7 @@ export const handler = async (event) => {
       });
     }
 
-    // Get clip from DynamoDB to check if it exists and get S3 keys
-    const getResult = await ddb.send(new GetCommand({
+    const getResult = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
@@ -32,19 +31,16 @@ export const handler = async (event) => {
       })
     }));
 
-    // If clip doesn't exist, still return 204 (idempotent delete)
     if (!getResult.Item) {
       return formatResponse(204);
     }
 
     const clip = unmarshall(getResult.Item);
 
-    // Delete S3 files if clip has associated files
     if (clip.s3Key || clip.segments) {
       await deleteClipFiles(clip, episodeId, clipId);
     }
 
-    // Delete clip from DynamoDB
     await ddb.send(new DeleteCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
@@ -53,32 +49,23 @@ export const handler = async (event) => {
       })
     }));
 
-    // Update tenant statistics
     await incrementClipsDeleted(tenantId);
 
     return formatResponse(204);
 
   } catch (err) {
     console.error('Error deleting clip:', err);
-    return formatResponse(500, {
-      error: 'InternalError',
-      message: 'Something went wrong'
-    });
+    return formatResponse(500, { message: 'Something went wrong' });
   }
 };
 
-/**
- * Delete all S3 files associated with a clip
- */
 const deleteClipFiles = async (clip, episodeId, clipId) => {
   const keysToDelete = [];
 
-  // Add main clip file if it exists
   if (clip.s3Key) {
     keysToDelete.push(clip.s3Key);
   }
 
-  // Add segment files if they exist
   if (clip.segments && Array.isArray(clip.segments)) {
     for (const segment of clip.segments) {
       if (segment.s3Key) {
@@ -87,10 +74,8 @@ const deleteClipFiles = async (clip, episodeId, clipId) => {
     }
   }
 
-  // Add any other potential clip-related files based on standard patterns
   const clipPrefix = `${episodeId}/clips/${clipId}/`;
 
-  // If we have specific keys, delete them
   if (keysToDelete.length > 0) {
     try {
       const deleteParams = {
@@ -115,9 +100,6 @@ const deleteClipFiles = async (clip, episodeId, clipId) => {
   }
 };
 
-/**
- * Increment clips deleted count in tenant statistics
- */
 const incrementClipsDeleted = async (tenantId) => {
   const now = new Date().toISOString();
 
@@ -133,11 +115,9 @@ const incrementClipsDeleted = async (tenantId) => {
         ':one': 1,
         ':now': now
       }),
-      // Create the field if it doesn't exist
       ReturnValues: 'NONE'
     }));
   } catch (error) {
-    // If stats record doesn't exist, create it with initial values
     if (error.name === 'ValidationException') {
       try {
         await ddb.send(new UpdateCommand({

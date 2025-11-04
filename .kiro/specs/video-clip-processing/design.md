@@ -211,7 +211,7 @@ export const handler = async (event) => {
   const outputFile = await stitchSegments(concatFile, clipId);
 
   // 4. Upload final clip to S3
-  const clipS3Key = `${episodeId}/clips/${clipId}/clip.mp4`;
+  const clipS3Key = `${tenantId}/${episodeId}/clips/${clipId}.mp4`;
   await uploadClip(outputFile, clipS3Key);
 
   // 5. Clean up intermediate files
@@ -308,7 +308,7 @@ export const handler = async (event) => {
     }
   ],
   "status": "detected|processing|processed|failed|published",
-  "s3Key": "123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid/clip.mp4",
+  "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid.mp4",
   "fileSize": 15728640,
   "duration": "00:02:15",
   "processingMetadata": {

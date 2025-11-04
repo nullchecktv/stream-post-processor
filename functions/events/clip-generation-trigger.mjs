@@ -8,28 +8,13 @@ const sfn = new SFNClient();
 
 export const handler = async (event) => {
   try {
-    console.log('Received Begin Clip Generation event:', JSON.stringify(event, null, 2));
-
-    // Parse EventBridge event
-    const { source, 'detail-type': detailType, detail } = event;
-
-    // Validate event structure
-    if (source !== 'nullcheck.clips' || detailType !== 'Begin Clip Generation') {
-      console.log('Ignoring event - not a Begin Clip Generation event:', { source, detailType });
-      return { statusCode: 200, message: 'Event ignored' };
-    }
-
-    // Extract required fields from event detail
-    const { tenantId, episodeId } = detail;
+    const { tenantId, episodeId } = event.detail;
 
     if (!tenantId || !episodeId) {
       console.error('Missing required fields in event detail:', { tenantId, episodeId });
       throw new Error('Missing required fields: tenantId and episodeId are required');
     }
 
-    console.log(`Processing clip generation for episode ${episodeId} (tenant: ${tenantId})`);
-
-    // Query DynamoDB to get all clips for the episode with status 'detected'
     const queryResult = await ddb.send(new QueryCommand({
       TableName: process.env.TABLE_NAME,
       KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',

@@ -450,3 +450,83 @@ export const verifyFinalClipIntegrity = async (bucket, key, expectedSize, expect
     };
   }
 };
+
+export const cleanupEmptyFolders = async (bucket, folderPaths, options = {}) => {
+  const { ListObjectsV2Command, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+  const { dryRun = false, maxRetries = 3 } = options;
+
+  if (!Array.isArray(folderPaths) || folderPaths.length === 0) {
+    return { cleaned: 0, failed: 0, skipped: 0 };
+  }
+
+  const results = { cleaned: 0, failed: 0, skipped: 0, errors: [] };
+
+  for (const folderPath of folderPaths) {
+    try {
+      const prefix = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+
+      const listCommand = new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        MaxKeys: 1
+      });
+
+      const listResponse = await s3.send(listCommand);
+
+      if (!listResponse.Contents || listResponse.Contents.length === 0) {
+        if (dryRun) {
+          results.skipped++;
+          continue;
+        }
+
+        let success = false;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const deleteCommand = new DeleteObjectCommand({
+              Bucket: bucket,
+              Key: prefix
+            });
+
+            await s3.send(deleteCommand);
+            results.cleaned++;
+            success = true;
+            break;
+
+          } catch (error) {
+            lastError = error;
+            if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+              results.cleaned++;
+              success = true;
+              break;
+            }
+
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        }
+
+        if (!success) {
+          results.failed++;
+          results.errors.push({
+            folder: folderPath,
+            error: lastError?.message || 'Unknown error'
+          });
+        }
+      } else {
+        results.skipped++;
+      }
+
+    } catch (error) {
+      results.failed++;
+      results.errors.push({
+        folder: folderPath,
+        error: error.message
+      });
+    }
+  }
+
+  return results;
+};

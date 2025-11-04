@@ -167,7 +167,7 @@ This system uses **single-table design** in DynamoDB because it works well for o
   "duration": "00:02:15",
   "tags": ["discussion", "technical", "important"],
   "status": "detected|processing|processed|failed|reviewed|approved|rejected|published",
-  "s3Key": "123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid/clip.mp4",
+  "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid.mp4",
   "createdAt": "2025-01-15T10:40:00Z",
   "updatedAt": "2025-01-15T10:42:15Z"
 }
@@ -303,7 +303,7 @@ const getEpisode = async (episodeId) => {
     }
   };
 
-  const result = await docClient.send(new GetCommand(params));
+  const result = await docClient.send(new GetItemCommand(params));
   return result.Item;
 };
 ```
@@ -345,7 +345,7 @@ const batchGetItems = async (keys) => {
     }
   };
 
-  const result = await docClient.send(new BatchGetCommand(params));
+  const result = await docClient.send(new BatchGetItemCommand(params));
   return result.Responses[TABLE_NAME];
 };
 ```

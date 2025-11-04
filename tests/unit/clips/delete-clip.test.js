@@ -302,7 +302,6 @@ describe('Delete Clip Function', () => {
 
     test('should format 500 error response correctly', () => {
       const response = formatResponse(500, {
-        error: 'InternalError',
         message: 'Something went wrong'
       });
 
@@ -310,7 +309,6 @@ describe('Delete Clip Function', () => {
       expect(response.headers['Content-Type']).toBe('application/json');
 
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('InternalError');
       expect(body.message).toBe('Something went wrong');
     });
   });

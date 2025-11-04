@@ -46,8 +46,8 @@ This feature implements an automated video clip processing workflow that extract
 
 #### Acceptance Criteria
 
-1. WHEN extracting segments, THE Segment_Extractor SHALL store each segment at `{episodeId}/clips/{clipId}/segments/{index}.mp4`
-2. WHEN stitching segments, THE Clip_Stitcher SHALL store the final clip at `{episodeId}/clips/{clipId}/clip.mp4`
+1. WHEN extracting segments, THE Segment_Extractor SHALL store each segment at `{tenantId}/{episodeId}/clips/{clipId}/segments/{index}.mp4`
+2. WHEN stitching segments, THE Clip_Stitcher SHALL store the final clip at `{tenantId}/{episodeId}/clips/{clipId}.mp4`
 3. WHEN storing files, THE Video_Clip_Processor SHALL ensure sequential segment indexing starting from 0
 4. WHEN processing completes, THE Video_Clip_Processor SHALL clean up intermediate segment files
 5. WHILE processing, THE Video_Clip_Processor SHALL maintain organized directory structure for each clip

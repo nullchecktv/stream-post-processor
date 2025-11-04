@@ -1,114 +1,218 @@
-# Manual Testing Setup
+# Manual API Testing
 
-This directory contains tools for manual testing of the API endpoints using a web-based test harness.
+This directory contains comprehensive manual testing tools for all API endpoints in the post-production system.
 
 ## Quick Start
 
-1. **Copy environment configuration**:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Configure your environment variables** in `.env`:
-   - `COGNITO_USER_POOL_ID`: Your Cognito User Pool ID
-   - `COGNITO_CLIENT_ID`: Your Cognito App Client ID
-   - `COGNITO_USERNAME`: Email address for admin user
-   - `COGNITO_PASSWORD`: Password for admin user
-   - `API_URL`: Your API Gateway URL (optional)
-
-3. **Run the test setup**:
+1. **Setup your environment** (one-time setup):
    ```bash
    npm run test:setup
    ```
 
-This will:
-- Create an admin user if one doesn't exist
-- Login and obtain an access token
-- Save the token to your `.env` file
-- Open the test harness in your browser with pre-configured settings
+2. **Open the test harness**:
+   ```bash
+   open tests/manual/test-harness-configured.html
+   ```
 
-## What the Script Does
+## What Gets Tested
 
-### Admin User Management
-- Checks if an admin user exists with your configured username
-- Creates the user if it doesn't exist with:
-  - Email verification enabled
-  - Standard user attributes (given_name, family_name)
-  - Temporary password (if creating new user)
+The test harness provides comprehensive coverage of all API endpoints:
 
-### Authentication
-- Attempts login with configured credentials
-- Handles password change challenges automatically
-- Stores the access token for API requests
+### 📺 Episode Management
+- **GET /episodes** - List all episodes with pagination
+- **POST /episodes** - Create new episodes with metadata
+- **GET /episodes/{episodeId}** - Get detailed episode information
+- **POST /episodes/{episodeId}/statuses** - Update episode status (Ready for Clip Gen)
 
-### Test Harness Launch
-- Creates a configured version of the test harness HTML
-- Pre-fills the API URL if configured
-- Automatically includes authorization headers in all API requests
-- Opens the test harness in your default browser
+### 📤 Upload Management
+- **POST /episodes/{episodeId}/transcripts** - Upload transcript files (.srt)
+- **POST /episodes/{episodeId}/tracks** - Initiate multipart video track uploads
+- **POST /episodes/{episodeId}/tracks/{trackName}/parts** - Get signed URLs for upload parts
+- **POST /episodes/{episodeId}/tracks/{trackName}/complete** - Complete multipart uploads
 
-## Environment Variables
+### ✂️ Clip Management
+- **GET /episodes/{episodeId}/clips** - List clips for an episode (with pagination)
+- **GET /episodes/{episodeId}/clips/{clipId}** - Get detailed clip information
+- **PATCH /episodes/{episodeId}/clips/{clipId}** - Update clip status (reviewed, approved, rejected, published)
+- **DELETE /episodes/{episodeId}/clips/{clipId}** - Delete clips and associated files
 
-### Required
-- `COGNITO_USER_POOL_ID`: Your Cognito User Pool ID
-- `COGNITO_CLIENT_ID`: Your Cognito App Client ID
-- `COGNITO_USERNAME`: Admin user email address
+### 🎵 Track Management
+- **PUT /episodes/{episodeId}/tracks/{trackName}** - Update track metadata (speakers)
 
-### Authentication
-- `COGNITO_PASSWORD`: Current password for the admin user
-- `COGNITO_NEW_PASSWORD`: New password (required for first-time login)
+## Test Setup Script
 
-### Optional
-- `AWS_REGION`: AWS region (defaults to us-east-1)
-- `AWS_PROFILE`: AWS CLI profile to use
-- `API_URL`: API Gateway URL (will be pre-filled in test harness)
-- `GIVEN_NAME`: Admin user first name (optional)
-- `FAMILY_NAME`: Admin user last name (optional)
-- `TEMP_PASSWORD`: Temporary password for new users (defaults to 'TempPass123!')
+The `test-setup.mjs` script handles:
 
-### Auto-Generated
-- `ACCESS_TOKEN`: JWT access token (automatically set by test-setup script)
+1. **AWS Cognito Authentication**:
+   - Creates admin user if needed
+   - Handles password challenges
+   - Generates access tokens
 
-## Files
+2. **Environment Configuration**:
+   - Reads from `.env` file
+   - Updates tokens automatically
+   - Pre-configures test harness
 
-- `test-setup.mjs`: Main setup script that handles user creation, login, and test harness launch
-- `test-harness.html`: Web-based test interface for API endpoints
-- `test-harness-configured.html`: Temporary file with injected configuration (auto-generated)
-- `create-admin-user.mjs`: Legacy script for creating admin users (replaced by test-setup.mjs)
-- `login.mjs`: Legacy script for login (replaced by test-setup.mjs)
+3. **Test Harness Preparation**:
+   - Creates `test-harness-configured.html` with pre-filled credentials
+   - Sets up API base URL
+   - Includes authorization headers
 
-## Usage
+## Required Environment Variables
 
-After running `npm run test:setup`, you can:
+Create a `.env` file with:
 
-1. **Test Episode Creation**: Create new episodes with metadata
-2. **Upload Transcripts**: Upload .srt transcript files
-3. **Upload Video Tracks**: Upload video files using multipart upload
-4. **Monitor Processing**: Check upload status and processing results
+```bash
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_PROFILE=your-profile
 
-All API requests will automatically include the authorization header with your access token.
+# Cognito Configuration
+COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
+COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+COGNITO_USERNAME=admin@example.com
+COGNITO_PASSWORD=YourPassword123!
+COGNITO_NEW_PASSWORD=YourNewPassword123!
+
+# Optional User Attributes
+GIVEN_NAME=Admin
+FAMILY_NAME=User
+TENANT_ID=your-tenant-id
+
+# API Configuration
+API_URL=https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/api
+```
+
+## Test Harness Features
+
+### 🎯 Comprehensive Coverage
+- **All HTTP methods**: GET, POST, PUT, PATCH, DELETE
+- **All endpoints**: Every API endpoint is testable
+- **Real data**: Uses actual AWS services and data
+- **Error handling**: Shows detailed error messages
+
+### 🎨 User-Friendly Interface
+- **Tabbed interface**: Organized by functionality
+- **Visual feedback**: Success/error indicators with colors
+- **Clickable IDs**: Click episode/clip IDs to use them in other operations
+- **Progress tracking**: Upload progress bars for large files
+- **Status badges**: Visual status indicators
+
+### 🔧 Advanced Features
+- **Connection testing**: Verify API connectivity
+- **Multipart uploads**: Full support for large video files
+- **Pagination**: Handle paginated responses
+- **File uploads**: Direct S3 uploads with presigned URLs
+- **Authentication**: Automatic JWT token handling
+
+## Testing Workflows
+
+### Basic Episode Workflow
+1. **Create Episode** → Get episode ID
+2. **Upload Transcript** → Upload .srt file
+3. **Upload Video Track** → Upload video file with multipart
+4. **Update Episode Status** → Mark "Ready for Clip Gen"
+5. **List Clips** → See generated clips
+6. **Review Clips** → Update clip statuses
+
+### Advanced Testing
+1. **Test Error Conditions**:
+   - Invalid episode IDs
+   - Missing required fields
+   - Prerequisite failures
+
+2. **Test Edge Cases**:
+   - Large file uploads
+   - Empty responses
+   - Pagination boundaries
+
+3. **Test Status Transitions**:
+   - Episode status prerequisites
+   - Clip status workflows
+   - Track metadata updates
+
+## File Structure
+
+```
+tests/manual/
+├── README.md                     # This file
+├── test-setup.mjs               # Setup script
+├── test-harness.html            # Template test harness
+└── test-harness-configured.html # Generated configured harness
+```
 
 ## Troubleshooting
 
-### Missing Environment Variables
-If you see errors about missing environment variables, ensure your `.env` file contains all required values.
+### Authentication Issues
+- Run `aws sso login --profile your-profile` if SSO expired
+- Check Cognito User Pool and Client ID configuration
+- Verify user exists and has correct permissions
 
-### Authentication Errors
-- Check that your Cognito User Pool ID and Client ID are correct
-- Verify your username and password are correct
-- For first-time login, ensure `COGNITO_NEW_PASSWORD` is set
+### API Connection Issues
+- Verify API URL is correct and includes stage (e.g., `/api`)
+- Check CORS configuration allows your origin
+- Ensure Lambda functions are deployed and working
 
-### Browser Issues
-If the test harness doesn't open automatically, manually open the generated `test-harness-configured.html` file in your browser.
+### Upload Issues
+- Verify S3 bucket CORS exposes ETag header for multipart uploads
+- Check file size limits and chunk size configuration
+- Ensure presigned URL hasn't expired
 
-### API Errors
-- Verify your API URL is correct and accessible
-- Check that your Cognito configuration allows the admin user to access the API
-- Ensure your Lambda authorizer is properly configured
+### Missing Clips
+- Verify episode has "Ready for Clip Gen" status
+- Check that transcript and tracks are uploaded
+- Ensure clip generation workflow has been triggered
 
-## Security Notes
+## Development Notes
 
-- The `.env` file contains sensitive information and is excluded from git
-- Access tokens are temporary and will expire
-- Re-run `npm run test:setup` if your token expires
-- Never commit actual credentials to version control
+### Adding New Endpoints
+1. Add endpoint to OpenAPI specification
+2. Add corresponding Lambda function
+3. Update test harness HTML with new UI elements
+4. Add JavaScript handlers for the new endpoint
+
+### Modifying Test Data
+- Use realistic episode titles and metadata
+- Test with various file sizes and formats
+- Include edge cases in test scenarios
+
+### Performance Testing
+- Test with large video files (>100MB)
+- Verify multipart upload performance
+- Check API response times under load
+
+## Security Considerations
+
+- Access tokens are stored in browser memory only
+- Test harness uses HTTPS for all API calls
+- Sensitive data is not logged or displayed
+- File uploads go directly to S3 (not through API)
+
+## Integration with CI/CD
+
+While this is manual testing, the patterns can be automated:
+
+```javascript
+// Example automated test
+const response = await fetch(`${API_BASE}/episodes`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    title: 'Test Episode',
+    episodeNumber: 1
+  })
+});
+
+expect(response.status).toBe(201);
+```
+
+## Support
+
+For issues with the test harness:
+1. Check the browser console for JavaScript errors
+2. Verify all environment variables are set correctly
+3. Ensure AWS credentials and permissions are valid
+4. Check API Gateway and Lambda function logs in CloudWatch

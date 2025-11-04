@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { CLIP_STATUS, validateStatusUpdate, createStatusUpdateParams } from '../utils/clips.mjs';
@@ -48,8 +48,7 @@ export const handler = async (event) => {
       });
     }
 
-    // Get current clip to validate status transition
-    const getResult = await ddb.send(new GetCommand({
+    const getResult = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
@@ -66,7 +65,6 @@ export const handler = async (event) => {
 
     const clip = unmarshall(getResult.Item);
 
-    // Validate status transition
     try {
       validateStatusUpdate(clip, status);
     } catch (error) {
@@ -76,7 +74,6 @@ export const handler = async (event) => {
       });
     }
 
-    // Update clip status
     const updateParams = createStatusUpdateParams(status);
 
     await ddb.send(new UpdateCommand({
@@ -97,9 +94,6 @@ export const handler = async (event) => {
 
   } catch (err) {
     console.error('Error updating clip status:', err);
-    return formatResponse(500, {
-      error: 'InternalError',
-      message: 'Something went wrong'
-    });
+    return formatResponse(500, {      message: 'Something went wrong'    });
   }
 };

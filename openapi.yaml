@@ -195,6 +195,43 @@ paths:
   /episodes/{episodeId}/tracks:
     parameters:
       - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: List tracks for episode
+      description: Gets a list of all tracks associated with an episode
+      tags: [Episodes]
+      responses:
+        200:
+          description: List of tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: Track identifier (same as name)
+                      example: "main"
+                    name:
+                      type: string
+                      description: Track name
+                      example: "main"
+                    status:
+                      type: string
+                      description: Current track status
+                      example: "processed"
+        400:
+          description: Invalid request
+        401:
+          description: Unauthorized
+        404:
+          description: Episode not found
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListTracksFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
     post:
       summary: Initiate track upload
       description: Starts a multipart upload for a video track and returns uploadId and required headers
@@ -588,6 +625,71 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/clips/{clipId}/play:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+      - $ref: "#/components/parameters/ClipId"
+    get:
+      summary: Play clip
+      description: Generates a download URL for the clip video file and increments the view count. The clip must be in processed, approved, or published status to be playable.
+      tags: [Clips]
+      responses:
+        200:
+          description: Clip playback information with download URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clipId:
+                    type: string
+                    description: Clip identifier
+                  episodeId:
+                    type: string
+                    description: Episode identifier
+                  title:
+                    type: string
+                    description: Clip title
+                  downloadUrl:
+                    type: string
+                    format: uri
+                    description: Presigned S3 URL for downloading the clip video file
+                  expiresAt:
+                    type: string
+                    format: date-time
+                    description: When the download URL expires (1 hour from generation)
+                  duration:
+                    type: string
+                    description: Clip duration in HH:MM:SS format
+                  fileSize:
+                    type: integer
+                    description: File size in bytes
+                  viewCount:
+                    type: integer
+                    description: Updated view count after incrementing
+                required:
+                  - clipId
+                  - episodeId
+                  - title
+                  - downloadUrl
+                  - expiresAt
+                  - viewCount
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Clip is not ready for playback
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode, clip, or video file not found
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PlayClipFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
 components:
   parameters:
     EpisodeId:
@@ -828,7 +930,7 @@ components:
         s3Key:
           type: string
           description: S3 key for the processed clip file (optional)
-          example: "123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid/clip.mp4"
+          example: "tenant123/123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid.mp4"
         fileSize:
           type: integer
           description: File size in bytes (optional)

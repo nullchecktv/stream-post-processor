@@ -1,8 +1,11 @@
-import { generateClipKey, createConcatFileContent, secondsToTime } from '../utils/video-processing.mjs';
-import { downloadSegmentFiles, uploadFinalClip, cleanupSegmentFiles, verifyFinalClipIntegrity } from '../utils/s3-video.mjs';
+import { createConcatFileContent, secondsToTime } from '../utils/video-processing.mjs';
+import { downloadSegmentFiles, uploadFinalClip, cleanupSegmentFiles, verifyFinalClipIntegrity, cleanupEmptyFolders } from '../utils/s3-video.mjs';
 import { execFFmpeg, getVideoInfo, createTempDir, cleanup, checkFFmpegAvailability } from '../utils/ffmpeg.mjs';
+import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { join } from 'path';
 import { promises as fs } from 'fs';
+
+const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   let tempDir = null;
@@ -36,7 +39,7 @@ export const handler = async (event) => {
     });
 
     const concatFile = await createConcatFile(localSegments, tempDir);
-    const outputFile = join(tempDir, `${clipId}_final.mp4`);
+    const outputFile = join(tempDir, `${clipId}.mp4`);
     await stitchSegments(concatFile, outputFile);
 
     const metadata = await extractVideoMetadata(outputFile);
@@ -64,6 +67,10 @@ export const handler = async (event) => {
       maxRetries: 2
     });
 
+    const dbCleanupResults = await cleanupSegmentRecords(tenantId, episodeId, clipId, segments);
+
+    const folderCleanupResults = await cleanupEmptySegmentFolders(bucketName, tenantId, episodeId, clipId);
+
     return {
       episodeId,
       clipId,
@@ -79,7 +86,11 @@ export const handler = async (event) => {
         uploadedAt: uploadResult.uploadedAt,
         cleanup: {
           segmentsDeleted: cleanupResults.deleted,
-          segmentsFailed: cleanupResults.failed
+          segmentsFailed: cleanupResults.failed,
+          dbRecordsDeleted: dbCleanupResults.deleted,
+          dbRecordsFailed: dbCleanupResults.failed,
+          foldersCleanedUp: folderCleanupResults.cleaned,
+          folderCleanupFailed: folderCleanupResults.failed
         },
         verification: {
           valid: verificationResult.valid,
@@ -226,6 +237,65 @@ async function extractVideoMetadata(filePath) {
       formatLongName: 'unknown',
       extractedAt: new Date().toISOString(),
       metadataError: error.message
+    };
+  }
+}
+
+async function cleanupSegmentRecords(tenantId, episodeId, clipId, segments) {
+  const results = {
+    deleted: [],
+    failed: []
+  };
+
+  for (const segment of segments) {
+    try {
+      const segmentKey = {
+        pk: { S: `${tenantId}#${episodeId}` },
+        sk: { S: `segment#${clipId}#${segment.order}` }
+      };
+
+      await ddb.send(new DeleteItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: segmentKey
+      }));
+
+      results.deleted.push(`segment#${clipId}#${segment.order}`);
+      console.log(`Deleted segment record: segment#${clipId}#${segment.order}`);
+
+    } catch (error) {
+      console.error(`Failed to delete segment record segment#${clipId}#${segment.order}:`, error);
+      results.failed.push({
+        segmentKey: `segment#${clipId}#${segment.order}`,
+        error: error.message
+      });
+    }
+  }
+
+  console.log(`Segment record cleanup completed: ${results.deleted.length} deleted, ${results.failed.length} failed`);
+  return results;
+}
+
+async function cleanupEmptySegmentFolders(bucketName, tenantId, episodeId, clipId) {
+  const foldersToClean = [
+    `${tenantId}/${episodeId}/clips/${clipId}/segments`,
+    `${tenantId}/${episodeId}/clips/${clipId}`
+  ];
+
+  try {
+    const cleanupResults = await cleanupEmptyFolders(bucketName, foldersToClean, {
+      maxRetries: 2
+    });
+
+    console.log(`Folder cleanup completed: ${cleanupResults.cleaned} cleaned, ${cleanupResults.failed} failed, ${cleanupResults.skipped} skipped`);
+    return cleanupResults;
+
+  } catch (error) {
+    console.error('Failed to cleanup empty folders:', error);
+    return {
+      cleaned: 0,
+      failed: foldersToClean.length,
+      skipped: 0,
+      errors: [{ error: error.message }]
     };
   }
 }
