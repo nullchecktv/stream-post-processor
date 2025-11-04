@@ -16,13 +16,6 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    if (!episodeId || !clipId) {
-      return formatResponse(400, {
-        error: 'BadRequest',
-        message: 'Episode ID and Clip ID are required'
-      });
-    }
-
     const getResult = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
@@ -73,8 +66,6 @@ const deleteClipFiles = async (clip, episodeId, clipId) => {
       }
     }
   }
-
-  const clipPrefix = `${episodeId}/clips/${clipId}/`;
 
   if (keysToDelete.length > 0) {
     try {

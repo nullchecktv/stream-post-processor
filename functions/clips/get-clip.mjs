@@ -51,16 +51,9 @@ export const handler = async (event) => {
       tags: clip.tags || [],
       segments: clip.segments || [],
       createdAt: clip.createdAt,
-      updatedAt: clip.updatedAt
+      updatedAt: clip.updatedAt,
+      ...clip.fileSize && { fileSize: clip.fileSize }
     };
-
-    if (clip.processedAt) response.processedAt = clip.processedAt;
-    if (clip.s3Key) response.s3Key = clip.s3Key;
-    if (clip.fileSize) response.fileSize = clip.fileSize;
-    if (clip.processingDuration) response.processingDuration = clip.processingDuration;
-    if (clip.processingMetadata) response.processingMetadata = clip.processingMetadata;
-    if (clip.processingError) response.processingError = clip.processingError;
-    if (clip.aiAnalysis) response.aiAnalysis = clip.aiAnalysis;
 
     return formatResponse(200, response);
 
