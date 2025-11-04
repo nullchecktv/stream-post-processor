@@ -2,7 +2,7 @@ import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/clie
 import { createClipTool } from "../tools/create-clips.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
-import { loadTranscript } from "../utils/transcripts.mjs";
+import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 
@@ -33,7 +33,7 @@ export const handler = async (event) => {
       return { statusCode: 200 };
     }
 
-    const transcript = await loadTranscript(transcriptKey);
+    const transcript = await loadAndPreprocessTranscript(transcriptKey);
     if (!transcript) {
       console.error(`Could not find transcript with provided key ${transcriptKey}`);
       throw new Error('Could not find transcript');
@@ -67,13 +67,19 @@ Your job on each run:
 4. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
 ### Transcript
-The transcript will be provided to you in .srt format. The speakers will be indicated with their name, a colon, then the text they spoke. The speaker does not change until you see more text in that format.
+The transcript has been preprocessed from SRT format to merge fragmented segments and remove filler words. Each segment represents a coherent thought or statement from a speaker. Speakers are indicated with their name followed by a colon.
+
+**Important Notes:**
+- There may still be some speaker bleed where words from one speaker appear under another speaker's name
+- Always verify that the words make logical sense for the attributed speaker
+- When selecting segments, ensure the content flows naturally and makes sense in context
+- The system will automatically add 1-2 seconds of padding to start/end times for smoother clips
 
 #### Example
 00:00:20,925 --> 00:00:27,104
-Allen: Sometimes it's a breakthrough,
-sometimes a regret
+Allen: Sometimes it's a breakthrough, sometimes a regret
 
+00:00:28,000 --> 00:00:30,500
 Andres: We try it out live
 
 ### Selection priorities
@@ -126,6 +132,8 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 * Suggest b-roll that enhances storytelling: reactions, diagrams, or overlays.
 * All segments must include startTime, endTime, speaker, and order fields.
 * Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
+* Verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
+* Use the exact timestamps from the transcript - padding will be added automatically during processing.
 
 ### Audience objective
 

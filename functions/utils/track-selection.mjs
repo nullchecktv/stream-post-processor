@@ -13,6 +13,7 @@ const ddb = new DynamoDBClient();
  */
 export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
   if (!speaker || typeof speaker !== 'string') {
+    console.warn(`Invalid speaker parameter: ${speaker}`);
     return null;
   }
 
@@ -23,15 +24,31 @@ export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
     return null;
   }
 
+  console.log(`Found ${tracks.length} tracks for episode '${episodeId}':`);
+  tracks.forEach(track => {
+    console.log(`  Track '${track.trackName}': speakers = ${JSON.stringify(track.speakers)}`);
+  });
+
   const matchingTrack = tracks.find(track => {
     const speakers = track.speakers;
-    if (!Array.isArray(speakers)) return false;
+    if (!Array.isArray(speakers)) {
+      console.warn(`Track '${track.trackName}' has no speakers array`);
+      return false;
+    }
 
-    return speakers.some(trackSpeaker =>
+    const hasMatch = speakers.some(trackSpeaker =>
       typeof trackSpeaker === 'string' &&
       trackSpeaker.toLowerCase() === speaker.toLowerCase()
     );
+
+    return hasMatch;
   });
+
+  if (matchingTrack) {
+    console.log(`FOUND matching track '${matchingTrack.trackName}' for speaker '${speaker}'`);
+  } else {
+    console.log(`NO matching track found for speaker '${speaker}'`);
+  }
 
   return matchingTrack || null;
 };

@@ -63,13 +63,12 @@ export const handler = async (event) => {
       }
     );
 
-    const cleanupResults = await cleanupSegmentFiles(bucketName, segmentFiles, {
-      maxRetries: 2
-    });
-
-    const dbCleanupResults = await cleanupSegmentRecords(tenantId, episodeId, clipId, segments);
-
-    const folderCleanupResults = await cleanupEmptySegmentFolders(bucketName, tenantId, episodeId, clipId);
+    const shouldCleanUp = process.env.CLEAN_SEGMENTS === 'true';
+    if (shouldCleanUp) {
+      await cleanupSegmentFiles(bucketName, segmentFiles, { maxRetries: 2 });
+      await cleanupSegmentRecords(tenantId, episodeId, clipId, segments);
+      await cleanupEmptySegmentFolders(bucketName, tenantId, episodeId, clipId);
+    }
 
     return {
       episodeId,
@@ -81,23 +80,8 @@ export const handler = async (event) => {
       metadata: {
         ...metadata,
         segmentCount: segmentFiles.length,
-        ffmpegVersion,
         processedAt: new Date().toISOString(),
-        uploadedAt: uploadResult.uploadedAt,
-        cleanup: {
-          segmentsDeleted: cleanupResults.deleted,
-          segmentsFailed: cleanupResults.failed,
-          dbRecordsDeleted: dbCleanupResults.deleted,
-          dbRecordsFailed: dbCleanupResults.failed,
-          foldersCleanedUp: folderCleanupResults.cleaned,
-          folderCleanupFailed: folderCleanupResults.failed
-        },
-        verification: {
-          valid: verificationResult.valid,
-          sizeMatch: verificationResult.sizeMatch,
-          metadataValid: verificationResult.metadataChecks ?
-            Object.values(verificationResult.metadataChecks).every(check => check.match) : false
-        }
+        uploadedAt: uploadResult.uploadedAt
       },
       status: 'completed'
     };
@@ -111,7 +95,6 @@ export const handler = async (event) => {
     }
   }
 };
-
 
 async function createConcatFile(segmentPaths, tempDir) {
   const concatFilePath = join(tempDir, 'concat.txt');

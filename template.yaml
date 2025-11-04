@@ -1165,6 +1165,7 @@ Resources:
         Variables:
           BUCKET_NAME: !Ref TranscriptBucket
           TABLE_NAME: !Ref StreamPostProcessingTable
+          CLEAN_SEGMENTS: "false"
 
   FFMPEGLambdaLayer:
     Type: AWS::Serverless::Application

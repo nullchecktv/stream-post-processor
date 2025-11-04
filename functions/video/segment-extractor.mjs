@@ -80,8 +80,8 @@ export const handler = async (event) => {
       throw new Error(`No chunks found for segment (${segment.startTime} - ${segment.endTime})`);
     }
 
-    // Use segmentIndex 0 since we're processing a single segment
-    const segmentIndex = 0;
+    // Use the order parameter to ensure unique segment filenames
+    const segmentIndex = order || 0;
     const segmentS3Key = generateSegmentKey(episodeId, clipId, segmentIndex, tenantId);
 
     const segmentExists = await objectExists(bucketName, segmentS3Key);

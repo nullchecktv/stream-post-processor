@@ -53,6 +53,8 @@ export const createClipTool = {
           const id = randomUUID();
           const now = new Date().toISOString();
 
+          const paddedSegments = addPaddingToSegments(clip.segments);
+
           const segmentSignature = clip.segments
             .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}`)
             .join('|');
@@ -77,9 +79,9 @@ export const createClipTool = {
                 GSI1SK: `${now}#${episodeId}#${id}`,
                 clipId: id,
                 clipHash,
-                segments: clip.segments,
-                segmentCount: clip.segments.length,
-                totalDurationSeconds: calcTotalDuration(clip.segments),
+                segments: paddedSegments,
+                segmentCount: paddedSegments.length,
+                totalDurationSeconds: calcTotalDuration(paddedSegments),
                 hook: clip.hook,
                 summary: clip.summary,
                 bRollSuggestions: clip.bRollSuggestions,
@@ -116,16 +118,54 @@ export const createClipTool = {
 };
 
 /**
+ * Convert time string to seconds
+ */
+function timeToSeconds(timeStr) {
+  const [hh, mm, ss] = timeStr.split(':').map(Number);
+  return hh * 3600 + mm * 60 + ss;
+}
+
+/**
+ * Convert seconds to time string
+ */
+function secondsToTime(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Add padding to segment timestamps for smoother clips
+ */
+function addPaddingToSegments(segments) {
+  const PADDING_SECONDS = 1;
+
+  return segments.map(segment => {
+    const startSeconds = timeToSeconds(segment.startTime);
+    const endSeconds = timeToSeconds(segment.endTime);
+
+    const paddedStart = Math.max(0, startSeconds - PADDING_SECONDS);
+    const paddedEnd = endSeconds + PADDING_SECONDS;
+
+    return {
+      ...segment,
+      startTime: secondsToTime(paddedStart),
+      endTime: secondsToTime(paddedEnd),
+      originalStartTime: segment.startTime,
+      originalEndTime: segment.endTime
+    };
+  });
+}
+
+/**
  * Compute total duration from segments with required timestamps
  */
 function calcTotalDuration(segments) {
-  const toSeconds = (t) => {
-    const [hh, mm, ss] = t.split(':').map(Number);
-    return hh * 3600 + mm * 60 + ss;
-  };
   return segments.reduce((acc, seg) => {
-    const start = toSeconds(seg.startTime);
-    const end = toSeconds(seg.endTime);
+    const start = timeToSeconds(seg.startTime);
+    const end = timeToSeconds(seg.endTime);
     return acc + Math.max(0, end - start);
   }, 0);
 }
