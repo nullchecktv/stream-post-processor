@@ -39,14 +39,15 @@ export const handler = async (event) => {
     const memberships = teamsResponse.Items?.map(item => unmarshall(item)) || [];
 
     let teams = [];
-    let ownedTeams = [];
-    let memberTeams = [];
 
     if (memberships.length > 0) {
-      const teamKeys = memberships.map(membership => ({
-        pk: `team#${membership.teamId}`,
-        sk: 'metadata'
-      }));
+      const teamKeys = memberships.map(membership => {
+        const teamId = membership.pk.replace('team#', '');
+        return {
+          pk: `team#${teamId}`,
+          sk: 'metadata'
+        };
+      });
 
       const teamDetailsResponse = await ddb.send(new BatchGetItemCommand({
         RequestItems: {
@@ -57,14 +58,15 @@ export const handler = async (event) => {
       }));
 
       const teamDetails = teamDetailsResponse.Responses?.[process.env.TABLE_NAME]?.map(item => unmarshall(item)) || [];
-      const teamDetailsMap = new Map(teamDetails.map(team => [team.id, team]));
+      const teamDetailsMap = new Map(teamDetails.map(team => [team.pk.replace('team#', ''), team]));
 
       for (const membership of memberships) {
-        const teamDetail = teamDetailsMap.get(membership.teamId);
+        const teamId = membership.pk.replace('team#', '');
+        const teamDetail = teamDetailsMap.get(teamId);
 
         if (teamDetail && membership.status === 'active') {
           const teamInfo = {
-            teamId: membership.teamId,
+            teamId,
             name: teamDetail.name,
             description: teamDetail.description || '',
             role: membership.role,
@@ -73,12 +75,6 @@ export const handler = async (event) => {
           };
 
           teams.push(teamInfo);
-
-          if (membership.role === 'owner') {
-            ownedTeams.push(teamInfo);
-          } else {
-            memberTeams.push(teamInfo);
-          }
         }
       }
     }
@@ -92,8 +88,6 @@ export const handler = async (event) => {
         notifications: true
       },
       teams,
-      ownedTeams,
-      memberTeams,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt
     };

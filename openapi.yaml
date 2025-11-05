@@ -1486,6 +1486,64 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /teams/{teamId}/invitations/{email}:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+      - in: path
+        name: email
+        required: true
+        schema:
+          type: string
+          format: email
+        description: Email address of the invited user
+    delete:
+      summary: Cancel team invitation
+      description: |
+        Cancels a pending team invitation before it expires or is accepted:
+
+        **Cancellation process:**
+        - Removes the pending invitation record from the system
+        - Sends cancellation notification email to the invitee
+        - Prevents the user from joining the team with this invitation
+
+        **Permission requirements:**
+        - Only team owners and administrators can cancel invitations
+        - Cannot cancel invitations that have already been accepted
+        - Can only cancel invitations for the specified team
+
+        **Email notifications:**
+        - Invitee receives cancellation notification email
+        - Email includes team name and original inviter information
+        - Professional notification explaining the cancellation
+
+        **Use cases:**
+        - Invitation sent to wrong email address
+        - Change in team requirements or structure
+        - User no longer needs access to the team
+        - Cleanup of old pending invitations
+      tags: [Teams]
+      responses:
+        204:
+          description: Invitation cancelled successfully
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invitation cannot be cancelled (already accepted or expired)
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not a team owner or administrator
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team or invitation not found
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CancelInvitationFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
 components:
   parameters:
     EpisodeId:

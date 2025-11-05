@@ -288,7 +288,9 @@ describe('list-members function', () => {
   });
 
   describe('validation errors', () => {
-    test('should reject invalid team ID format', async () => {
+    test('should return 403 for non-member of team', async () => {
+      ddbMock.on(GetItemCommand).resolves({});
+
       const event = createValidEvent({
         pathParameters: {
           teamId: 'invalid-id'
@@ -297,9 +299,9 @@ describe('list-members function', () => {
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(400);
+      expect(result.statusCode).toBe(403);
       const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
+      expect(body.message).toBe('Not a team member');
     });
   });
 

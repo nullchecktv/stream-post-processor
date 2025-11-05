@@ -170,7 +170,9 @@ describe('leave-team function', () => {
   });
 
   describe('validation errors', () => {
-    test('should reject invalid team ID format', async () => {
+    test('should return 404 for non-existent team', async () => {
+      ddbMock.on(GetItemCommand).resolves({});
+
       const event = createValidEvent({
         pathParameters: {
           teamId: 'invalid-id'
@@ -179,9 +181,9 @@ describe('leave-team function', () => {
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(400);
+      expect(result.statusCode).toBe(404);
       const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
+      expect(body.message).toBe('Team not found');
     });
   });
 

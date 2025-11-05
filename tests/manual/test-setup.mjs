@@ -201,7 +201,7 @@ function updateEnvFile(token) {
 }
 
 function prepareTestHarness(token) {
-  const htmlPath = join(__dirname, 'test-harness.html');
+  const htmlPath = join(__dirname, '../test-harness.html');
   const tempHtmlPath = join(__dirname, 'test-harness-configured.html');
 
   console.log('🌐 Preparing test harness...');

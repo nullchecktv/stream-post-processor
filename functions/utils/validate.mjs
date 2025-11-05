@@ -10,15 +10,6 @@ export const validateRequest = (event, schema) => {
     return { error: formatResponse(401, { message: 'Unauthorized' }) };
   }
 
-  // Validate path parameters first
-  const pathParams = event.pathParameters || {};
-  if (pathParams.teamId && !isValidUUID(pathParams.teamId)) {
-    return { error: formatResponse(400, { message: 'Invalid team ID format' }) };
-  }
-  if (pathParams.userId && !isValidUUID(pathParams.userId)) {
-    return { error: formatResponse(400, { message: 'Invalid user ID format' }) };
-  }
-
   let data = {};
   if (event.body) {
     try {
@@ -49,9 +40,6 @@ export const validateRequest = (event, schema) => {
         }
         if (rules.email && !isValidEmail(str)) {
           errors.push(`${field} must be a valid email address`);
-        }
-        if (rules.uuid && !isValidUUID(str)) {
-          errors.push(`${field} must be a valid UUID`);
         }
         if (rules.enum && !rules.enum.includes(str)) {
           errors.push(`${field} must be one of: ${rules.enum.join(', ')}`);
@@ -160,6 +148,4 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
-const isValidUUID = (uuid) => {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);
-};
+

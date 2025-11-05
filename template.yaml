@@ -18,6 +18,10 @@ Parameters:
   EnvironmentHash:
     Type: String
     Description: A hash of the current environment
+  FromEmailAddress:
+    Type: String
+    Default: ""
+    Description: Email address used to send notification emails
 
 Metadata:
   esbuild-properties: &esbuild-properties
@@ -1130,6 +1134,11 @@ Resources:
                 - dynamodb:Query
               Resource:
                 - !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -1175,6 +1184,40 @@ Resources:
             RestApiId: !Ref Api
             Path: /teams/{teamId}/members/{userId}/role
             Method: PUT
+
+  CancelInvitationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/cancel-invitation.mjs
+    Properties:
+      Handler: teams/cancel-invitation.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        CancelInvitation:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}/invitations/{email}
+            Method: DELETE
 
   LeaveTeamFunction:
     Type: AWS::Serverless::Function
@@ -1639,7 +1682,6 @@ Resources:
             - Effect: Allow
               Action:
                 - ses:SendEmail
-                - ses:SendRawEmail
               Resource: "*"
             - Effect: Allow
               Action:
@@ -1647,7 +1689,7 @@ Resources:
               Resource: !GetAtt EmailDeadLetterQueue.Arn
       Environment:
         Variables:
-          FROM_EMAIL: !Sub "noreply@${Domain}"
+          FROM_EMAIL: !Ref FromEmailAddress
           APP_URL: !Ref Domain
           EMAIL_DLQ_URL: !Ref EmailDeadLetterQueue
       Events:
@@ -1689,6 +1731,10 @@ Resources:
                 - dynamodb:DeleteItem
               Resource:
                 - !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
                 - !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
             - Effect: Allow
               Action:

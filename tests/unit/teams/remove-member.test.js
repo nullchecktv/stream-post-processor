@@ -222,7 +222,9 @@ describe('remove-member function', () => {
   });
 
   describe('validation errors', () => {
-    test('should reject invalid team ID format', async () => {
+    test('should return 404 for non-existent team', async () => {
+      ddbMock.on(GetItemCommand).resolves({});
+
       const event = createValidEvent({
         pathParameters: {
           teamId: 'invalid-id',
@@ -232,12 +234,30 @@ describe('remove-member function', () => {
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(400);
+      expect(result.statusCode).toBe(404);
       const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
+      expect(body.message).toBe('Team not found');
     });
 
-    test('should reject invalid user ID format', async () => {
+    test('should return 404 for non-existent user in valid team', async () => {
+      const mockTeam = {
+        pk: { S: 'team#456e7890-e89b-12d3-a456-426614174001' },
+        sk: { S: 'metadata' },
+        name: { S: 'Test Team' }
+      };
+
+      const mockMembership = {
+        pk: { S: 'team#456e7890-e89b-12d3-a456-426614174001' },
+        sk: { S: 'user#user-123' },
+        role: { S: 'owner' },
+        status: { S: 'active' }
+      };
+
+      ddbMock.on(GetItemCommand)
+        .resolvesOnce({ Item: mockTeam })
+        .resolvesOnce({ Item: mockMembership })
+        .resolvesOnce({}); // No target membership found
+
       const event = createValidEvent({
         pathParameters: {
           teamId: '456e7890-e89b-12d3-a456-426614174001',
@@ -247,9 +267,9 @@ describe('remove-member function', () => {
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(400);
+      expect(result.statusCode).toBe(404);
       const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
+      expect(body.message).toBe('User is not a member of this team');
     });
   });
 

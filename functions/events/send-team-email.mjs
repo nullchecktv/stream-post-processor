@@ -1,4 +1,4 @@
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import Handlebars from 'handlebars';
 import teamInvitationTemplate from '../../templates/emails/team-invitation.hbs';
@@ -12,10 +12,10 @@ const createSimpleErrorResponse = (message, isTemporary = false) => ({
   timestamp: new Date().toISOString()
 });
 
-const ses = new SESClient();
+const ses = new SESv2Client();
 const sqs = new SQSClient();
 
-Handlebars.registerHelper('eq', function(a, b) {
+Handlebars.registerHelper('eq', function (a, b) {
   return a === b;
 });
 
@@ -95,7 +95,7 @@ const sendToDeadLetterQueue = async (originalEvent, error, attempts) => {
 
     console.log('Message sent to dead letter queue:', {
       eventType: originalEvent['detail-type'],
-      recipient: originalEvent.detail?.memberEmail,
+      recipient: originalEvent.detail?.email,
       attempts
     });
   } catch (dlqError) {
@@ -122,6 +122,9 @@ const getTemplate = (templateName, data) => {
     case 'welcome-auto-link':
       template = welcomeAutoLinkTemplate;
       break;
+    case 'invitation-cancelled':
+      template = invitationCancelledTemplate;
+      break;
     default:
       throw new Error(`Unsupported template: ${templateName}`);
   }
@@ -142,9 +145,9 @@ const getEmailConfig = (eventType, eventData) => {
         ...baseConfig,
         template: 'team-invitation',
         subject: `You've been invited to join ${eventData.teamName}`,
-        recipient: eventData.memberEmail,
+        recipient: eventData.email,
         templateData: {
-          userName: eventData.memberName || eventData.memberEmail,
+          userName: eventData.memberName || eventData.email,
           teamName: eventData.teamName,
           inviterName: eventData.inviterName,
           role: eventData.role || 'member',
@@ -158,9 +161,9 @@ const getEmailConfig = (eventType, eventData) => {
         ...baseConfig,
         template: 'team-removal',
         subject: `Team membership update for ${eventData.teamName}`,
-        recipient: eventData.memberEmail,
+        recipient: eventData.email,
         templateData: {
-          userName: eventData.memberName || eventData.memberEmail,
+          userName: eventData.memberName || eventData.email,
           teamName: eventData.teamName,
           appUrl: baseConfig.appUrl
         }
@@ -171,9 +174,9 @@ const getEmailConfig = (eventType, eventData) => {
         ...baseConfig,
         template: 'role-change',
         subject: `Your role in ${eventData.teamName} has been updated`,
-        recipient: eventData.memberEmail,
+        recipient: eventData.email,
         templateData: {
-          userName: eventData.memberName || eventData.memberEmail,
+          userName: eventData.memberName || eventData.email,
           teamName: eventData.teamName,
           newRole: eventData.newRole,
           appUrl: baseConfig.appUrl
@@ -185,10 +188,23 @@ const getEmailConfig = (eventType, eventData) => {
         ...baseConfig,
         template: 'welcome-auto-link',
         subject: `Welcome to ${eventData.teamName}!`,
-        recipient: eventData.memberEmail,
+        recipient: eventData.email,
         templateData: {
-          userName: eventData.memberName || eventData.memberEmail,
+          userName: eventData.memberName || eventData.email,
           teamName: eventData.teamName,
+          appUrl: baseConfig.appUrl
+        }
+      };
+
+    case 'Team Invitation Cancelled':
+      return {
+        ...baseConfig,
+        template: 'invitation-cancelled',
+        subject: `Team invitation cancelled for ${eventData.teamName}`,
+        recipient: eventData.email,
+        templateData: {
+          teamName: eventData.teamName,
+          inviterName: eventData.inviterName,
           appUrl: baseConfig.appUrl
         }
       };
@@ -204,22 +220,15 @@ const sendEmailWithRetry = async (emailConfig, maxAttempts = 3) => {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const htmlContent = getTemplate(emailConfig.template, emailConfig.templateData);
-
       const params = {
-        Source: emailConfig.source,
+        FromEmailAddress: process.env.FROM_EMAIL,
         Destination: {
           ToAddresses: [emailConfig.recipient]
         },
-        Message: {
-          Subject: {
-            Data: emailConfig.subject,
-            Charset: 'UTF-8'
-          },
-          Body: {
-            Html: {
-              Data: htmlContent,
-              Charset: 'UTF-8'
-            }
+        Content: {
+          Simple: {
+            Subject: { Data: emailConfig.subject },
+            Body: { Html: { Data: htmlContent } }
           }
         }
       };
@@ -284,7 +293,7 @@ export const handler = async (event) => {
     console.log('Processing team email event:', {
       eventType: event['detail-type'],
       source: event.source,
-      recipient: event.detail?.memberEmail,
+      recipient: event.detail?.email,
       teamName: event.detail?.teamName
     });
 
@@ -299,11 +308,11 @@ export const handler = async (event) => {
       };
     }
 
-    if (!eventData.memberEmail) {
-      console.error('Missing required field: memberEmail');
+    if (!eventData.email) {
+      console.error('Missing required field: email');
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'memberEmail is required in event data' })
+        body: JSON.stringify({ error: 'email is required in event data' })
       };
     }
 
@@ -321,7 +330,7 @@ export const handler = async (event) => {
     if (result.success) {
       console.log('Email processing completed successfully:', {
         eventType,
-        recipient: eventData.memberEmail,
+        recipient: eventData.email,
         messageId: result.messageId,
         attempts: result.attempts
       });
@@ -337,7 +346,7 @@ export const handler = async (event) => {
     } else {
       console.error('Email delivery failed after all retries:', {
         eventType,
-        recipient: eventData.memberEmail,
+        recipient: eventData.email,
         error: result.error,
         errorCode: result.errorCode,
         attempts: result.attempts,
@@ -350,14 +359,8 @@ export const handler = async (event) => {
         code: result.errorCode
       }, result.attempts);
 
-      const emailError = {
-        message: result.error,
-        name: result.errorCode,
-        code: result.errorCode
-      };
 
       const errorResponse = createSimpleErrorResponse(result.error, result.isTemporary);
-
       if (result.isTemporary) {
         return {
           statusCode: 503,
@@ -375,7 +378,7 @@ export const handler = async (event) => {
       error: error.message,
       stack: error.stack,
       eventType: event['detail-type'],
-      recipient: event.detail?.memberEmail
+      recipient: event.detail?.email
     });
 
     await sendToDeadLetterQueue(event, error, 0);

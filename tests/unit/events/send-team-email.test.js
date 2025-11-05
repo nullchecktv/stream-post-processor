@@ -1,8 +1,8 @@
 const { mockClient } = require('aws-sdk-client-mock');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 
-const sesMock = mockClient(SESClient);
+const sesMock = mockClient(SESv2Client);
 const sqsMock = mockClient(SQSClient);
 
 describe('send-team-email error handling logic', () => {
@@ -79,7 +79,7 @@ describe('send-team-email error handling logic', () => {
         MessageId: 'test-message-id'
       });
 
-      const ses = new SESClient();
+      const ses = new SESv2Client();
       const result = await ses.send(new SendEmailCommand({
         Source: 'test@example.com',
         Destination: { ToAddresses: ['recipient@example.com'] },
@@ -99,7 +99,7 @@ describe('send-team-email error handling logic', () => {
         message: 'Rate exceeded'
       });
 
-      const ses = new SESClient();
+      const ses = new SESv2Client();
 
       await expect(ses.send(new SendEmailCommand({
         Source: 'test@example.com',
@@ -126,7 +126,7 @@ describe('send-team-email error handling logic', () => {
       const dlqMessage = {
         originalEvent: {
           'detail-type': 'Team Member Added',
-          detail: { memberEmail: 'test@example.com', teamName: 'Test Team' }
+          detail: { email: 'test@example.com', teamName: 'Test Team' }
         },
         error: { message: 'SES error', name: 'Throttling' },
         attempts: 3,
