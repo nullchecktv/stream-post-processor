@@ -33,7 +33,8 @@ Metadata:
       - js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);
     External:
       - "@aws-sdk/*"
-    Loader: []
+    Loader:
+      - .hbs=text
 
 Globals:
   Function:
@@ -268,6 +269,20 @@ Resources:
               Action:
                 - cognito-idp:AdminUpdateUserAttributes
               Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:DeleteItem
+                - dynamodb:BatchWriteItem
+              Resource: !Ref StreamPostProcessingTable
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
 
   PostConfirmationTriggerPermission:
     Type: AWS::Lambda::Permission
@@ -1025,6 +1040,176 @@ Resources:
             Path: /teams/{teamId}
             Method: DELETE
 
+  AddTeamMemberFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/add-member.mjs
+    Properties:
+      Handler: teams/add-member.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        AddMember:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}/members
+            Method: POST
+
+  RemoveTeamMemberFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/remove-member.mjs
+    Properties:
+      Handler: teams/remove-member.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        RemoveMember:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}/members/{userId}
+            Method: DELETE
+
+  ListTeamMembersFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/list-members.mjs
+    Properties:
+      Handler: teams/list-members.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          ENCRYPTION_KEY: !Ref EncryptionKey
+      Events:
+        ListMembers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}/members
+            Method: GET
+
+  UpdateMemberRoleFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/update-member-role.mjs
+    Properties:
+      Handler: teams/update-member-role.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        UpdateRole:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}/members/{userId}/role
+            Method: PUT
+
+  LeaveTeamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - teams/leave-team.mjs
+    Properties:
+      Handler: teams/leave-team.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        LeaveTeam:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /teams/{teamId}/members/me
+            Method: DELETE
+
   GetUserProfileFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -1042,6 +1227,7 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
+                - dynamodb:BatchGetItem
               Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
@@ -1436,12 +1622,116 @@ Resources:
           TABLE_NAME: !Ref StreamPostProcessingTable
           CLEAN_SEGMENTS: "false"
 
+  SendTeamEmailFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/send-team-email.mjs
+    Properties:
+      Handler: events/send-team-email.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt EmailDeadLetterQueue.Arn
+      Environment:
+        Variables:
+          FROM_EMAIL: !Sub "noreply@${Domain}"
+          APP_URL: !Ref Domain
+          EMAIL_DLQ_URL: !Ref EmailDeadLetterQueue
+      Events:
+        TeamMemberAdded:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - nullcheck
+              detail-type:
+                - Team Member Added
+                - Team Member Removed
+                - Team Member Deactivated
+                - Team Member Role Updated
+                - Team Member Auto-Linked
+
+  CleanupTeamAssetsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/cleanup-team-assets.mjs
+    Properties:
+      Handler: events/cleanup-team-assets.handler
+      Timeout: 900
+      MemorySize: 1024
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:BatchWriteItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+                - !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+                - s3:GetObject
+                - s3:DeleteObject
+                - s3:DeleteObjects
+              Resource:
+                - !GetAtt TranscriptBucket.Arn
+                - !Sub "${TranscriptBucket.Arn}/*"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        TeamDeleted:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - nullcheck
+              detail-type:
+                - Team Deleted
+
   FFMPEGLambdaLayer:
     Type: AWS::Serverless::Application
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:145266761615:applications/ffmpeg-lambda-layer
         SemanticVersion: 1.0.0
+
+  EmailDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-email-dlq"
+      MessageRetentionPeriod: 1209600  # 14 days
+      VisibilityTimeoutSeconds: 300
+      ReceiveMessageWaitTimeSeconds: 20
+      Tags:
+        - Key: Purpose
+          Value: EmailDeliveryFailures
+        - Key: Component
+          Value: TeamManagement
 
 Outputs:
   ApiUrl:

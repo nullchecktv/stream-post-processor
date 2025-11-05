@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, QueryCommand, BatchGetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 
@@ -36,15 +36,52 @@ export const handler = async (event) => {
       })
     }));
 
-    const teams = teamsResponse.Items?.map(item => {
-      const membership = unmarshall(item);
-      return {
-        teamId: membership.teamId,
-        role: membership.role,
-        status: membership.status,
-        joinedAt: membership.joinedAt
-      };
-    }) || [];
+    const memberships = teamsResponse.Items?.map(item => unmarshall(item)) || [];
+
+    let teams = [];
+    let ownedTeams = [];
+    let memberTeams = [];
+
+    if (memberships.length > 0) {
+      const teamKeys = memberships.map(membership => ({
+        pk: `team#${membership.teamId}`,
+        sk: 'metadata'
+      }));
+
+      const teamDetailsResponse = await ddb.send(new BatchGetItemCommand({
+        RequestItems: {
+          [process.env.TABLE_NAME]: {
+            Keys: teamKeys.map(key => marshall(key))
+          }
+        }
+      }));
+
+      const teamDetails = teamDetailsResponse.Responses?.[process.env.TABLE_NAME]?.map(item => unmarshall(item)) || [];
+      const teamDetailsMap = new Map(teamDetails.map(team => [team.id, team]));
+
+      for (const membership of memberships) {
+        const teamDetail = teamDetailsMap.get(membership.teamId);
+
+        if (teamDetail && membership.status === 'active') {
+          const teamInfo = {
+            teamId: membership.teamId,
+            name: teamDetail.name,
+            description: teamDetail.description || '',
+            role: membership.role,
+            status: membership.status,
+            joinedAt: membership.joinedAt
+          };
+
+          teams.push(teamInfo);
+
+          if (membership.role === 'owner') {
+            ownedTeams.push(teamInfo);
+          } else {
+            memberTeams.push(teamInfo);
+          }
+        }
+      }
+    }
 
     const responseProfile = {
       email: profile.email,
@@ -55,6 +92,8 @@ export const handler = async (event) => {
         notifications: true
       },
       teams,
+      ownedTeams,
+      memberTeams,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt
     };

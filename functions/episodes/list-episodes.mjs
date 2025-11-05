@@ -1,7 +1,6 @@
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { formatResponse, getPagingParams } from '../utils/api.mjs';
-import { encrypt } from '../utils/encoding.mjs';
+import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
@@ -44,11 +43,7 @@ export const handler = async (event) => {
       };
     });
 
-    return formatResponse(200, {
-      items: episodes,
-      count: episodes.length,
-      ...res.LastEvaluatedKey && { nextToken: encrypt(JSON.stringify(res.LastEvaluatedKey)) },
-    });
+    return formatResponse(200, buildPagingParams(episodes, res.LastEvaluatedKey));
   } catch (err) {
     console.error(err);
     return formatResponse(500, { message: 'Something went wrong' });

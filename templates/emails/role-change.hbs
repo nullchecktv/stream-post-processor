@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Updated</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        .role-details {
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .cta-button:hover {
+            background-color: #1d4ed8;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+        .team-name {
+            font-weight: 600;
+            color: #2563eb;
+        }
+        .role-badge {
+            display: inline-block;
+            background-color: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">NullCheck</div>
+        </div>
+
+        <h1>Your role has been updated!</h1>
+
+        <p>Hi {{userName}},</p>
+
+        <p>Great news! Your role in the <span class="team-name">{{teamName}}</span> team has been updated.</p>
+
+        <div class="role-details">
+            <p><strong>Team:</strong> {{teamName}}</p>
+            <p><strong>New Role:</strong> <span class="role-badge">{{newRole}}</span></p>
+        </div>
+
+        {{#if (eq newRole "administrator")}}
+        <p>As an administrator, you now have enhanced permissions including:</p>
+        <ul>
+            <li>Add and remove team members</li>
+            <li>Manage team content and episodes</li>
+            <li>View pending team invitations</li>
+        </ul>
+        {{else if (eq newRole "member")}}
+        <p>As a team member, you can:</p>
+        <ul>
+            <li>Access and collaborate on team episodes</li>
+            <li>Create and manage clips</li>
+            <li>View team content and resources</li>
+        </ul>
+        {{/if}}
+
+        <div style="text-align: center;">
+            <a href="{{appUrl}}" class="cta-button">Access Team</a>
+        </div>
+
+        <div class="footer">
+            <p>This notification was sent automatically when your role was updated.</p>
+            <p>If you have questions about your new permissions, contact your team owner.</p>
+        </div>
+    </div>
+</body>
+</html>

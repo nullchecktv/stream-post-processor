@@ -43,15 +43,26 @@ paths:
       summary: List all episodes
       description: Gets a paginated list of episodes with their name, air date, and current status
       tags: [Episodes]
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/NextToken"
       responses:
         200:
-          description: List of episodes
+          description: List of episodes with pagination
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EpisodeListView"
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EpisodeListView"
+                  nextToken:
+                    type: string
+                    description: Token for next page (only present if more items available)
+                required:
+                  - items
         401:
           $ref: "#/components/responses/Unauthorized"
         500:
@@ -74,24 +85,31 @@ paths:
               properties:
                 title:
                   type: string
+                  minLength: 1
+                  description: Episode title (required, non-empty)
                 episodeNumber:
                   type: integer
+                  description: Episode number (required, must be a valid integer)
                 description:
                   type: string
+                  description: Episode description (optional)
                 airDate:
                   type: string
-                  description: ISO-8601 date or datetime string
+                  description: ISO-8601 date or datetime string (optional)
                 platforms:
                   type: array
                   items:
                     type: string
                     enum: ["linkedin live", "X", "twitch", "youtube"]
+                  description: Platforms where episode was published (optional)
                 themes:
                   type: array
                   items:
                     type: string
+                  description: Episode themes or topics (optional)
                 seriesName:
                   type: string
+                  description: Name of the series this episode belongs to (optional)
               required: [title, episodeNumber]
       responses:
         201:
@@ -103,8 +121,12 @@ paths:
                 properties:
                   id:
                     type: string
+                    description: Unique episode identifier
+                required:
+                  - id
         400:
-          description: Invalid request
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data - missing required fields or validation errors
         401:
           $ref: "#/components/responses/Unauthorized"
         500:
@@ -130,12 +152,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/Episode"
         404:
-          $ref: "#/components/responses/NotFound"
           description: Episode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
         401:
           $ref: "#/components/responses/Unauthorized"
         500:
-          $ref: "#/components/responses/InternalError"
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "InternalError"
+                  message:
+                    type: string
+                    example: "Something went wrong"
       x-amazon-apigateway-integration:
         uri:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEpisodeFunction.Arn}/invocations
@@ -418,11 +458,25 @@ paths:
         204:
           description: Track updated successfully
         400:
-          $ref: "#/components/responses/BadRequest"
           description: Invalid request data - speakers array contains invalid values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: '"speakers" must be an array'
         404:
-          $ref: "#/components/responses/NotFound"
           description: Episode or track not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Track 'main' not found for episode '123e4567-e89b-12d3-a456-426614174000'"
         401:
           $ref: "#/components/responses/Unauthorized"
         500:
@@ -487,18 +541,8 @@ paths:
       description: Retrieves all clips for a specific episode with current status computed from status history
       tags: [Clips]
       parameters:
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 25
-          description: Number of items to return (default 10, max 25)
-        - in: query
-          name: nextToken
-          schema:
-            type: string
-          description: Opaque cursor returned by a previous call to continue paging
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/NextToken"
       responses:
         200:
           description: List of clips for the episode with paging
@@ -511,12 +555,9 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/ClipListView"
-                  count:
-                    type: integer
-                    description: Number of items in this page
                   nextToken:
                     type: string
-                    description: Opaque cursor to fetch the next page
+                    description: Token for next page (only present if more items available)
                 required:
                   - items
         404:
@@ -548,8 +589,18 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClipDetail"
         404:
-          $ref: "#/components/responses/NotFound"
           description: Episode or clip not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "NotFound"
+                  message:
+                    type: string
+                    example: "Clip with ID 'clip-123' was not found in episode '123e4567-e89b-12d3-a456-426614174000'"
         401:
           $ref: "#/components/responses/Unauthorized"
         500:
@@ -598,13 +649,43 @@ paths:
                     format: date-time
                     description: Timestamp when status was updated
         400:
-          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data or status value
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "ValidationError"
+                  message:
+                    type: string
+                    example: "Invalid status. Must be one of: reviewed, approved, rejected, published"
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
-          $ref: "#/components/responses/NotFound"
+          description: Episode or clip not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "NotFound"
+                  message:
+                    type: string
+                    example: "Clip with ID 'clip-123' was not found in episode '123e4567-e89b-12d3-a456-426614174000'"
         500:
-          $ref: "#/components/responses/InternalError"
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Something went wrong"
       x-amazon-apigateway-integration:
         uri:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateClipStatusFunction.Arn}/invocations
@@ -703,9 +784,18 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/TeamListView"
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TeamListView"
+                  count:
+                    type: integer
+                    description: Number of teams returned
+                required:
+                  - items
+                  - count
         401:
           $ref: "#/components/responses/Unauthorized"
         500:
@@ -761,16 +851,8 @@ paths:
                   id:
                     type: string
                     description: Team identifier
-                  name:
-                    type: string
-                    description: Team name
-                  ownerId:
-                    type: string
-                    description: User ID of team owner
-                  createdAt:
-                    type: string
-                    format: date-time
-                required: [id, name, ownerId, createdAt]
+                required:
+                  - id
         400:
           $ref: "#/components/responses/BadRequest"
           description: Invalid request data or team name already exists
@@ -1019,6 +1101,391 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /teams/{teamId}/members:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+    get:
+      summary: List team members
+      description: |
+        Retrieves a paginated list of team members and pending invitations:
+
+        **Member information includes:**
+        - User details (name, email, role)
+        - Membership status and join date
+        - Invitation details (who invited, when)
+
+        **Role-based visibility:**
+        - All team members can view the member list
+        - Pending invitations only visible to owners and administrators
+        - Member contact information visible to all team members
+
+        **Pagination support:**
+        - Default limit of 20 members per page
+        - Maximum limit of 100 members per page
+        - Cursor-based pagination for consistent results
+
+        **Security considerations:**
+        - Only team members can access this endpoint
+        - Non-members receive 403 Forbidden response
+        - Pending invitations filtered based on user role
+      tags: [Teams]
+      parameters:
+        - $ref: "#/components/parameters/TeamLimit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: List of team members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TeamMember"
+                  pendingInvitations:
+                    type: array
+                    description: Pending invitations (only visible to owners and administrators)
+                    items:
+                      $ref: "#/components/schemas/PendingInvitation"
+                  nextCursor:
+                    type: string
+                    nullable: true
+                    description: Cursor for next page of results
+                  hasMore:
+                    type: boolean
+                    description: Whether there are more results available
+                required: [members, pendingInvitations, hasMore]
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not a member of this team
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team not found
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListTeamMembersFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      summary: Add team member
+      description: |
+        Adds a new member to the team by email address. This endpoint handles both existing and non-existing users:
+
+        **For existing users:**
+        - Creates team membership record immediately
+        - Sends welcome email notification
+        - User gains access to team resources instantly
+
+        **For non-existing users:**
+        - Creates pending invitation record with 30-day expiration
+        - Sends invitation email with registration link
+        - Auto-links user to team when they register with the invited email
+
+        **Role-based permissions:**
+        - Only team owners and administrators can add members
+        - New members default to "member" role unless specified
+        - Cannot add users who are already team members
+
+        **Email notifications:**
+        - Invitation emails include team name, inviter name, and app URL
+        - Welcome emails confirm successful team membership
+        - All emails use professional templates with team branding
+      tags: [Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email address of the user to invite
+                  example: "newmember@example.com"
+                role:
+                  type: string
+                  enum: ["administrator", "member"]
+                  default: "member"
+                  description: Role to assign to the new member
+                  example: "member"
+              required: [email]
+            examples:
+              add_member:
+                summary: Add regular member
+                value:
+                  email: "john.doe@example.com"
+                  role: "member"
+              add_administrator:
+                summary: Add administrator
+                value:
+                  email: "admin@example.com"
+                  role: "administrator"
+              add_member_default_role:
+                summary: Add member with default role
+                value:
+                  email: "newuser@example.com"
+      responses:
+        201:
+          description: Member added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                    format: email
+                    description: Email of the added member
+                  role:
+                    type: string
+                    description: Role assigned to the member
+                  status:
+                    type: string
+                    enum: ["active", "pending"]
+                    description: Member status (active if user exists, pending if invitation sent)
+                  invitationSent:
+                    type: boolean
+                    description: Whether an invitation email was sent
+                  message:
+                    type: string
+                    description: Success message
+                required: [email, role, status, invitationSent, message]
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid email format or role value
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not an owner or administrator of this team
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team not found
+        409:
+          description: User is already a member of this team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "Conflict"
+                message: "User is already a member of this team"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AddTeamMemberFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /teams/{teamId}/members/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+      - $ref: "#/components/parameters/UserId"
+    delete:
+      summary: Remove team member
+      description: |
+        Removes a member from the team with optional permanent deletion:
+
+        **Removal process:**
+        - Without `confirmDelete=true`: Sets member status to 'inactive' (soft delete)
+        - With `confirmDelete=true`: Permanently deletes team membership record
+        - Clears user's active team if it matches the removed team (permanent deletion only)
+        - Sends notification email based on action type
+
+        **Query parameters:**
+        - `confirmDelete=true`: Permanently delete the membership record
+        - Without parameter: Set status to 'inactive' (default behavior)
+
+        **Role-based permissions:**
+        - Only team owners and administrators can remove members
+        - Team owners cannot remove themselves (prevents orphaned teams)
+        - Members cannot remove other members
+
+        **Email notifications:**
+        - Deactivated user receives notification about status change
+        - Permanently removed user receives polite notification with team name
+        - Team owner receives notification of member action
+
+        **Security considerations:**
+        - Inactive members lose access to team resources but record is preserved
+        - Permanently deleted members lose all association with the team
+        - Any active sessions continue until token expiration
+        - Inactive members can be reactivated; deleted members must be re-invited
+      tags: [Teams]
+      parameters:
+        - name: confirmDelete
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Set to true to permanently delete the membership record instead of setting status to inactive
+      responses:
+        204:
+          description: Member removed successfully
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not an owner or administrator, or owner trying to remove themselves
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team or member not found
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RemoveTeamMemberFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /teams/{teamId}/members/{userId}/role:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+      - $ref: "#/components/parameters/UserId"
+    put:
+      summary: Update member role
+      description: |
+        Updates a team member's role and permissions within the team:
+
+        **Available roles:**
+        - **administrator**: Can add/remove members, view pending invitations
+        - **member**: Basic team access, can view team resources
+        - **owner**: Full team control (cannot be assigned via this endpoint)
+
+        **Role-based permissions:**
+        - Only team owners can change member roles
+        - Team owners cannot change their own role (prevents privilege escalation)
+        - Cannot promote members to owner role
+
+        **Email notifications:**
+        - Updated member receives role change notification
+        - Email includes new role and updated permissions
+        - Team owner receives confirmation of role change
+
+        **Permission changes take effect:**
+        - Immediately for new API requests
+        - Existing sessions continue with old permissions until token refresh
+        - User interface updates reflect new permissions on next page load
+      tags: [Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: ["administrator", "member"]
+                  description: New role for the member
+                  example: "administrator"
+              required: [role]
+            examples:
+              promote_to_admin:
+                summary: Promote member to administrator
+                value:
+                  role: "administrator"
+              demote_to_member:
+                summary: Demote administrator to member
+                value:
+                  role: "member"
+      responses:
+        200:
+          description: Member role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                    description: User ID of the updated member
+                  role:
+                    type: string
+                    description: New role assigned to the member
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    description: When the role was updated
+                  message:
+                    type: string
+                    description: Success message
+                required: [userId, role, updatedAt, message]
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid role value
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: User is not the team owner, or owner trying to change their own role
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team or member not found
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateMemberRoleFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /teams/{teamId}/members/me:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+    delete:
+      summary: Leave team
+      description: |
+        Allows a team member to voluntarily leave a team:
+
+        **Leave process:**
+        - Removes user's membership record
+        - Clears active team if it matches the team being left
+        - Sends confirmation email to departing member
+        - Notifies team owner of member departure
+
+        **Restrictions:**
+        - Team owners cannot leave their own team (prevents orphaned teams)
+        - Must transfer ownership or delete team before leaving
+        - Members and administrators can leave freely
+
+        **Email notifications:**
+        - Departing member receives confirmation email
+        - Team owner receives notification of member departure
+        - Emails include team name and departure timestamp
+
+        **Access revocation:**
+        - User immediately loses access to team resources
+        - Can be re-invited to the team if desired
+        - All team-related data remains intact
+      tags: [Teams]
+      responses:
+        204:
+          description: Successfully left the team
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+          description: Team owner cannot leave their own team
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Team not found or user is not a member
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LeaveTeamFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
 components:
   parameters:
     EpisodeId:
@@ -1045,6 +1512,46 @@ components:
       required: true
       schema:
         type: string
+    UserId:
+      in: path
+      name: userId
+      required: true
+      schema:
+        type: string
+    Limit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 25
+        default: 10
+      description: Number of items to return (default 10, max 25)
+    NextToken:
+      in: query
+      name: nextToken
+      required: false
+      schema:
+        type: string
+      description: Token for retrieving the next page of results
+    TeamLimit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Number of items to return (default 20, max 100)
+    Cursor:
+      in: query
+      name: cursor
+      required: false
+      schema:
+        type: string
+      description: Pagination cursor for next page
   schemas:
     EpisodeListView:
       type: object
@@ -1068,11 +1575,13 @@ components:
       properties:
         id:
           type: string
+          description: Unique clip identifier
         title:
           type: string
+          description: Clip title (uses hook if available, otherwise title)
         status:
           type: string
-          description: Current clip status
+          description: Current clip status computed from status history
           enum:
             [
               "detected",
@@ -1096,6 +1605,7 @@ components:
         - title
         - status
         - duration
+        - type
 
     Episode:
       type: object
@@ -1118,29 +1628,29 @@ components:
           example: 42
         summary:
           type: string
-          description: Episode summary or description
+          description: Episode summary or description (optional)
           example: "Discussion about AI and machine learning"
         airDate:
           type: string
           format: date-time
-          description: When the episode was aired
+          description: When the episode was aired (optional)
           example: "2025-01-15T10:30:00Z"
         platforms:
           type: array
-          description: Platforms where the episode was published
+          description: Platforms where the episode was published (optional)
           items:
             type: string
             enum: ["linkedin live", "X", "twitch", "youtube"]
           example: ["twitch", "youtube"]
         themes:
           type: array
-          description: Episode themes or topics
+          description: Episode themes or topics (optional)
           items:
             type: string
           example: ["technology", "programming"]
         seriesName:
           type: string
-          description: Name of the series this episode belongs to
+          description: Name of the series this episode belongs to (optional)
           example: "Tech Talk Series"
         createdAt:
           type: string
@@ -1208,11 +1718,11 @@ components:
           example: "123e4567-e89b-12d3-a456-426614174000"
         title:
           type: string
-          description: Clip title
+          description: Clip title (uses hook if available, otherwise title)
           example: "Interesting Discussion Point"
         description:
           type: string
-          description: AI-generated description of the clip content
+          description: Clip description (uses summary if available, otherwise description)
           example: "Discussion about machine learning applications"
         status:
           type: string
@@ -1229,14 +1739,27 @@ components:
               "published",
             ]
           example: "processed"
-        startTime:
-          type: string
-          description: Start time in the episode (HH:MM:SS format)
-          example: "00:15:30"
-        endTime:
-          type: string
-          description: End time in the episode (HH:MM:SS format)
-          example: "00:17:45"
+        segments:
+          type: array
+          description: Segments that make up this clip
+          items:
+            type: object
+            properties:
+              startTime:
+                type: string
+                description: Segment start time (HH:MM:SS format)
+                example: "00:15:30"
+              endTime:
+                type: string
+                description: Segment end time (HH:MM:SS format)
+                example: "00:16:15"
+              text:
+                type: string
+                description: Transcript text for this segment
+            required:
+              - startTime
+              - endTime
+              - text
         duration:
           type: string
           description: Duration of the clip (HH:MM:SS format)
@@ -1257,28 +1780,18 @@ components:
           format: date-time
           description: When the clip was last updated
           example: "2025-01-15T10:42:15Z"
-        processedAt:
-          type: string
-          format: date-time
-          description: When the clip was processed (optional)
-          example: "2025-01-15T10:42:15Z"
-        s3Key:
-          type: string
-          description: S3 key for the processed clip file (optional)
-          example: "tenant123/123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid.mp4"
         fileSize:
           type: integer
-          description: File size in bytes (optional)
+          description: File size in bytes (optional, only present if available)
           example: 15728640
       required:
         - id
         - episodeId
         - title
         - status
-        - startTime
-        - endTime
         - duration
         - tags
+        - segments
         - createdAt
         - updatedAt
 
@@ -1383,20 +1896,30 @@ components:
         id:
           type: string
           description: Team identifier
-          example: "team-123e4567-e89b-12d3-a456-426614174000"
+          example: "123e4567-e89b-12d3-a456-426614174000"
         name:
           type: string
           description: Team name
           example: "Content Team Alpha"
+        description:
+          type: string
+          description: Team description
+          example: "Main content creation team"
         role:
           type: string
           description: User's role in the team
-          enum: ["owner", "member"]
+          enum: ["owner", "administrator", "member"]
           example: "owner"
-        memberCount:
-          type: integer
-          description: Number of team members
-          example: 3
+        status:
+          type: string
+          description: Team status
+          enum: ["active", "archived"]
+          example: "active"
+        joinedAt:
+          type: string
+          format: date-time
+          description: When the user joined the team
+          example: "2025-01-15T10:30:00Z"
         createdAt:
           type: string
           format: date-time
@@ -1406,6 +1929,8 @@ components:
         - id
         - name
         - role
+        - status
+        - joinedAt
         - createdAt
 
     Team:
@@ -1466,10 +1991,6 @@ components:
     UserProfile:
       type: object
       properties:
-        id:
-          type: string
-          description: User identifier
-          example: "user-456e7890-e89b-12d3-a456-426614174001"
         email:
           type: string
           format: email
@@ -1496,29 +2017,19 @@ components:
               example: true
         teams:
           type: array
-          description: Teams the user belongs to
+          description: All teams the user belongs to (for backward compatibility)
           items:
-            type: object
-            properties:
-              teamId:
-                type: string
-                description: Team identifier
-                example: "team-123e4567-e89b-12d3-a456-426614174000"
-              teamName:
-                type: string
-                description: Team name
-                example: "Content Team Alpha"
-              role:
-                type: string
-                enum: ["owner", "member"]
-                description: User's role in the team
-                example: "owner"
-              joinedAt:
-                type: string
-                format: date-time
-                description: When user joined the team
-                example: "2025-01-15T10:30:00Z"
-            required: [teamId, teamName, role, joinedAt]
+            $ref: "#/components/schemas/UserTeamMembership"
+        ownedTeams:
+          type: array
+          description: Teams where the user is the owner
+          items:
+            $ref: "#/components/schemas/UserTeamMembership"
+        memberTeams:
+          type: array
+          description: Teams where the user is an administrator or member
+          items:
+            $ref: "#/components/schemas/UserTeamMembership"
         createdAt:
           type: string
           format: date-time
@@ -1530,13 +2041,56 @@ components:
           description: When the profile was last updated
           example: "2025-01-15T10:35:00Z"
       required:
-        - id
         - email
         - name
         - activeTeamId
         - teams
+        - ownedTeams
+        - memberTeams
         - createdAt
         - updatedAt
+
+    UserTeamMembership:
+      type: object
+      properties:
+        teamId:
+          type: string
+          description: Team identifier
+          example: "team-123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: Team name
+          example: "Content Team Alpha"
+        description:
+          type: string
+          description: Team description
+          example: "Main content creation team"
+        role:
+          type: string
+          enum: ["owner", "administrator", "member"]
+          description: User's role in the team
+          example: "owner"
+        status:
+          type: string
+          enum: ["active", "pending"]
+          description: Membership status
+          example: "active"
+        joinedAt:
+          type: string
+          format: date-time
+          description: When user joined the team
+          example: "2025-01-15T10:30:00Z"
+        teamStatus:
+          type: string
+          description: Current status of the team
+          example: "active"
+      required:
+        - teamId
+        - name
+        - role
+        - status
+        - joinedAt
+        - teamStatus
 
     StatusHistoryEntry:
       type: object
@@ -1583,14 +2137,99 @@ components:
         - message
         - details
 
+    TeamMember:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: User identifier
+          example: "user-456e7890-e89b-12d3-a456-426614174001"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "member@example.com"
+        name:
+          type: string
+          description: User display name
+          example: "John Doe"
+        role:
+          type: string
+          enum: ["owner", "administrator", "member"]
+          description: Member's role in the team
+          example: "member"
+        status:
+          type: string
+          enum: ["active", "pending"]
+          description: Membership status
+          example: "active"
+        joinedAt:
+          type: string
+          format: date-time
+          description: When the user joined the team
+          example: "2025-01-15T10:30:00Z"
+        invitedBy:
+          type: string
+          description: User ID of who invited this member
+          example: "user-789e0123-e89b-12d3-a456-426614174002"
+        inviterName:
+          type: string
+          description: Display name of who invited this member
+          example: "Jane Smith"
+      required:
+        - userId
+        - email
+        - role
+        - status
+        - joinedAt
+
+    PendingInvitation:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address of the invited user
+          example: "pending@example.com"
+        role:
+          type: string
+          enum: ["administrator", "member"]
+          description: Role the user will have when they join
+          example: "member"
+        invitedBy:
+          type: string
+          description: User ID of who sent the invitation
+          example: "user-789e0123-e89b-12d3-a456-426614174002"
+        inviterName:
+          type: string
+          description: Display name of who sent the invitation
+          example: "Jane Smith"
+        invitedAt:
+          type: string
+          format: date-time
+          description: When the invitation was sent
+          example: "2025-01-15T10:30:00Z"
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the invitation expires
+          example: "2025-02-15T10:30:00Z"
+      required:
+        - email
+        - role
+        - invitedBy
+        - inviterName
+        - invitedAt
+        - expiresAt
+
     ErrorResponse:
       type: object
       required:
-        - error
+        - message
       properties:
         error:
           type: string
-          description: Error type identifier
+          description: Error type identifier (optional)
           example: "ValidationError"
         message:
           type: string
@@ -1608,8 +2247,7 @@ components:
             validation_error:
               summary: Validation error
               value:
-                error: "ValidationError"
-                message: "The request body contains invalid data"
+                message: "title is required, episodeNumber is required and must be a number"
             invalid_speakers:
               summary: Invalid speakers array
               value:
@@ -1620,6 +2258,26 @@ components:
               value:
                 error: "ValidationError"
                 message: "Speaker name cannot be empty or contain only whitespace"
+            invalid_email:
+              summary: Invalid email format
+              value:
+                error: "ValidationError"
+                message: "Invalid email address format"
+            invalid_role:
+              summary: Invalid role value
+              value:
+                error: "ValidationError"
+                message: "Role must be either 'administrator' or 'member'"
+            missing_email:
+              summary: Missing required email
+              value:
+                error: "ValidationError"
+                message: "Email address is required"
+            missing_role:
+              summary: Missing required role
+              value:
+                error: "ValidationError"
+                message: "Role is required"
 
     Unauthorized:
       description: Authentication required or invalid token
@@ -1648,6 +2306,26 @@ components:
               value:
                 error: "Forbidden"
                 message: "Only team owners can perform this action"
+            admin_required:
+              summary: Administrator privileges required
+              value:
+                error: "Forbidden"
+                message: "Only team owners and administrators can perform this action"
+            cannot_remove_self:
+              summary: Owner cannot remove themselves
+              value:
+                error: "Forbidden"
+                message: "Team owners cannot remove themselves from the team"
+            cannot_change_own_role:
+              summary: Owner cannot change own role
+              value:
+                error: "Forbidden"
+                message: "Team owners cannot change their own role"
+            cannot_leave_own_team:
+              summary: Owner cannot leave own team
+              value:
+                error: "Forbidden"
+                message: "Team owners cannot leave their own team"
 
     NotFound:
       description: Resource not found
