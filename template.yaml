@@ -275,7 +275,7 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:DeleteItem
                 - dynamodb:BatchWriteItem
-              Resource: !Ref StreamPostProcessingTable
+              Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
                 - events:PutEvents
@@ -1725,7 +1725,7 @@ Resources:
     Properties:
       QueueName: !Sub "${AWS::StackName}-email-dlq"
       MessageRetentionPeriod: 1209600  # 14 days
-      VisibilityTimeoutSeconds: 300
+      VisibilityTimeout: 300
       ReceiveMessageWaitTimeSeconds: 20
       Tags:
         - Key: Purpose
