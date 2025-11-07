@@ -1,24 +1,27 @@
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { marshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
-import { validateRequest, requireTeamMember, requireTeamExists, checkExists } from '../utils/validate.mjs';
+import { validateRequest as validateRequestPowertools, validatePathParameters } from '../utils/powertools-validation.mjs';
+import { requireTeamMember, requireTeamExists, checkExists } from '../utils/validate.mjs';
+import { TeamSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
-    const { teamId } = event.pathParameters;
-    const targetUserId = event.pathParameters.userId;
+    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParametersWithUser);
+    if (!pathValidation.success) return pathValidation.error;
 
-    const validation = validateRequest(event, {
-      role: { required: true, type: 'string', enum: ['administrator', 'member'] }
-    });
+    const { teamId, userId: targetUserId } = pathValidation.data;
 
-    if (validation.error) return validation.error;
+    const bodyValidation = await validateRequestPowertools(event, TeamSchemas.updateMemberRole);
+    if (!bodyValidation.success) return bodyValidation.error;
 
-    const { userId, data } = validation;
+    const { tenantId, userId, data } = bodyValidation;
     const { role } = data;
 
     const teamCheck = await requireTeamExists(teamId);
@@ -83,7 +86,13 @@ export const handler = async (event) => {
     return formatResponse(200, { message: 'Member role updated successfully' });
 
   } catch (err) {
-    console.error('Error updating member role:', err);
+    logger.error('Error updating member role', {
+      error: err.message,
+      stack: err.stack,
+      teamId: event.pathParameters?.teamId,
+      targetUserId: event.pathParameters?.userId,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

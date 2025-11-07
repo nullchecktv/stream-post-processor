@@ -1,6 +1,10 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, QueryCommand, BatchWriteItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { removeNotificationsByInvitation } from '../utils/notifications.mjs';
+
+const logger = new Logger({ serviceName: 'events' });
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -27,18 +31,18 @@ export const handler = async (event) => {
     const { teamId } = event.detail;
 
     if (!teamId) {
-      console.error('Missing teamId in event detail');
+      logger.error('Missing teamId in event detail');
       return;
     }
 
     progress.teamId = teamId;
-    console.log(`Starting asset cleanup for team: ${teamId}`);
+    logger.info('Starting asset cleanup for team', { teamId });
 
     const teamKey = `team#${teamId}`;
 
     const episodeIds = await getAllTeamEpisodes(teamKey);
     progress.totalEpisodes = episodeIds.length;
-    console.log(`Found ${episodeIds.length} episodes for team ${teamId}`);
+    logger.info('Found episodes for team', { teamId, episodeCount: episodeIds.length });
 
     for (const episodeId of episodeIds) {
       try {
@@ -51,7 +55,7 @@ export const handler = async (event) => {
 
         await publishProgress(progress);
       } catch (err) {
-        console.error(`Error cleaning up episode ${episodeId}:`, err);
+        logger.error('Error cleaning up episode', { episodeId, error: err.message });
         progress.errors.push(`Episode ${episodeId}: ${err.message}`);
       }
     }
@@ -61,7 +65,7 @@ export const handler = async (event) => {
       progress.totalDynamoDBRecords += membershipProgress.recordsFound;
       progress.deletedDynamoDBRecords += membershipProgress.recordsDeleted;
     } catch (err) {
-      console.error('Error cleaning up team memberships:', err);
+      logger.error('Error cleaning up team memberships', { error: err.message });
       progress.errors.push(`Team memberships: ${err.message}`);
     }
 
@@ -70,26 +74,27 @@ export const handler = async (event) => {
       progress.totalDynamoDBRecords += invitationProgress.recordsFound;
       progress.deletedDynamoDBRecords += invitationProgress.recordsDeleted;
     } catch (err) {
-      console.error('Error cleaning up pending invitations:', err);
+      logger.error('Error cleaning up pending invitations', { error: err.message });
       progress.errors.push(`Pending invitations: ${err.message}`);
     }
 
     try {
       await clearActiveTeamFromUsers(teamId);
     } catch (err) {
-      console.error('Error clearing active team from users:', err);
+      logger.error('Error clearing active team from users', { error: err.message });
       progress.errors.push(`Clear active team: ${err.message}`);
     }
 
     const duration = Date.now() - startTime;
 
-    console.log(`Asset cleanup completed for team: ${teamId}`, {
+    logger.info('Asset cleanup completed for team', {
+      teamId,
       duration: `${duration}ms`,
       progress
     });
 
   } catch (err) {
-    console.error('Error during team asset cleanup:', {
+    logger.error('Error during team asset cleanup', {
       error: err.message,
       stack: err.stack,
       teamId: progress.teamId,
@@ -101,7 +106,7 @@ export const handler = async (event) => {
 
     // Don't throw the error to prevent EventBridge retries for permanent failures
     // The cleanup will be marked as failed in metrics but won't block the system
-    console.error('Team asset cleanup failed but will not retry to prevent system issues');
+    logger.error('Team asset cleanup failed but will not retry to prevent system issues');
   }
 };
 
@@ -143,7 +148,7 @@ const getAllTeamEpisodes = async (teamKey) => {
 };
 
 const cleanupEpisodeAssets = async (teamKey, episodeId) => {
-  console.log(`Cleaning up assets for episode: ${episodeId}`);
+  logger.info('Cleaning up assets for episode', { episodeId });
 
   const episodePk = `${teamKey}#${episodeId}`;
   const progress = {
@@ -155,11 +160,11 @@ const cleanupEpisodeAssets = async (teamKey, episodeId) => {
 
   const allRecords = await getAllEpisodeRecords(episodePk);
   progress.dynamoRecordsFound = allRecords.length;
-  console.log(`Found ${allRecords.length} records for episode ${episodeId}`);
+  logger.info('Found records for episode', { episodeId, recordCount: allRecords.length });
 
   const s3Objects = await getAllEpisodeS3Objects(teamKey, episodeId, allRecords);
   progress.s3ObjectsFound = s3Objects.length;
-  console.log(`Found ${s3Objects.length} S3 objects for episode ${episodeId}`);
+  logger.info('Found S3 objects for episode', { episodeId, objectCount: s3Objects.length });
 
   if (s3Objects.length > 0) {
     progress.s3ObjectsDeleted = await deleteS3ObjectsWithRetry(s3Objects);
@@ -230,7 +235,7 @@ const getAllEpisodeS3Objects = async (teamKey, episodeId, records) => {
     } while (continuationToken);
 
   } catch (err) {
-    console.warn(`Error listing S3 objects for episode ${episodeId}:`, err);
+    logger.warn('Error listing S3 objects for episode', { episodeId, error: err.message });
   }
 
   for (const record of records) {
@@ -284,22 +289,22 @@ const deleteS3ObjectsWithRetry = async (objects) => {
         totalDeleted += deletedCount;
 
         if (response.Errors && response.Errors.length > 0) {
-          console.warn(`S3 batch ${batchIndex + 1} had ${response.Errors.length} errors:`, response.Errors);
+          logger.warn('S3 batch had errors', { batchIndex: batchIndex + 1, errorCount: response.Errors.length, errors: response.Errors });
         }
 
-        console.log(`Deleted ${deletedCount} S3 objects (batch ${batchIndex + 1}/${batches.length})`);
+        logger.info('Deleted S3 objects', { deletedCount, batchIndex: batchIndex + 1, totalBatches: batches.length });
         success = true;
 
       } catch (err) {
         retryCount++;
-        console.error(`Error deleting S3 objects batch ${batchIndex + 1}, attempt ${retryCount}:`, err);
+        logger.error('Error deleting S3 objects batch', { batchIndex: batchIndex + 1, attempt: retryCount, error: err.message });
 
         if (retryCount < MAX_RETRIES) {
           const delay = RETRY_DELAY_MS * Math.pow(2, retryCount - 1);
-          console.log(`Retrying S3 batch ${batchIndex + 1} in ${delay}ms...`);
+          logger.info('Retrying S3 batch', { batchIndex: batchIndex + 1, delay });
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
-          console.error(`Failed to delete S3 batch ${batchIndex + 1} after ${MAX_RETRIES} attempts`);
+          logger.error('Failed to delete S3 batch after max retries', { batchIndex: batchIndex + 1, maxRetries: MAX_RETRIES });
         }
       }
     }
@@ -348,7 +353,7 @@ const deleteDynamoDBRecordsWithRetry = async (records) => {
 
         if (response.UnprocessedItems && response.UnprocessedItems[process.env.TABLE_NAME]) {
           const unprocessedRequests = response.UnprocessedItems[process.env.TABLE_NAME];
-          console.warn(`DynamoDB batch ${batchIndex + 1} has ${unprocessedRequests.length} unprocessed items`);
+          logger.warn('DynamoDB batch has unprocessed items', { batchIndex: batchIndex + 1, unprocessedCount: unprocessedRequests.length });
 
           currentBatch = unprocessedRequests.map(req => {
             const key = unmarshall(req.DeleteRequest.Key);
@@ -358,24 +363,24 @@ const deleteDynamoDBRecordsWithRetry = async (records) => {
           retryCount++;
           if (retryCount < MAX_RETRIES) {
             const delay = RETRY_DELAY_MS * Math.pow(2, retryCount - 1);
-            console.log(`Retrying DynamoDB batch ${batchIndex + 1} with ${currentBatch.length} items in ${delay}ms...`);
+            logger.info('Retrying DynamoDB batch with unprocessed items', { batchIndex: batchIndex + 1, itemCount: currentBatch.length, delay });
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         } else {
           currentBatch = [];
-          console.log(`Deleted ${processedCount} DynamoDB records (batch ${batchIndex + 1}/${batches.length})`);
+          logger.info('Deleted DynamoDB records', { processedCount, batchIndex: batchIndex + 1, totalBatches: batches.length });
         }
 
       } catch (err) {
         retryCount++;
-        console.error(`Error deleting DynamoDB records batch ${batchIndex + 1}, attempt ${retryCount}:`, err);
+        logger.error('Error deleting DynamoDB records batch', { batchIndex: batchIndex + 1, attempt: retryCount, error: err.message });
 
         if (retryCount < MAX_RETRIES) {
           const delay = RETRY_DELAY_MS * Math.pow(2, retryCount - 1);
-          console.log(`Retrying DynamoDB batch ${batchIndex + 1} in ${delay}ms...`);
+          logger.info('Retrying DynamoDB batch', { batchIndex: batchIndex + 1, delay });
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
-          console.error(`Failed to delete DynamoDB batch ${batchIndex + 1} after ${MAX_RETRIES} attempts`);
+          logger.error('Failed to delete DynamoDB batch after max retries', { batchIndex: batchIndex + 1, maxRetries: MAX_RETRIES });
           currentBatch = [];
         }
       }
@@ -386,7 +391,7 @@ const deleteDynamoDBRecordsWithRetry = async (records) => {
 };
 
 const cleanupTeamMemberships = async (teamKey) => {
-  console.log(`Cleaning up team memberships for: ${teamKey}`);
+  logger.info('Cleaning up team memberships', { teamKey });
 
   const memberships = [];
   let lastEvaluatedKey = null;
@@ -421,14 +426,14 @@ const cleanupTeamMemberships = async (teamKey) => {
 
   if (memberships.length > 0) {
     progress.recordsDeleted = await deleteDynamoDBRecordsWithRetry(memberships);
-    console.log(`Deleted ${progress.recordsDeleted} team membership records`);
+    logger.info('Deleted team membership records', { deletedCount: progress.recordsDeleted });
   }
 
   return progress;
 };
 
 const cleanupPendingInvitations = async (teamId) => {
-  console.log(`Cleaning up pending invitations for team: ${teamId}`);
+  logger.info('Cleaning up pending invitations for team', { teamId });
 
   const invitations = [];
   let lastEvaluatedKey = null;
@@ -463,15 +468,28 @@ const cleanupPendingInvitations = async (teamId) => {
   };
 
   if (invitations.length > 0) {
+    // Clean up associated notifications before deleting invitations
+    for (const invitationItem of invitations) {
+      const invitation = unmarshall(invitationItem);
+      if (invitation.invitedUserId && invitation.id) {
+        try {
+          await removeNotificationsByInvitation(invitation.invitedUserId, invitation.id);
+        } catch (error) {
+          logger.error('Failed to clean up notifications for invitation', { invitationId: invitation.id, error: error.message });
+          // Continue with cleanup even if notification removal fails
+        }
+      }
+    }
+
     progress.recordsDeleted = await deleteDynamoDBRecordsWithRetry(invitations);
-    console.log(`Deleted ${progress.recordsDeleted} pending invitation records`);
+    logger.info('Deleted pending invitation records', { deletedCount: progress.recordsDeleted });
   }
 
   return progress;
 };
 
 const clearActiveTeamFromUsers = async (teamId) => {
-  console.log(`Clearing active team from user profiles for team: ${teamId}`);
+  logger.info('Clearing active team from user profiles for team', { teamId });
 
   const users = [];
   let lastEvaluatedKey = null;
@@ -519,18 +537,18 @@ const clearActiveTeamFromUsers = async (teamId) => {
         })
       }));
     } catch (err) {
-      console.error(`Error clearing active team for user ${user.pk}:`, err);
+      logger.error('Error clearing active team for user', { userPk: user.pk, error: err.message });
     }
   }
 
   if (users.length > 0) {
-    console.log(`Cleared active team from ${users.length} user profiles`);
+    logger.info('Cleared active team from user profiles', { userCount: users.length });
   }
 };
 
 const publishProgress = async (progress) => {
   try {
-    console.log('Cleanup progress:', {
+    logger.info('Cleanup progress', {
       teamId: progress.teamId,
       episodesProgress: `${progress.processedEpisodes}/${progress.totalEpisodes}`,
       s3ObjectsProgress: `${progress.deletedS3Objects}/${progress.totalS3Objects}`,
@@ -538,6 +556,6 @@ const publishProgress = async (progress) => {
       errorCount: progress.errors.length
     });
   } catch (err) {
-    console.error('Error publishing progress:', err);
+    logger.error('Error publishing progress', { error: err.message });
   }
 };

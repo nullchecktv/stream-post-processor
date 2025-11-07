@@ -1,7 +1,10 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { parseTenantIdFromKey } from '../utils/clips.mjs';
+
+const logger = new Logger({ serviceName: 'events' });
 
 const ddb = new DynamoDBClient();
 const mediaConvert = new MediaConvertClient({ endpointDiscoveryEnabled: true });
@@ -15,7 +18,7 @@ export const handler = async (event) => {
     const s3Key = (detail.key || '').toString().trim();
 
     if (!episodeId || !trackName || !s3Key) {
-      console.warn('Missing required event detail. Expecting { episodeId, trackName, key }.', JSON.stringify(detail));
+      logger.warn('Missing required event detail. Expecting { episodeId, trackName, key }', { detail });
       return { statusCode: 200 };
     }
 
@@ -23,17 +26,17 @@ export const handler = async (event) => {
     try {
       tenantId = parseTenantIdFromKey(s3Key);
     } catch (e) {
-      console.error(`Failed to extract tenantId from S3 key ${s3Key}: ${e.message}`);
+      logger.error('Failed to extract tenantId from S3 key', { s3Key, error: e.message });
       return { statusCode: 200 };
     }
 
     if (!tenantId) {
-      console.error('Missing tenantId in S3 key');
+      logger.error('Missing tenantId in S3 key');
       return { statusCode: 200 };
     }
     const videoId = `${episodeId}-${trackName}`;
 
-    console.log(`Processing video ${s3Key} as ${videoId}`);
+    logger.info('Processing video', { s3Key, videoId });
 
     // Idempotency guard: acquire a preprocessing lock if no job exists yet
     const now = new Date().toISOString();
@@ -76,7 +79,10 @@ export const handler = async (event) => {
         })
       }));
     } catch (e) {
-      console.log(`Preprocessing already in progress or completed for ${episodeId}/track#${trackName}. Skipping job creation.`);
+      logger.info('Preprocessing already in progress or completed, skipping job creation', {
+        episodeId,
+        trackName
+      });
       return { statusCode: 200 };
     }
 
@@ -162,7 +168,7 @@ export const handler = async (event) => {
 
     return { statusCode: 200 };
   } catch (err) {
-    console.error('Error creating MediaConvert job:', err);
+    logger.error('Error creating MediaConvert job', { error: err.message, stack: err.stack });
     throw err;
   }
 };

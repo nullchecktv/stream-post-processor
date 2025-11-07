@@ -1,5 +1,8 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockAgentCoreClient, ListEventsCommand, CreateEventCommand } from '@aws-sdk/client-bedrock-agentcore';
+
+const logger = new Logger({ serviceName: 'utils' });
 
 const ac = new BedrockAgentCoreClient();
 const bedrock = new BedrockRuntimeClient();
@@ -29,7 +32,10 @@ export const converse = async (model, systemPrompt, userPrompt, tools, options) 
       const response = await bedrock.send(command);
 
       if (!response.output?.message?.content) {
-        console.warn(`No message output on iteration ${iteration + 1}. Response:`, JSON.stringify(response, null, 2));
+        logger.warn('No message output on iteration', {
+          iteration: iteration + 1,
+          response: JSON.stringify(response, null, 2)
+        });
         break;
       }
 
@@ -46,7 +52,12 @@ export const converse = async (model, systemPrompt, userPrompt, tools, options) 
           const { toolUse } = toolUseItem;
           const { name: toolName, input: toolInput, toolUseId } = toolUse;
 
-          console.info(`Iteration ${iteration + 1}: Tool called: ${toolName}`, { toolInput, toolUseId });
+          logger.info('Tool called', {
+            iteration: iteration + 1,
+            toolName,
+            toolInput,
+            toolUseId
+          });
 
           let toolResult;
           try {
@@ -64,7 +75,7 @@ export const converse = async (model, systemPrompt, userPrompt, tools, options) 
           } catch (toolError) {
             toolResult = { error: toolError.message };
           }
-          console.log(toolResult);
+          logger.info('Tool result', { toolName, toolResult });
           const toolResultBlock = {
             toolUseId,
             content: [{ text: JSON.stringify(toolResult) }]
@@ -77,18 +88,27 @@ export const converse = async (model, systemPrompt, userPrompt, tools, options) 
         finalResponse = textItems.map(item => item.text).join('');
         break;
       } else {
-        console.warn(`Iteration ${iteration + 1}: Unexpected content structure:`, messageContent);
+        logger.warn('Unexpected content structure', {
+          iteration: iteration + 1,
+          messageContent
+        });
         finalResponse = 'Received unexpected response type from model';
         break;
       }
     } catch (error) {
-      console.error(`Error on iteration ${iteration}:`, error);
+      logger.error('Error on iteration', {
+        iteration,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to process message`);
     }
   }
 
   if (!finalResponse && iteration >= MAX_ITERATIONS) {
-    console.warn(`Stopped due to iteration limit`);
+    logger.warn('Stopped due to iteration limit', {
+      maxIterations: MAX_ITERATIONS
+    });
   }
 
   if (!finalResponse && messages.length > 1) {

@@ -1,6 +1,9 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+
+const logger = new Logger({ serviceName: 'utils' });
 
 /**
  * Get the FFmpeg binary path (from Lambda layer or system)
@@ -29,7 +32,9 @@ const getFFprobePath = () => {
 export const execFFmpeg = (args, options = {}) => {
   return new Promise((resolve, reject) => {
     const ffmpegPath = getFFmpegPath();
-    console.log('Executing FFmpeg command:', [ffmpegPath, ...args].join(' '));
+    logger.info('Executing FFmpeg command', {
+      command: [ffmpegPath, ...args].join(' ')
+    });
 
     const ffmpeg = spawn(ffmpegPath, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -51,16 +56,22 @@ export const execFFmpeg = (args, options = {}) => {
 
     ffmpeg.on('close', (code) => {
       if (code === 0) {
-        console.log('FFmpeg command completed successfully');
+        logger.info('FFmpeg command completed successfully');
         resolve(stdout);
       } else {
-        console.error('FFmpeg command failed:', stderr);
+        logger.error('FFmpeg command failed', {
+          exitCode: code,
+          stderr
+        });
         reject(new Error(`FFmpeg failed with code ${code}: ${stderr}`));
       }
     });
 
     ffmpeg.on('error', (error) => {
-      console.error('FFmpeg spawn error:', error);
+      logger.error('FFmpeg spawn error', {
+        error: error.message,
+        stack: error.stack
+      });
       reject(new Error(`Failed to spawn FFmpeg: ${error.message}`));
     });
   });
@@ -75,13 +86,18 @@ export const execFFmpeg = (args, options = {}) => {
  * @returns {Promise<void>}
  */
 export const extractVideoSegment = async (inputFile, outputFile, startOffset, duration) => {
-  console.log(`Extracting segment: input=${inputFile}, output=${outputFile}, start=${startOffset}s, duration=${duration}s`);
+  logger.info('Extracting video segment', {
+    inputFile,
+    outputFile,
+    startOffset,
+    duration
+  });
 
   // First, let's get info about the input file
   try {
     const inputInfo = await getVideoInfo(inputFile);
     const inputDuration = parseFloat(inputInfo.format?.duration || 0);
-    console.log(`Input file duration: ${inputDuration}s`);
+    logger.info('Input file duration', { inputDuration });
 
     if (startOffset >= inputDuration) {
       throw new Error(`Start offset (${startOffset}s) is beyond input duration (${inputDuration}s)`);
@@ -89,11 +105,16 @@ export const extractVideoSegment = async (inputFile, outputFile, startOffset, du
 
     if (startOffset + duration > inputDuration) {
       const adjustedDuration = inputDuration - startOffset;
-      console.log(`Adjusting duration from ${duration}s to ${adjustedDuration}s to fit input file`);
+      logger.info('Adjusting duration to fit input file', {
+        originalDuration: duration,
+        adjustedDuration
+      });
       duration = adjustedDuration;
     }
   } catch (infoError) {
-    console.warn('Could not get input file info:', infoError.message);
+    logger.warn('Could not get input file info', {
+      error: infoError.message
+    });
   }
 
   // Use more robust FFmpeg parameters
@@ -110,12 +131,14 @@ export const extractVideoSegment = async (inputFile, outputFile, startOffset, du
     outputFile
   ];
 
-  console.log('FFmpeg command:', args.join(' '));
+  logger.info('FFmpeg command', { command: args.join(' ') });
 
   try {
     await execFFmpeg(args);
   } catch (error) {
-    console.warn('Re-encoding failed, trying with stream copy:', error.message);
+    logger.warn('Re-encoding failed, trying with stream copy', {
+      error: error.message
+    });
 
     // Fallback to stream copy
     const fallbackArgs = [
@@ -128,7 +151,9 @@ export const extractVideoSegment = async (inputFile, outputFile, startOffset, du
       outputFile
     ];
 
-    console.log('Fallback FFmpeg command:', fallbackArgs.join(' '));
+    logger.info('Fallback FFmpeg command', {
+      command: fallbackArgs.join(' ')
+    });
     await execFFmpeg(fallbackArgs);
   }
 
@@ -139,21 +164,27 @@ export const extractVideoSegment = async (inputFile, outputFile, startOffset, du
     const hasVideo = outputInfo.streams?.some(s => s.codec_type === 'video') || false;
     const hasAudio = outputInfo.streams?.some(s => s.codec_type === 'audio') || false;
 
-    console.log(`Output file: duration=${outputDuration}s, hasVideo=${hasVideo}, hasAudio=${hasAudio}`);
+    logger.info('Output file info', {
+      outputDuration,
+      hasVideo,
+      hasAudio
+    });
 
     if (outputDuration === 0) {
       throw new Error('Output file has zero duration');
     }
 
     if (!hasVideo) {
-      console.warn('Output file has no video stream');
+      logger.warn('Output file has no video stream');
     }
 
     if (!hasAudio) {
-      console.warn('Output file has no audio stream');
+      logger.warn('Output file has no audio stream');
     }
   } catch (verifyError) {
-    console.warn('Could not verify output file:', verifyError.message);
+    logger.warn('Could not verify output file', {
+      error: verifyError.message
+    });
   }
 };
 
@@ -165,7 +196,9 @@ export const extractVideoSegment = async (inputFile, outputFile, startOffset, du
 export const getVideoInfo = async (filePath) => {
   return new Promise((resolve, reject) => {
     const ffprobePath = getFFprobePath();
-    console.log('Executing FFprobe command:', [ffprobePath, filePath].join(' '));
+    logger.info('Executing FFprobe command', {
+      command: [ffprobePath, filePath].join(' ')
+    });
 
     const ffprobe = spawn(ffprobePath, [
       '-v', 'quiet',
@@ -232,9 +265,12 @@ export const cleanup = async (path) => {
     } else {
       await fs.unlink(path);
     }
-    console.log(`Cleaned up: ${path}`);
+    logger.info('Cleaned up file', { path });
   } catch (error) {
-    console.warn(`Failed to cleanup ${path}:`, error.message);
+    logger.warn('Failed to cleanup file', {
+      path,
+      error: error.message
+    });
   }
 };
 
@@ -247,7 +283,7 @@ export const checkFFmpegAvailability = async () => {
     const ffmpegPath = getFFmpegPath();
 
     // Log environment information for debugging
-    console.log('Environment info:', {
+    logger.info('Environment info', {
       architecture: process.arch,
       platform: process.platform,
       lambdaFunction: process.env.AWS_LAMBDA_FUNCTION_NAME,
@@ -257,11 +293,11 @@ export const checkFFmpegAvailability = async () => {
     // Check if the binary exists
     try {
       await fs.access(ffmpegPath, fs.constants.F_OK);
-      console.log(`FFmpeg binary found at: ${ffmpegPath}`);
+      logger.info('FFmpeg binary found', { ffmpegPath });
 
       // Check if binary is executable
       await fs.access(ffmpegPath, fs.constants.X_OK);
-      console.log(`FFmpeg binary is executable`);
+      logger.info('FFmpeg binary is executable');
     } catch (accessError) {
       throw new Error(`FFmpeg binary not accessible at ${ffmpegPath}: ${accessError.message}`);
     }
@@ -271,10 +307,13 @@ export const checkFFmpegAvailability = async () => {
     const versionMatch = output.match(/ffmpeg version ([^\s]+)/);
     const version = versionMatch ? versionMatch[1] : 'unknown';
 
-    console.log(`FFmpeg version: ${version}`);
+    logger.info('FFmpeg version', { version });
     return version;
   } catch (error) {
-    console.error('FFmpeg availability check failed:', error);
+    logger.error('FFmpeg availability check failed', {
+      error: error.message,
+      stack: error.stack
+    });
     throw new Error(`FFmpeg is not available or not properly installed: ${error.message}`);
   }
 };

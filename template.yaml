@@ -1219,6 +1219,41 @@ Resources:
             Path: /teams/{teamId}/invitations/{email}
             Method: DELETE
 
+  MakeInvitationDecisionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - invitations/make-decision.mjs
+    Properties:
+      Handler: invitations/make-decision.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:PutItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+                - !Sub "${StreamPostProcessingTable.Arn}/index/*"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        MakeInvitationDecision:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /invitations/{invitationId}/decisions
+            Method: POST
+
   LeaveTeamFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -1758,6 +1793,66 @@ Resources:
                 - nullcheck
               detail-type:
                 - Team Deleted
+
+  ListNotificationsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - notifications/list-notifications.mjs
+    Properties:
+      Handler: notifications/list-notifications.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          ENCRYPTION_KEY: !Ref EncryptionKey
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /notifications
+            Method: GET
+
+  DeleteNotificationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - notifications/delete-notification.mjs
+    Properties:
+      Handler: notifications/delete-notification.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Delete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /notifications/{notificationId}
+            Method: DELETE
 
   FFMPEGLambdaLayer:
     Type: AWS::Serverless::Application

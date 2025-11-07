@@ -1,5 +1,8 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+
+const logger = new Logger({ serviceName: 'utils' });
 
 const ddb = new DynamoDBClient();
 
@@ -46,7 +49,11 @@ export async function getOrCreateClipStats(tenantId) {
 
     return initial;
   } catch (err) {
-    console.error('Error getting or creating clip stats:', err);
+    logger.error('Error getting or creating clip stats', {
+      error: err.message,
+      stack: err.stack,
+      tenantId
+    });
     throw err;
   }
 }
@@ -77,12 +84,22 @@ export async function incrementClipsCreated(tenantId, clipType, isRetry = false)
   } catch (err) {
     // If record doesn’t exist, create it once and retry
     if (err.name === 'ValidationException' && !isRetry) {
-      console.error(err, `Is Retry: ${isRetry}`);
+      logger.error('ValidationException during clip stats increment, retrying', {
+        error: err.message,
+        isRetry,
+        tenantId,
+        clipType
+      });
       await getOrCreateClipStats(tenantId);
       await incrementClipsCreated(tenantId, clipType, true);
       return;
     }
-    console.error('Error incrementing clip stats:', err);
+    logger.error('Error incrementing clip stats', {
+      error: err.message,
+      stack: err.stack,
+      tenantId,
+      clipType
+    });
   }
 }
 
@@ -99,7 +116,11 @@ export async function getClipStats(tenantId) {
     );
     return res.Item ? unmarshall(res.Item) : null;
   } catch (err) {
-    console.error('Error retrieving clip stats:', err);
+    logger.error('Error retrieving clip stats', {
+      error: err.message,
+      stack: err.stack,
+      tenantId
+    });
     throw err;
   }
 }

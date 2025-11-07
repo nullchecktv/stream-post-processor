@@ -1,4 +1,7 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+
+const logger = new Logger({ serviceName: 'utils' });
 
 const s3 = new S3Client();
 const transcriptCache = new Map();
@@ -17,7 +20,12 @@ export const loadTranscript = async (key) => {
     transcriptCache.set(key, text);
     return text;
   } catch (err) {
-    console.error(err, `${process.env.BUCKET_NAME}/${key}`);
+    logger.error('Failed to load transcript', {
+      error: err.message,
+      stack: err.stack,
+      bucket: process.env.BUCKET_NAME,
+      key
+    });
     return '';
   }
 };

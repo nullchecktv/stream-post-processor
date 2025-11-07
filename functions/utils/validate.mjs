@@ -1,12 +1,20 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from './api.mjs';
 
+const logger = new Logger({ serviceName: 'utils' });
+
 const ddb = new DynamoDBClient();
 
+// DEPRECATED: Use powertools-validation.mjs instead
+// This file contains legacy validation and business logic helpers
+
 export const validateRequest = (event, schema) => {
+  const tenantId = event?.requestContext?.authorizer?.tenantId;
   const userId = event?.requestContext?.authorizer?.userId;
-  if (!userId) {
+
+  if (!tenantId || !userId) {
     return { error: formatResponse(401, { message: 'Unauthorized' }) };
   }
 
@@ -88,7 +96,7 @@ export const validateRequest = (event, schema) => {
     return { error: formatResponse(400, { message: errors.join(', ') }) };
   }
 
-  return { userId, data };
+  return { tenantId, userId, data };
 };
 
 export const checkExists = async (pk, sk) => {
@@ -99,7 +107,12 @@ export const checkExists = async (pk, sk) => {
     }));
     return response.Item ? unmarshall(response.Item) : null;
   } catch (error) {
-    console.error('Error checking existence:', error);
+    logger.error('Error checking existence', {
+      error: error.message,
+      stack: error.stack,
+      pk,
+      sk
+    });
     return null;
   }
 };

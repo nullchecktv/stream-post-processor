@@ -1,7 +1,10 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { getCurrentClipStatus } from '../utils/clips.mjs';
+
+const logger = new Logger({ serviceName: 'clips' });
 
 const ddb = new DynamoDBClient();
 
@@ -11,7 +14,7 @@ export const handler = async (event) => {
     const { episodeId } = event.pathParameters;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -49,7 +52,11 @@ export const handler = async (event) => {
     return formatResponse(200, buildPagingParams(clips, result.LastEvaluatedKey));
 
   } catch (err) {
-    console.error('Error listing clips:', err);
+    logger.error('Error listing clips', {
+      error: err.message,
+      stack: err.stack,
+      episodeId: event?.pathParameters?.episodeId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

@@ -1,6 +1,9 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { parseEpisodeIdFromKey } from '../utils/clips.mjs';
+
+const logger = new Logger({ serviceName: 'events' });
 
 const ddb = new DynamoDBClient();
 
@@ -8,7 +11,7 @@ export const handler = async (event) => {
   try {
     const rawKey = event?.detail?.object?.key;
     if (!rawKey) {
-      console.log('Unsupported event shape (expecting EventBridge S3 event):', JSON.stringify(event?.detail || {}));
+      logger.info('Unsupported event shape (expecting EventBridge S3 event)', { eventDetail: event?.detail || {} });
       return { statusCode: 200 };
     }
 
@@ -19,12 +22,12 @@ export const handler = async (event) => {
       tenantId = parsed.tenantId;
       episodeId = parsed.episodeId;
     } catch (e) {
-      console.warn(`Skipping object with unexpected key: ${key}. Reason: ${e.message}`);
+      logger.warn('Skipping object with unexpected key', { key, reason: e.message });
       return { statusCode: 200 };
     }
 
     if (!tenantId) {
-      console.error('Missing tenantId in S3 key');
+      logger.error('Missing tenantId in S3 key', { key });
       return { statusCode: 200 };
     }
 
@@ -34,7 +37,7 @@ export const handler = async (event) => {
     }));
 
     if (!episodeResponse.Item) {
-      console.warn(`Episode ${episodeId} not found; skipping transcript attachment for key ${key}`);
+      logger.warn('Episode not found; skipping transcript attachment', { episodeId, key });
       return { statusCode: 200 };
     }
 
@@ -70,12 +73,16 @@ export const handler = async (event) => {
         Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'transcript-upload-url' })
       }));
     } catch (e) {
-      console.warn(`Failed to delete presigned url record for ${episodeId}: ${e?.message || e}`);
+      logger.warn('Failed to delete presigned url record', { episodeId, error: e?.message || e });
     }
 
     return { statusCode: 200 };
   } catch (err) {
-    console.error('Error handling EventBridge S3 event:', err);
+    logger.error('Error handling EventBridge S3 event', {
+      error: err.message,
+      stack: err.stack,
+      eventDetail: event?.detail
+    });
     throw err;
   }
 };

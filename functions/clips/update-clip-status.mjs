@@ -1,52 +1,29 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { CLIP_STATUS, validateStatusUpdate, createStatusUpdateParams } from '../utils/clips.mjs';
+import { validateRequest, validatePathParameters } from '../utils/powertools-validation.mjs';
+import { ClipSchemas } from '../utils/schemas.mjs';
 
+const logger = new Logger({ serviceName: 'clips' });
 const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   try {
-    const { tenantId } = event.requestContext.authorizer;
-    const { episodeId, clipId } = event.pathParameters;
-
-    if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
-      return formatResponse(401, { error: 'Unauthorized' });
+    const pathValidation = await validatePathParameters(event, ClipSchemas.pathParameters);
+    if (!pathValidation.success) {
+      return pathValidation.error;
     }
 
-    if (!episodeId || !clipId) {
-      return formatResponse(400, {
-        error: 'BadRequest',
-        message: 'Episode ID and Clip ID are required'
-      });
+    const requestValidation = await validateRequest(event, ClipSchemas.statusUpdate);
+    if (!requestValidation.success) {
+      return requestValidation.error;
     }
 
-    let requestBody;
-    try {
-      requestBody = JSON.parse(event.body || '{}');
-    } catch (error) {
-      return formatResponse(400, {
-        error: 'BadRequest',
-        message: 'Invalid JSON in request body'
-      });
-    }
-
-    const { status } = requestBody;
-
-    if (!status) {
-      return formatResponse(400, {
-        error: 'ValidationError',
-        message: 'Status is required'
-      });
-    }
-
-    if (!Object.values(CLIP_STATUS).includes(status)) {
-      return formatResponse(400, {
-        error: 'ValidationError',
-        message: `Invalid status. Must be one of: ${Object.values(CLIP_STATUS).join(', ')}`
-      });
-    }
+    const { tenantId, data } = requestValidation;
+    const { episodeId, clipId } = pathValidation.data;
+    const { status } = data;
 
     const getResult = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -93,7 +70,13 @@ export const handler = async (event) => {
     });
 
   } catch (err) {
-    console.error('Error updating clip status:', err);
-    return formatResponse(500, {      message: 'Something went wrong'    });
+    logger.error('Error updating clip status', {
+      error: err.message,
+      stack: err.stack,
+      episodeId: event.pathParameters?.episodeId,
+      clipId: event.pathParameters?.clipId,
+      status: event.body ? JSON.parse(event.body).status : undefined
+    });
+    return formatResponse(500, { message: 'Something went wrong' });
   }
 };

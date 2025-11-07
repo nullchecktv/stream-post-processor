@@ -2,14 +2,27 @@ const { mockClient } = require('aws-sdk-client-mock');
 const { SESv2Client, SendEmailCommand } = require('@aws-sdk/client-sesv2');
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 
+// Mock Logger before any imports
+jest.mock('@aws-lambda-powertools/logger', () => {
+  const { Logger } = require('../../helpers/logger-mock');
+  return { Logger };
+});
+
 const sesMock = mockClient(SESv2Client);
 const sqsMock = mockClient(SQSClient);
 
+const { Logger } = require('@aws-lambda-powertools/logger');
+
 describe('send-team-email error handling logic', () => {
+  let mockLogger;
+
   beforeEach(() => {
     sesMock.reset();
     sqsMock.reset();
+    jest.clearAllMocks();
 
+    // Create fresh logger mock for each test
+    mockLogger = new Logger({ serviceName: 'events' });
     sqsMock.on(SendMessageCommand).resolves({ MessageId: 'dlq-message-id' });
   });
 

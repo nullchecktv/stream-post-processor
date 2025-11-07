@@ -1,19 +1,29 @@
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
+import { validatePathParameters } from '../utils/powertools-validation.mjs';
+import { EpisodeSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'episodes' });
 
 export const handler = async (event) => {
   try {
     const { tenantId } = event.requestContext.authorizer;
-    const { episodeId } = event.pathParameters;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
+
+    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    if (!pathValidation.success) {
+      return pathValidation.error;
+    }
+
+    const { episodeId } = pathValidation.data;
 
     const result = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -47,7 +57,12 @@ export const handler = async (event) => {
     return formatResponse(200, response);
 
   } catch (err) {
-    console.error('Error getting episode:', err);
+    logger.error('Error getting episode', {
+      error: err.message,
+      stack: err.stack,
+      name: err.name,
+      episodeId: event.pathParameters?.episodeId
+    });
     return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

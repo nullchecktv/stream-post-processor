@@ -1,6 +1,7 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
@@ -8,13 +9,14 @@ import { initializeStatusHistory } from '../utils/status-history.mjs';
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
 const eb = new EventBridgeClient();
+const logger = new Logger({ serviceName: 'episodes' });
 
 export const handler = async (event) => {
   try {
     const { tenantId } = event.requestContext.authorizer;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -148,12 +150,24 @@ export const handler = async (event) => {
         ]
       }));
     } catch (e) {
-      console.error('Failed to publish Video Upload Completed event:', e);
+      logger.error('Failed to publish Video Upload Completed event', {
+        error: e.message,
+        stack: e.stack,
+        name: e.name,
+        episodeId,
+        trackName
+      });
     }
 
     return formatResponse(200, { key, trackName });
   } catch (err) {
-    console.error('Error completing track upload:', err);
+    logger.error('Error completing track upload', {
+      error: err.message,
+      stack: err.stack,
+      name: err.name,
+      episodeId: event.pathParameters?.episodeId,
+      trackName: event.pathParameters?.trackName
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

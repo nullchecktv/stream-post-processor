@@ -1,23 +1,27 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { parseBody, formatResponse, formatEmptyResponse } from '../utils/api.mjs';
+import { Logger } from '@aws-lambda-powertools/logger';
+import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
+import { validateRequest, validatePathParameters } from '../utils/powertools-validation.mjs';
+import { TeamSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
-    const { userId } = event.requestContext.authorizer;
-    const { teamId } = event.pathParameters;
-
-    if (!userId) {
-      console.error('Missing userId in authorizer context');
-      return formatResponse(401, { error: 'Unauthorized' });
+    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParameters);
+    if (!pathValidation.success) {
+      return pathValidation.error;
     }
 
-    const data = parseBody(event);
-    if (data === null) {
-      return formatResponse(400, { message: 'Invalid request' });
+    const bodyValidation = await validateRequest(event, TeamSchemas.update);
+    if (!bodyValidation.success) {
+      return bodyValidation.error;
     }
+
+    const { tenantId, userId, data } = bodyValidation;
+    const { teamId } = pathValidation.data;
 
     const teamResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -36,40 +40,9 @@ export const handler = async (event) => {
       return formatResponse(403, { message: 'Only team owners can update team settings' });
     }
 
-    const errors = [];
-    let name = currentTeam.name;
-    let description = currentTeam.description;
-    let settings = currentTeam.settings;
-
-    if (data.name !== undefined) {
-      name = String(data.name).trim();
-      if (!name) errors.push('name is required');
-      if (name.length > 100) errors.push('name must be 100 characters or less');
-    }
-
-    if (data.description !== undefined) {
-      description = data.description ? String(data.description) : undefined;
-      if (description && description.length > 500) errors.push('description must be 500 characters or less');
-    }
-
-    if (data.settings !== undefined) {
-      if (typeof data.settings !== 'object' || data.settings === null) {
-        errors.push('settings must be an object');
-      } else {
-        settings = {
-          defaultPlatforms: Array.isArray(data.settings.defaultPlatforms)
-            ? data.settings.defaultPlatforms
-            : settings.defaultPlatforms,
-          timezone: data.settings.timezone
-            ? String(data.settings.timezone)
-            : settings.timezone
-        };
-      }
-    }
-
-    if (errors.length) {
-      return formatResponse(400, { message: errors.join(', ') });
-    }
+    const name = data.name !== undefined ? data.name : currentTeam.name;
+    const description = data.description !== undefined ? data.description : currentTeam.description;
+    const settings = data.settings !== undefined ? data.settings : currentTeam.settings;
 
     const now = new Date().toISOString();
 
@@ -92,7 +65,12 @@ export const handler = async (event) => {
     if (err.name === 'ConditionalCheckFailedException') {
       return formatResponse(409, { message: 'Team was modified by another request. Please retry.' });
     }
-    console.error('Error updating team:', err);
+    logger.error('Error updating team', {
+      error: err.message,
+      stack: err.stack,
+      teamId: event.pathParameters?.teamId,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

@@ -1,8 +1,11 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
+
+const logger = new Logger({ serviceName: 'clips' });
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -13,7 +16,7 @@ export const handler = async (event) => {
     const { episodeId, clipId } = event.pathParameters;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -87,7 +90,12 @@ export const handler = async (event) => {
     });
 
   } catch (err) {
-    console.error('Error playing clip:', err);
+    logger.error('Error playing clip', {
+      error: err.message,
+      stack: err.stack,
+      episodeId: event?.pathParameters?.episodeId,
+      clipId: event?.pathParameters?.clipId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

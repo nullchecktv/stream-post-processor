@@ -1,3 +1,4 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { loadHlsManifest, calculateChunkMapping, validateSegmentTiming, generateSegmentKey } from '../utils/video-processing.mjs';
 import { extractVideoSegment, createTempDir, cleanup, checkFFmpegAvailability, execFFmpeg } from '../utils/ffmpeg.mjs';
 import { downloadVideoFile, uploadSegmentFile, objectExists, verifySegmentIntegrity, getS3FileSize } from '../utils/s3-video.mjs';
@@ -6,6 +7,7 @@ import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { join, dirname } from 'path';
 import { promises as fs } from 'fs';
 
+const logger = new Logger({ serviceName: 'video' });
 const s3 = new S3Client();
 
 async function getSegmentMetadata(bucketName, segmentS3Key) {
@@ -24,7 +26,11 @@ async function getSegmentMetadata(bucketName, segmentS3Key) {
       resolution: metadata.resolution || "1920x1080"
     };
   } catch (error) {
-    console.error(`Failed to get segment metadata for ${segmentS3Key}:`, error);
+    logger.error('Failed to get segment metadata', {
+      error: error.message,
+      stack: error.stack,
+      segmentS3Key
+    });
     // Return default metadata if we can't get it from S3
     return {
       duration: 0,
@@ -41,7 +47,7 @@ export const handler = async (event) => {
     const { tenantId, episodeId, trackName = 'main', clipId, segment, order } = event;
 
     if (!tenantId) {
-      console.error('Missing tenantId in event');
+      logger.error('Missing tenantId in event');
       throw new Error('Unauthorized');
     }
 
@@ -66,10 +72,17 @@ export const handler = async (event) => {
         const speakerTrack = await selectTrackForSpeaker(episodeId, segment.speaker, tenantId);
         if (speakerTrack) {
           useTrackName = speakerTrack.trackName;
-          console.log(`Using track '${useTrackName}' for speaker '${segment.speaker}'`);
+          logger.info('Using track for speaker', {
+            trackName: useTrackName,
+            speaker: segment.speaker
+          });
         }
       } catch (error) {
-        console.warn(`Failed to find track for speaker '${segment.speaker}', using default: ${error.message}`);
+        logger.warn('Failed to find track for speaker, using default', {
+          error: error.message,
+          speaker: segment.speaker,
+          defaultTrack: trackName
+        });
       }
     }
 
@@ -115,7 +128,13 @@ export const handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('Segment extraction failed:', error);
+    logger.error('Segment extraction failed', {
+      error: error.message,
+      stack: error.stack,
+      episodeId: event.episodeId,
+      clipId: event.clipId,
+      order: event.order
+    });
     throw error;
   } finally {
     if (tempDir) {

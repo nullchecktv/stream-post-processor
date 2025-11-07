@@ -37,6 +37,8 @@ tags:
   - name: Clips
   - name: Teams
   - name: Users
+  - name: Notifications
+  - name: Invitations
 paths:
   /episodes:
     get:
@@ -1544,6 +1546,214 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /invitations/{invitationId}/decisions:
+    parameters:
+      - name: invitationId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique identifier of the invitation
+    post:
+      summary: Accept or reject team invitation
+      description: |
+        Allows an invited user to accept or reject a team invitation:
+
+        **Accept invitation:**
+        - Creates team membership with the role specified in the invitation
+        - Removes the invitation notification from the user's notification list
+        - Marks the invitation as accepted
+
+        **Reject invitation:**
+        - Marks the invitation as rejected
+        - Removes the invitation notification from the user's notification list
+        - Does not create team membership
+
+        **Validation:**
+        - Only the invited user can act on their invitation
+        - Invitations must be in pending status
+        - Expired invitations cannot be accepted or rejected
+        - Users cannot accept invitations to teams they're already members of
+
+      tags: [Invitations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: ["accept", "reject"]
+                  description: Action to take on the invitation
+              required: [action]
+            examples:
+              accept:
+                summary: Accept invitation
+                value:
+                  action: "accept"
+              reject:
+                summary: Reject invitation
+                value:
+                  action: "reject"
+      responses:
+        200:
+          description: Invitation decision processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+                  teamId:
+                    type: string
+                    description: Team ID (only for accepted invitations)
+                  teamName:
+                    type: string
+                    description: Team name (only for accepted invitations)
+                  role:
+                    type: string
+                    description: User's role in the team (only for accepted invitations)
+                required: [message]
+              examples:
+                accepted:
+                  summary: Invitation accepted
+                  value:
+                    message: "Invitation accepted successfully"
+                    teamId: "team-123"
+                    teamName: "Content Team Alpha"
+                    role: "member"
+                rejected:
+                  summary: Invitation rejected
+                  value:
+                    message: "Invitation rejected successfully"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          description: Not authorized to act on this invitation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Not authorized to act on this invitation"
+        404:
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Invitation not found"
+        409:
+          description: Invitation already processed or user already a team member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                already_processed:
+                  summary: Invitation already processed
+                  value:
+                    message: "Invitation has already been accepted"
+                already_member:
+                  summary: User already a team member
+                  value:
+                    message: "User is already a member of this team"
+        410:
+          description: Invitation has expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Invitation has expired"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MakeInvitationDecisionFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /notifications:
+    get:
+      summary: List notifications
+      description: Gets a paginated list of notifications for the authenticated user
+      tags: [Notifications]
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/NextToken"
+        - name: isRead
+          in: query
+          description: Filter notifications by read status
+          required: false
+          schema:
+            type: string
+            enum: ["true", "false"]
+      responses:
+        200:
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  nextToken:
+                    type: string
+                    description: Token for next page of results
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListNotificationsFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /notifications/{notificationId}:
+    delete:
+      summary: Delete or mark notification as read
+      description: Deletes a notification or marks it as read based on query parameter
+      tags: [Notifications]
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: isRead
+          in: query
+          description: If 'true', marks notification as read instead of deleting
+          required: false
+          schema:
+            type: string
+            enum: ["true"]
+      responses:
+        204:
+          description: Notification deleted or marked as read successfully
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        404:
+          $ref: "#/components/responses/NotFound"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteNotificationFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
 components:
   parameters:
     EpisodeId:
@@ -2293,6 +2503,53 @@ components:
           type: string
           description: Human-readable error message
           example: "The request body contains invalid data"
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique notification identifier
+        type:
+          type: string
+          description: Type of notification
+          enum: ["team_invitation"]
+        title:
+          type: string
+          description: Notification title
+        message:
+          type: string
+          description: Notification message
+        data:
+          type: object
+          description: Type-specific notification data
+          properties:
+            teamId:
+              type: string
+              description: Team identifier (for team_invitation type)
+            teamName:
+              type: string
+              description: Team name (for team_invitation type)
+            inviterName:
+              type: string
+              description: Name of user who sent invitation (for team_invitation type)
+            invitationId:
+              type: string
+              description: Invitation identifier (for team_invitation type)
+        isRead:
+          type: boolean
+          description: Whether notification has been read
+        createdAt:
+          type: string
+          format: date-time
+          description: When notification was created
+      required:
+        - id
+        - type
+        - title
+        - message
+        - isRead
+        - createdAt
 
   responses:
     BadRequest:

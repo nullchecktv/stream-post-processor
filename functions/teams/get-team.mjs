@@ -1,18 +1,28 @@
 import { DynamoDBClient, GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
+import { validatePathParameters } from '../utils/powertools-validation.mjs';
+import { TeamSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
     const { userId } = event.requestContext.authorizer;
-    const { teamId } = event.pathParameters;
 
     if (!userId) {
-      console.error('Missing userId in authorizer context');
+      logger.error('Missing userId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
+
+    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParameters);
+    if (!pathValidation.success) {
+      return pathValidation.error;
+    }
+
+    const { teamId } = pathValidation.data;
 
     const membershipResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -80,7 +90,12 @@ export const handler = async (event) => {
 
     return formatResponse(200, response);
   } catch (err) {
-    console.error('Error getting team details:', err);
+    logger.error('Error getting team details', {
+      error: err.message,
+      stack: err.stack,
+      teamId: event.pathParameters?.teamId,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

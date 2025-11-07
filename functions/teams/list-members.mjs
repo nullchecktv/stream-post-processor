@@ -1,9 +1,11 @@
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { validateRequest, requireTeamMember } from '../utils/validate.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
@@ -82,7 +84,12 @@ export const handler = async (event) => {
     return formatResponse(200, response);
 
   } catch (err) {
-    console.error('Error listing team members:', err);
+    logger.error('Error listing team members', {
+      error: err.message,
+      stack: err.stack,
+      teamId: event.pathParameters?.teamId,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

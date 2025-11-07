@@ -1,3 +1,4 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import Handlebars from 'handlebars';
@@ -5,6 +6,8 @@ import teamInvitationTemplate from '../../templates/emails/team-invitation.hbs';
 import teamRemovalTemplate from '../../templates/emails/team-removal.hbs';
 import roleChangeTemplate from '../../templates/emails/role-change.hbs';
 import welcomeAutoLinkTemplate from '../../templates/emails/welcome-auto-link.hbs';
+
+const logger = new Logger({ serviceName: 'events' });
 const createSimpleErrorResponse = (message, isTemporary = false) => ({
   error: 'EmailDeliveryError',
   message,
@@ -54,7 +57,7 @@ const calculateBackoffDelay = (attempt, baseDelay = 1000, maxDelay = 30000) => {
 
 const sendToDeadLetterQueue = async (originalEvent, error, attempts) => {
   if (!process.env.EMAIL_DLQ_URL) {
-    console.warn('Dead letter queue URL not configured, skipping DLQ message');
+    logger.warn('Dead letter queue URL not configured, skipping DLQ message');
     return;
   }
 
@@ -93,13 +96,13 @@ const sendToDeadLetterQueue = async (originalEvent, error, attempts) => {
 
     await sqs.send(new SendMessageCommand(params));
 
-    console.log('Message sent to dead letter queue:', {
+    logger.info('Message sent to dead letter queue', {
       eventType: originalEvent['detail-type'],
       recipient: originalEvent.detail?.email,
       attempts
     });
   } catch (dlqError) {
-    console.error('Failed to send message to dead letter queue:', {
+    logger.error('Failed to send message to dead letter queue', {
       error: dlqError.message,
       originalError: error.message
     });
@@ -235,7 +238,7 @@ const sendEmailWithRetry = async (emailConfig, maxAttempts = 3) => {
 
       const result = await ses.send(new SendEmailCommand(params));
 
-      console.log('Email sent successfully:', {
+      logger.info('Email sent successfully', {
         messageId: result.MessageId,
         recipient: emailConfig.recipient,
         subject: emailConfig.subject,
@@ -251,7 +254,7 @@ const sendEmailWithRetry = async (emailConfig, maxAttempts = 3) => {
     } catch (error) {
       lastError = error;
 
-      console.error('Email delivery attempt failed:', {
+      logger.error('Email delivery attempt failed', {
         error: error.message,
         errorCode: error.name || error.code,
         recipient: emailConfig.recipient,
@@ -263,7 +266,7 @@ const sendEmailWithRetry = async (emailConfig, maxAttempts = 3) => {
       });
 
       if (!isTemporaryError(error)) {
-        console.error('Permanent email delivery failure detected:', {
+        logger.error('Permanent email delivery failure detected', {
           error: error.message,
           errorCode: error.name || error.code,
           recipient: emailConfig.recipient
@@ -273,7 +276,7 @@ const sendEmailWithRetry = async (emailConfig, maxAttempts = 3) => {
 
       if (attempt < maxAttempts - 1) {
         const delay = calculateBackoffDelay(attempt);
-        console.log(`Retrying email delivery in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`);
+        logger.info(`Retrying email delivery in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`);
         await sleep(delay);
       }
     }
@@ -290,7 +293,7 @@ const sendEmailWithRetry = async (emailConfig, maxAttempts = 3) => {
 
 export const handler = async (event) => {
   try {
-    console.log('Processing team email event:', {
+    logger.info('Processing team email event', {
       eventType: event['detail-type'],
       source: event.source,
       recipient: event.detail?.email,
@@ -301,7 +304,7 @@ export const handler = async (event) => {
     const eventData = event.detail;
 
     if (!eventType || !eventData) {
-      console.error('Invalid event structure - missing detail-type or detail');
+      logger.error('Invalid event structure - missing detail-type or detail');
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Event must contain detail-type and detail fields' })
@@ -309,7 +312,7 @@ export const handler = async (event) => {
     }
 
     if (!eventData.email) {
-      console.error('Missing required field: email');
+      logger.error('Missing required field: email');
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'email is required in event data' })
@@ -317,7 +320,7 @@ export const handler = async (event) => {
     }
 
     if (!eventData.teamName) {
-      console.error('Missing required field: teamName');
+      logger.error('Missing required field: teamName');
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'teamName is required in event data' })
@@ -328,7 +331,7 @@ export const handler = async (event) => {
     const result = await sendEmailWithRetry(emailConfig);
 
     if (result.success) {
-      console.log('Email processing completed successfully:', {
+      logger.info('Email processing completed successfully', {
         eventType,
         recipient: eventData.email,
         messageId: result.messageId,
@@ -344,7 +347,7 @@ export const handler = async (event) => {
         })
       };
     } else {
-      console.error('Email delivery failed after all retries:', {
+      logger.error('Email delivery failed after all retries', {
         eventType,
         recipient: eventData.email,
         error: result.error,
@@ -374,7 +377,7 @@ export const handler = async (event) => {
       }
     }
   } catch (error) {
-    console.error('Error processing team email event:', {
+    logger.error('Error processing team email event', {
       error: error.message,
       stack: error.stack,
       eventType: event['detail-type'],

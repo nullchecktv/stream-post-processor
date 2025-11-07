@@ -1,3 +1,4 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { createConcatFileContent, secondsToTime } from '../utils/video-processing.mjs';
 import { downloadSegmentFiles, uploadFinalClip, cleanupSegmentFiles, verifyFinalClipIntegrity, cleanupEmptyFolders } from '../utils/s3-video.mjs';
 import { execFFmpeg, getVideoInfo, createTempDir, cleanup, checkFFmpegAvailability } from '../utils/ffmpeg.mjs';
@@ -5,6 +6,7 @@ import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { join } from 'path';
 import { promises as fs } from 'fs';
 
+const logger = new Logger({ serviceName: 'video' });
 const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
@@ -14,7 +16,7 @@ export const handler = async (event) => {
     const { tenantId, episodeId, clipId, segments } = event;
 
     if (!tenantId) {
-      console.error('Missing tenantId in event');
+      logger.error('Missing tenantId in event');
       throw new Error('Unauthorized');
     }
 
@@ -87,7 +89,12 @@ export const handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('Clip stitching failed:', error);
+    logger.error('Clip stitching failed', {
+      error: error.message,
+      stack: error.stack,
+      episodeId: event.episodeId,
+      clipId: event.clipId
+    });
     throw error;
   } finally {
     if (tempDir) {
@@ -184,14 +191,22 @@ async function extractVideoMetadata(filePath) {
     };
 
   } catch (error) {
-    console.error('Failed to extract video metadata:', error);
+    logger.error('Failed to extract video metadata', {
+      error: error.message,
+      stack: error.stack,
+      filePath
+    });
 
     let fileSize = 0;
     try {
       const stats = await fs.stat(filePath);
       fileSize = stats.size;
     } catch (statError) {
-      console.error('Failed to get file stats:', statError);
+      logger.error('Failed to get file stats', {
+        error: statError.message,
+        stack: statError.stack,
+        filePath
+      });
     }
 
     return {
@@ -243,10 +258,20 @@ async function cleanupSegmentRecords(tenantId, episodeId, clipId, segments) {
       }));
 
       results.deleted.push(`segment#${clipId}#${segment.order}`);
-      console.log(`Deleted segment record: segment#${clipId}#${segment.order}`);
+      logger.info('Deleted segment record', {
+        segmentKey: `segment#${clipId}#${segment.order}`,
+        clipId,
+        order: segment.order
+      });
 
     } catch (error) {
-      console.error(`Failed to delete segment record segment#${clipId}#${segment.order}:`, error);
+      logger.error('Failed to delete segment record', {
+        error: error.message,
+        stack: error.stack,
+        segmentKey: `segment#${clipId}#${segment.order}`,
+        clipId,
+        order: segment.order
+      });
       results.failed.push({
         segmentKey: `segment#${clipId}#${segment.order}`,
         error: error.message
@@ -254,7 +279,11 @@ async function cleanupSegmentRecords(tenantId, episodeId, clipId, segments) {
     }
   }
 
-  console.log(`Segment record cleanup completed: ${results.deleted.length} deleted, ${results.failed.length} failed`);
+  logger.info('Segment record cleanup completed', {
+    deletedCount: results.deleted.length,
+    failedCount: results.failed.length,
+    clipId
+  });
   return results;
 }
 
@@ -269,11 +298,21 @@ async function cleanupEmptySegmentFolders(bucketName, tenantId, episodeId, clipI
       maxRetries: 2
     });
 
-    console.log(`Folder cleanup completed: ${cleanupResults.cleaned} cleaned, ${cleanupResults.failed} failed, ${cleanupResults.skipped} skipped`);
+    logger.info('Folder cleanup completed', {
+      cleaned: cleanupResults.cleaned,
+      failed: cleanupResults.failed,
+      skipped: cleanupResults.skipped,
+      clipId
+    });
     return cleanupResults;
 
   } catch (error) {
-    console.error('Failed to cleanup empty folders:', error);
+    logger.error('Failed to cleanup empty folders', {
+      error: error.message,
+      stack: error.stack,
+      foldersToClean,
+      clipId
+    });
     return {
       cleaned: 0,
       failed: foldersToClean.length,

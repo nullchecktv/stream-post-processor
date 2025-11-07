@@ -1,50 +1,22 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { parseBody, formatResponse, formatEmptyResponse } from '../utils/api.mjs';
+import { Logger } from '@aws-lambda-powertools/logger';
+import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
+import { validateRequest } from '../utils/powertools-validation.mjs';
+import { UserSchemas } from '../utils/schemas.mjs';
+
+const logger = new Logger({ serviceName: 'users' });
 
 const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   try {
-    const { userId } = event.requestContext.authorizer;
-
-    if (!userId) {
-      console.error('Missing userId in authorizer context');
-      return formatResponse(401, { error: 'Unauthorized' });
+    const validation = await validateRequest(event, UserSchemas.updateProfile);
+    if (!validation.success) {
+      return validation.error;
     }
 
-    const data = parseBody(event);
-    if (data === null) {
-      return formatResponse(400, { message: 'Invalid request' });
-    }
-
-    const errors = [];
-    if (data.name !== undefined) {
-      const name = String(data.name || '').trim();
-      if (name.length > 200) errors.push('name must be 200 characters or less');
-    }
-
-    if (data.preferences !== undefined) {
-      if (typeof data.preferences !== 'object' || data.preferences === null) {
-        errors.push('preferences must be an object');
-      } else {
-        if (data.preferences.timezone !== undefined) {
-          const timezone = String(data.preferences.timezone || '').trim();
-          if (!timezone) errors.push('timezone cannot be empty');
-          if (timezone.length > 50) errors.push('timezone must be 50 characters or less');
-        }
-
-        if (data.preferences.notifications !== undefined) {
-          if (typeof data.preferences.notifications !== 'boolean') {
-            errors.push('notifications must be a boolean');
-          }
-        }
-      }
-    }
-
-    if (errors.length) {
-      return formatResponse(400, { message: errors.join(', ') });
-    }
+    const { userId, data } = validation;
 
     const profileResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -96,7 +68,11 @@ export const handler = async (event) => {
 
     return formatEmptyResponse();
   } catch (err) {
-    console.error('Error updating user profile:', err);
+    logger.error('Error updating user profile', {
+      error: err.message,
+      stack: err.stack,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

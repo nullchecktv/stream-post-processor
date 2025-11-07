@@ -1,5 +1,7 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
+const logger = new Logger({ serviceName: 'utils' });
 const s3 = new S3Client();
 
 export const timeToSeconds = (timeStr) => {
@@ -62,7 +64,14 @@ export const loadHlsManifest = async (episodeId, trackName, tenantId) => {
     if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
       throw new Error(`HLS manifest not found: ${episodeId}/${trackName}_manifest.m3u8`);
     }
-    console.error('Failed to load HLS manifest:', error);
+    logger.error('Failed to load HLS manifest', {
+      error: error.message,
+      stack: error.stack,
+      episodeId,
+      trackName,
+      tenantId,
+      manifestKey
+    });
     throw new Error(`Failed to load HLS manifest for ${episodeId}/${trackName}: ${error.message}`);
   }
 };
@@ -99,7 +108,13 @@ export const parseHlsManifest = (manifestContent, episodeId, trackName, tenantId
         const duration = parseFloat(durationMatch[1]);
 
         if (duration <= 0) {
-          console.warn(`Invalid segment duration: ${duration} at line ${i}`);
+          logger.warn('Invalid segment duration', {
+            duration,
+            lineNumber: i,
+            episodeId,
+            trackName,
+            tenantId
+          });
           continue;
         }
 
@@ -109,7 +124,12 @@ export const parseHlsManifest = (manifestContent, episodeId, trackName, tenantId
           const segmentFile = nextLine.trim();
 
           if (!segmentFile) {
-            console.warn(`Empty segment filename at line ${i + 1}`);
+            logger.warn('Empty segment filename', {
+              lineNumber: i + 1,
+              episodeId,
+              trackName,
+              tenantId
+            });
             continue;
           }
 
@@ -126,10 +146,21 @@ export const parseHlsManifest = (manifestContent, episodeId, trackName, tenantId
 
           currentTime += duration;
         } else {
-          console.warn(`Missing segment filename after #EXTINF at line ${i}`);
+          logger.warn('Missing segment filename after #EXTINF', {
+            lineNumber: i,
+            episodeId,
+            trackName,
+            tenantId
+          });
         }
       } else {
-        console.warn(`Invalid #EXTINF format at line ${i}: ${line}`);
+        logger.warn('Invalid #EXTINF format', {
+          lineNumber: i,
+          line,
+          episodeId,
+          trackName,
+          tenantId
+        });
       }
     }
   }
@@ -181,7 +212,12 @@ export const calculateChunkMapping = (segment, hlsSegments) => {
     const extractionDuration = chunkEndOffset - chunkStartOffset;
 
     if (extractionDuration <= 0) {
-      console.warn(`Zero or negative duration for chunk ${chunk.filename}: ${extractionDuration}s`);
+      logger.warn('Zero or negative duration for chunk', {
+        filename: chunk.filename,
+        extractionDuration,
+        chunkStartOffset,
+        chunkEndOffset
+      });
     }
 
     return {
@@ -202,7 +238,13 @@ export const calculateChunkMapping = (segment, hlsSegments) => {
   const expectedDuration = endSeconds - startSeconds;
 
   if (Math.abs(totalMappingDuration - expectedDuration) > 0.1) {
-    console.warn(`Duration mismatch: expected ${expectedDuration}s, got ${totalMappingDuration}s`);
+    logger.warn('Duration mismatch in chunk mapping', {
+      expectedDuration,
+      totalMappingDuration,
+      difference: Math.abs(totalMappingDuration - expectedDuration),
+      segmentStartTime: segment.startTime,
+      segmentEndTime: segment.endTime
+    });
   }
 
   return mappings;

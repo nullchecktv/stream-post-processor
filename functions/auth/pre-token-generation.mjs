@@ -1,5 +1,8 @@
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
+
+const logger = new Logger({ serviceName: 'auth' });
 
 const ddb = new DynamoDBClient();
 
@@ -26,7 +29,11 @@ export const handler = async (event) => {
 
     return event;
   } catch (error) {
-    console.error('Error in pre-token generation trigger:', error);
+    logger.error('Error in pre-token generation trigger', {
+      error: error.message,
+      stack: error.stack,
+      userId: event.request?.userAttributes?.sub
+    });
     throw error;
   }
 };
@@ -47,7 +54,11 @@ const getUserProfile = async (userId) => {
 
     return unmarshall(response.Item);
   } catch (err) {
-    console.error("Error fetching user profile:", err);
+    logger.error('Error fetching user profile', {
+      error: err.message,
+      stack: err.stack,
+      userId
+    });
     return null;
   }
 };

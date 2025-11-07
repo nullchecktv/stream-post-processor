@@ -1,11 +1,13 @@
 import { DynamoDBClient, DeleteItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 import { validateRequest, requireTeamMember, requireTeamExists } from '../utils/validate.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
@@ -41,20 +43,28 @@ export const handler = async (event) => {
       return formatResponse(400, { message: 'Only pending invitations can be cancelled' });
     }
 
-    await ddb.send(new DeleteItemCommand({
-      TableName: process.env.TABLE_NAME,
-      Key: marshall({
-        pk: `invitation#${email.toLowerCase()}`,
-        sk: `team#${teamId}`
-      }),
-      ConditionExpression: 'attribute_exists(pk) AND #status = :status',
-      ExpressionAttributeNames: {
-        '#status': 'status'
-      },
-      ExpressionAttributeValues: marshall({
-        ':status': 'pending'
-      })
-    }));
+    try {
+      await ddb.send(new DeleteItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: marshall({
+          pk: `invitation#${email.toLowerCase()}`,
+          sk: `team#${teamId}`
+        }),
+        ConditionExpression: 'attribute_exists(pk) AND #status = :status',
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        },
+        ExpressionAttributeValues: marshall({
+          ':status': 'pending'
+        })
+      }));
+
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        return formatResponse(409, { message: 'Invitation status has changed and cannot be cancelled' });
+      }
+      throw error;
+    }
 
     await eventBridge.send(new PutEventsCommand({
       Entries: [
@@ -77,7 +87,13 @@ export const handler = async (event) => {
     return formatEmptyResponse();
 
   } catch (err) {
-    console.error('Error cancelling team invitation:', err);
+    logger.error('Error cancelling team invitation', {
+      error: err.message,
+      stack: err.stack,
+      teamId: event.pathParameters?.teamId,
+      email: event.pathParameters?.email,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };
