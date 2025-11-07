@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Membership Update</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        .team-details {
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .cta-button:hover {
+            background-color: #1d4ed8;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+        .team-name {
+            font-weight: 600;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">NullCheck</div>
+        </div>
+
+        <h1>Team Membership Update</h1>
+
+        <p>Hi {{userName}},</p>
+
+        <p>We wanted to let you know that your membership in the <span class="team-name">{{teamName}}</span> team has been updated.</p>
+
+        <div class="team-details">
+            <p><strong>Team:</strong> {{teamName}}</p>
+            <p><strong>Status:</strong> Membership removed</p>
+        </div>
+
+        <p>You no longer have access to this team's episodes, clips, and other content. If you believe this was done in error, please contact the team owner.</p>
+
+        <p>You can continue using NullCheck with your other teams or create a new team if needed.</p>
+
+        <div style="text-align: center;">
+            <a href="{{appUrl}}" class="cta-button">Go to NullCheck</a>
+        </div>
+
+        <div class="footer">
+            <p>This notification was sent automatically when your team membership was updated.</p>
+            <p>If you have questions about this change, please contact the team owner.</p>
+        </div>
+    </div>
+</body>
+</html>

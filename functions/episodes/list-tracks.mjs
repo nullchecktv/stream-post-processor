@@ -1,6 +1,6 @@
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { formatResponse } from '../utils/api.mjs';
+import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
@@ -19,8 +19,12 @@ export const handler = async (event) => {
       return formatResponse(400, { error: 'ValidationError', message: 'Episode ID is required' });
     }
 
+    const { limit, nextToken } = getPagingParams(event);
+
     const res = await ddb.send(new QueryCommand({
       TableName: process.env.TABLE_NAME,
+      Limit: limit,
+      ...nextToken && { ExclusiveStartKey: nextToken },
       KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
       ExpressionAttributeValues: marshall({
         ':pk': `${tenantId}#${episodeId}`,
@@ -40,7 +44,7 @@ export const handler = async (event) => {
       };
     });
 
-    return formatResponse(200, tracks);
+    return formatResponse(200, buildPagingParams(tracks, res.LastEvaluatedKey));
   } catch (err) {
     console.error('Error listing tracks:', err);
     return formatResponse(500, { message: 'Something went wrong' });

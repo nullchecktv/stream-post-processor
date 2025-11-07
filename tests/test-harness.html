@@ -198,6 +198,170 @@
       <div class="small">Note: For part uploads, ensure your S3 bucket CORS exposes the ETag header so the browser can read it.</div>
     </fieldset>
 
+  <h2>Team Management</h2>
+    <fieldset>
+      <legend>Create Team</legend>
+      <div class="grid">
+        <label for="teamName">Team Name</label>
+        <input id="teamName" type="text" placeholder="My Team" />
+
+        <label for="teamDescription">Description (optional)</label>
+        <textarea id="teamDescription" rows="2" placeholder="Team description"></textarea>
+
+        <label for="teamTimezone">Timezone (optional)</label>
+        <input id="teamTimezone" type="text" placeholder="America/New_York" />
+
+        <label>Default Platforms (optional)</label>
+        <div class="row">
+          <label><input type="checkbox" name="teamPlatforms" value="linkedin live" /> linkedin live</label>
+          <label><input type="checkbox" name="teamPlatforms" value="X" /> X</label>
+          <label><input type="checkbox" name="teamPlatforms" value="twitch" /> twitch</label>
+          <label><input type="checkbox" name="teamPlatforms" value="youtube" /> youtube</label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnCreateTeam">Create Team</button>
+        <span id="createTeamStatus"></span>
+      </div>
+      <div class="small">Created Team ID: <span id="createdTeamId"></span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>List Teams</legend>
+      <div class="row">
+        <button id="btnListTeams">List My Teams</button>
+        <span id="listTeamsStatus"></span>
+      </div>
+      <div id="teamsList" class="out"></div>
+      <div class="small">Click on a team ID to use it for operations below.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Use Team</legend>
+      <label>
+        Team ID
+        <input id="teamId" type="text" placeholder="Paste team id or click from list above" />
+      </label>
+      <div class="small">Used for team and member management operations below.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Get Team Details</legend>
+      <div class="row">
+        <button id="btnGetTeam">Get Team Details</button>
+        <span id="getTeamStatus"></span>
+      </div>
+      <div id="teamDetails" class="out"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Update Team</legend>
+      <div class="grid">
+        <label for="updateTeamName">Team Name</label>
+        <input id="updateTeamName" type="text" placeholder="Updated Team Name" />
+
+        <label for="updateTeamDescription">Description</label>
+        <textarea id="updateTeamDescription" rows="2" placeholder="Updated description"></textarea>
+
+        <label for="updateTeamTimezone">Timezone</label>
+        <input id="updateTeamTimezone" type="text" placeholder="America/New_York" />
+
+        <label>Default Platforms</label>
+        <div class="row">
+          <label><input type="checkbox" name="updateTeamPlatforms" value="linkedin live" /> linkedin live</label>
+          <label><input type="checkbox" name="updateTeamPlatforms" value="X" /> X</label>
+          <label><input type="checkbox" name="updateTeamPlatforms" value="twitch" /> twitch</label>
+          <label><input type="checkbox" name="updateTeamPlatforms" value="youtube" /> youtube</label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnUpdateTeam">Update Team</button>
+        <span id="updateTeamStatus"></span>
+      </div>
+      <div id="updateTeamOut" class="out"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Leave Team</legend>
+      <div class="row">
+        <button id="btnLeaveTeam">Leave Team</button>
+        <span id="leaveTeamStatus"></span>
+      </div>
+      <div id="leaveTeamOut" class="out"></div>
+      <div class="small">Note: Team owners cannot leave their own team. Transfer ownership or delete the team first.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Delete Team</legend>
+      <div class="row">
+        <button id="btnDeleteTeam" style="background-color: #dc3545; color: white;">Delete Team</button>
+        <span id="deleteTeamStatus"></span>
+      </div>
+      <div id="deleteTeamOut" class="out"></div>
+      <div class="small">⚠️ Warning: This permanently deletes the team and all associated data. Only team owners can delete teams.</div>
+    </fieldset>
+
+  <h2>Member Management</h2>
+    <fieldset>
+      <legend>List Team Members</legend>
+      <div class="row">
+        <button id="btnListMembers">List Members</button>
+        <span id="listMembersStatus"></span>
+      </div>
+      <div id="membersList" class="out"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Add Team Member</legend>
+      <div class="grid">
+        <label for="memberEmail">Email</label>
+        <input id="memberEmail" type="email" placeholder="user@example.com" />
+
+        <label for="memberRole">Role</label>
+        <select id="memberRole">
+          <option value="member">Member</option>
+          <option value="administrator">Administrator</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnAddMember">Add Member</button>
+        <span id="addMemberStatus"></span>
+      </div>
+      <div id="addMemberOut" class="out"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Update Member Role</legend>
+      <div class="grid">
+        <label for="updateUserId">User ID</label>
+        <input id="updateUserId" type="text" placeholder="User ID to update" />
+
+        <label for="updateRole">New Role</label>
+        <select id="updateRole">
+          <option value="member">Member</option>
+          <option value="administrator">Administrator</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnUpdateRole">Update Role</button>
+        <span id="updateRoleStatus"></span>
+      </div>
+      <div id="updateRoleOut" class="out"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Remove Team Member</legend>
+      <div class="grid">
+        <label for="removeUserId">User ID</label>
+        <input id="removeUserId" type="text" placeholder="User ID to remove" />
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnRemoveMember">Remove Member</button>
+        <span id="removeMemberStatus"></span>
+      </div>
+      <div id="removeMemberOut" class="out"></div>
+    </fieldset>
+
   <script>
     const $ = (id) => document.getElementById(id);
     const apiBase = () => $("apiBase").value.trim().replace(/\/$/, '');
@@ -260,6 +424,14 @@
       const raw = $("trackSpeakers").value.trim();
       if (!raw) return undefined;
       return raw.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    function collectTeamPlatforms() {
+      return Array.from(document.querySelectorAll('input[name="teamPlatforms"]:checked')).map(i => i.value);
+    }
+
+    function collectUpdateTeamPlatforms() {
+      return Array.from(document.querySelectorAll('input[name="updateTeamPlatforms"]:checked')).map(i => i.value);
     }
 
     $("btnCreateEpisode").addEventListener('click', async () => {
@@ -332,6 +504,26 @@
       $("episodeId").style.backgroundColor = '#e8f5e8';
       setTimeout(() => {
         $("episodeId").style.backgroundColor = '';
+      }, 1000);
+    };
+
+    // Function to select a team ID
+    window.selectTeam = (teamId) => {
+      $("teamId").value = teamId;
+      $("teamId").focus();
+      $("teamId").style.backgroundColor = '#e8f5e8';
+      setTimeout(() => {
+        $("teamId").style.backgroundColor = '';
+      }, 1000);
+    };
+
+    // Function to select a user ID for member operations
+    window.selectUser = (userId, targetField) => {
+      $(targetField).value = userId;
+      $(targetField).focus();
+      $(targetField).style.backgroundColor = '#e8f5e8';
+      setTimeout(() => {
+        $(targetField).style.backgroundColor = '';
       }, 1000);
     };
 
@@ -408,6 +600,303 @@
 
         status.textContent = 'Upload complete'; status.className = 'success';
         out.textContent = JSON.stringify(complete, null, 2);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    // Team Management Event Listeners
+    $("btnCreateTeam").addEventListener('click', async () => {
+      const status = $("createTeamStatus");
+      status.textContent = '';
+      try {
+        const body = {
+          name: $("teamName").value.trim()
+        };
+        if (!body.name) { status.textContent = 'Team name is required'; status.className = 'error'; return; }
+
+        if ($("teamDescription").value.trim()) body.description = $("teamDescription").value.trim();
+
+        const settings = {};
+        const platforms = collectTeamPlatforms();
+        if (platforms.length) settings.defaultPlatforms = platforms;
+        if ($("teamTimezone").value.trim()) settings.timezone = $("teamTimezone").value.trim();
+        if (Object.keys(settings).length) body.settings = settings;
+
+        const res = await api('/teams', { method: 'POST', body });
+        $("createdTeamId").textContent = res.id || '[unknown]';
+        $("teamId").value = res.id || '';
+        status.textContent = 'Team created'; status.className = 'success';
+
+        // Clear form
+        $("teamName").value = '';
+        $("teamDescription").value = '';
+        $("teamTimezone").value = '';
+        document.querySelectorAll('input[name="teamPlatforms"]').forEach(cb => cb.checked = false);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnListTeams").addEventListener('click', async () => {
+      const status = $("listTeamsStatus");
+      const out = $("teamsList");
+      status.textContent = '';
+      out.textContent = '';
+      try {
+        const res = await api('/teams');
+        status.textContent = `Found ${res.items?.length || 0} teams`;
+        status.className = 'success';
+
+        if (res.items && res.items.length > 0) {
+          let teamsText = 'Teams (click ID to use):\n\n';
+          res.items.forEach(team => {
+            teamsText += `ID: ${team.id}\n`;
+            teamsText += `Name: ${team.name || 'Untitled'}\n`;
+            teamsText += `Role: ${team.role}\n`;
+            teamsText += `Status: ${team.status}\n`;
+            if (team.description) teamsText += `Description: ${team.description}\n`;
+            teamsText += `Joined: ${new Date(team.joinedAt).toLocaleString()}\n`;
+            teamsText += '─'.repeat(60) + '\n\n';
+          });
+          out.textContent = teamsText;
+
+          // Make team IDs clickable
+          out.innerHTML = out.innerHTML.replace(
+            /ID: ([a-f0-9-]{36})/g,
+            'ID: <span style="color: #0066cc; cursor: pointer; text-decoration: underline;" onclick="selectTeam(\'$1\')">$1</span>'
+          );
+        } else {
+          out.textContent = 'No teams found. You need to be a member of at least one team.';
+        }
+      } catch (e) {
+        status.textContent = e.message;
+        status.className = 'error';
+        out.textContent = '';
+      }
+    });
+
+    $("btnListMembers").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const status = $("listMembersStatus");
+      const out = $("membersList");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+      try {
+        const res = await api(`/teams/${encodeURIComponent(teamId)}/members`);
+        status.textContent = `Found ${res.members?.length || 0} members`;
+        status.className = 'success';
+
+        let membersText = '';
+
+        if (res.members && res.members.length > 0) {
+          membersText += 'Team Members (click User ID to use):\n\n';
+          res.members.forEach(member => {
+            membersText += `User ID: ${member.userId}\n`;
+            membersText += `Role: ${member.role}\n`;
+            membersText += `Status: ${member.status}\n`;
+            membersText += `Joined: ${new Date(member.joinedAt).toLocaleString()}\n`;
+            membersText += '─'.repeat(60) + '\n\n';
+          });
+        } else {
+          membersText += 'No active members found.\n\n';
+        }
+
+        if (res.pendingInvitations && res.pendingInvitations.length > 0) {
+          membersText += 'Pending Invitations:\n\n';
+          res.pendingInvitations.forEach(invitation => {
+            membersText += `Email: ${invitation.email}\n`;
+            membersText += `Role: ${invitation.role}\n`;
+            membersText += `Status: ${invitation.status}\n`;
+            membersText += `Invited By: ${invitation.invitedBy}\n`;
+            membersText += `Expires: ${new Date(invitation.expiresAt).toLocaleString()}\n`;
+            membersText += '─'.repeat(60) + '\n\n';
+          });
+        }
+
+        out.textContent = membersText;
+
+        // Make user IDs clickable for different operations
+        out.innerHTML = out.innerHTML.replace(
+          /User ID: ([a-f0-9-]{36})/g,
+          'User ID: <span style="color: #0066cc; cursor: pointer; text-decoration: underline;" onclick="selectUser(\'$1\', \'updateUserId\')">$1 (update)</span> | <span style="color: #cc6600; cursor: pointer; text-decoration: underline;" onclick="selectUser(\'$1\', \'removeUserId\')">$1 (remove)</span>'
+        );
+      } catch (e) {
+        status.textContent = e.message;
+        status.className = 'error';
+        out.textContent = '';
+      }
+    });
+
+    $("btnAddMember").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const email = $("memberEmail").value.trim();
+      const role = $("memberRole").value;
+      const status = $("addMemberStatus");
+      const out = $("addMemberOut");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+      if (!email) { status.textContent = 'Enter email address'; status.className = 'error'; return; }
+      try {
+        const res = await api(`/teams/${encodeURIComponent(teamId)}/members`, {
+          method: 'POST',
+          body: { email, role }
+        });
+        status.textContent = 'Member invitation sent'; status.className = 'success';
+        out.textContent = JSON.stringify(res, null, 2);
+        $("memberEmail").value = '';
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnUpdateRole").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const userId = $("updateUserId").value.trim();
+      const role = $("updateRole").value;
+      const status = $("updateRoleStatus");
+      const out = $("updateRoleOut");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+      if (!userId) { status.textContent = 'Enter User ID'; status.className = 'error'; return; }
+      try {
+        const res = await api(`/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(userId)}/role`, {
+          method: 'PUT',
+          body: { role }
+        });
+        status.textContent = 'Role updated'; status.className = 'success';
+        out.textContent = JSON.stringify(res, null, 2);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnRemoveMember").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const userId = $("removeUserId").value.trim();
+      const status = $("removeMemberStatus");
+      const out = $("removeMemberOut");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+      if (!userId) { status.textContent = 'Enter User ID'; status.className = 'error'; return; }
+      if (!confirm(`Are you sure you want to remove user ${userId} from the team?`)) return;
+      try {
+        await api(`/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(userId)}`, {
+          method: 'DELETE'
+        });
+        status.textContent = 'Member removed'; status.className = 'success';
+        out.textContent = 'Member successfully removed from team';
+        $("removeUserId").value = '';
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnGetTeam").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const status = $("getTeamStatus");
+      const out = $("teamDetails");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+      try {
+        const res = await api(`/teams/${encodeURIComponent(teamId)}`);
+        status.textContent = 'Team details retrieved'; status.className = 'success';
+        out.textContent = JSON.stringify(res, null, 2);
+
+        // Pre-fill update form with current values
+        if (res.name) $("updateTeamName").value = res.name;
+        if (res.description) $("updateTeamDescription").value = res.description;
+        if (res.settings?.timezone) $("updateTeamTimezone").value = res.settings.timezone;
+
+        // Set platform checkboxes
+        document.querySelectorAll('input[name="updateTeamPlatforms"]').forEach(cb => {
+          cb.checked = res.settings?.defaultPlatforms?.includes(cb.value) || false;
+        });
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+        out.textContent = '';
+      }
+    });
+
+    $("btnUpdateTeam").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const status = $("updateTeamStatus");
+      const out = $("updateTeamOut");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+      try {
+        const body = {};
+        if ($("updateTeamName").value.trim()) body.name = $("updateTeamName").value.trim();
+        if ($("updateTeamDescription").value.trim()) body.description = $("updateTeamDescription").value.trim();
+
+        const settings = {};
+        const platforms = collectUpdateTeamPlatforms();
+        if (platforms.length) settings.defaultPlatforms = platforms;
+        if ($("updateTeamTimezone").value.trim()) settings.timezone = $("updateTeamTimezone").value.trim();
+        if (Object.keys(settings).length) body.settings = settings;
+
+        if (Object.keys(body).length === 0) {
+          status.textContent = 'No changes to update'; status.className = 'error'; return;
+        }
+
+        const res = await api(`/teams/${encodeURIComponent(teamId)}`, { method: 'PUT', body });
+        status.textContent = 'Team updated'; status.className = 'success';
+        out.textContent = JSON.stringify(res, null, 2);
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnLeaveTeam").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const status = $("leaveTeamStatus");
+      const out = $("leaveTeamOut");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+      if (!confirm('Are you sure you want to leave this team? This action cannot be undone.')) return;
+      try {
+        await api(`/teams/${encodeURIComponent(teamId)}/members/me`, { method: 'DELETE' });
+        status.textContent = 'Successfully left team'; status.className = 'success';
+        out.textContent = 'You have been removed from the team and will no longer have access to team resources.';
+      } catch (e) {
+        status.textContent = e.message; status.className = 'error';
+      }
+    });
+
+    $("btnDeleteTeam").addEventListener('click', async () => {
+      const teamId = $("teamId").value.trim();
+      const status = $("deleteTeamStatus");
+      const out = $("deleteTeamOut");
+      status.textContent = '';
+      out.textContent = '';
+      if (!teamId) { status.textContent = 'Enter Team ID'; status.className = 'error'; return; }
+
+      const teamName = prompt('To confirm deletion, please enter the team name:');
+      if (!teamName) return;
+
+      if (!confirm(`Are you absolutely sure you want to permanently delete this team? This will:\n\n• Delete all team data\n• Remove all members\n• Delete all episodes and content\n• This action CANNOT be undone\n\nType "DELETE" to confirm:`)) return;
+
+      const finalConfirm = prompt('Type "DELETE" in all caps to confirm permanent deletion:');
+      if (finalConfirm !== 'DELETE') {
+        status.textContent = 'Deletion cancelled'; status.className = 'error';
+        return;
+      }
+
+      try {
+        await api(`/teams/${encodeURIComponent(teamId)}`, {
+          method: 'DELETE',
+          body: { teamName }
+        });
+        status.textContent = 'Team permanently deleted'; status.className = 'success';
+        out.textContent = 'Team and all associated data have been permanently deleted.';
+        $("teamId").value = '';
       } catch (e) {
         status.textContent = e.message; status.className = 'error';
       }

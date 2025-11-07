@@ -1,4 +1,4 @@
-import { decrypt } from './encoding.mjs';
+import { decrypt, encrypt } from './encoding.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': process.env.ORIGIN || '*',
@@ -64,4 +64,17 @@ export const getPagingParams = (event) => {
   }
 
   return { limit, nextToken };
+};
+
+export const buildPagingParams = (items, lastEvaluatedKey, hasMore = null) => {
+  const response = { items };
+
+  // If hasMore is explicitly provided, use it; otherwise infer from lastEvaluatedKey
+  const shouldIncludeNextToken = hasMore !== null ? hasMore : !!lastEvaluatedKey;
+
+  if (shouldIncludeNextToken && lastEvaluatedKey) {
+    response.nextToken = encrypt(JSON.stringify(lastEvaluatedKey));
+  }
+
+  return response;
 };

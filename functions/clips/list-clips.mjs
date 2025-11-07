@@ -1,8 +1,7 @@
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { formatResponse, getPagingParams } from '../utils/api.mjs';
+import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { getCurrentClipStatus } from '../utils/clips.mjs';
-import { encrypt } from '../utils/encoding.mjs';
 
 const ddb = new DynamoDBClient();
 
@@ -30,7 +29,7 @@ export const handler = async (event) => {
     }));
 
     if (!result.Items || result.Items.length === 0) {
-      return formatResponse(200, { items: [], count: 0 });
+      return formatResponse(200, buildPagingParams([], null));
     }
 
     const clips = result.Items.map(item => {
@@ -47,13 +46,7 @@ export const handler = async (event) => {
       };
     });
 
-    return formatResponse(200, {
-      items: clips,
-      count: clips.length,
-      ...(result.LastEvaluatedKey && {
-        nextToken: encrypt(JSON.stringify(result.LastEvaluatedKey))
-      })
-    });
+    return formatResponse(200, buildPagingParams(clips, result.LastEvaluatedKey));
 
   } catch (err) {
     console.error('Error listing clips:', err);
