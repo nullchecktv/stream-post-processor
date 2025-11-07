@@ -52,7 +52,8 @@
 - **Node.js version**: Target Node.js 22.x runtime
 - **Async/await**: Prefer async/await over Promises and callbacks
 - **Error handling**: Use try/catch blocks and proper error propagation
-- **Type validation**: Use Zod for runtime type checking and validation
+- **Type validation**: Use JSON Schema with AWS Lambda Powertools validator
+- **Logging**: Use AWS Lambda Powertools Logger for structured logging
 
 ### AWS SDK Usage
 - **Version 3**: Use AWS SDK v3 exclusively
@@ -84,13 +85,28 @@ export const handler = async (event) => {
 ## Function Development Patterns
 
 ### Lambda Handler Structure
-Keep handlers simple and direct:
+Keep handlers simple and direct with Powertools:
 ```javascript
-export const handler = async (event, context) => {
-  // Parse input
-  // Do the work
-  // Return result
-  // Handle errors inline
+import { Logger } from '@aws-lambda-powertools/logger';
+import { formatResponse } from '../utils/api.mjs';
+
+const logger = new Logger({ serviceName: 'my-service' });
+
+export const handler = async (event) => {
+  try {
+    const { tenantId } = event.requestContext.authorizer;
+
+    // Do the work
+    const result = await processRequest(tenantId);
+
+    return formatResponse(200, result);
+  } catch (err) {
+    logger.error('Error processing request', {
+      error: err.message,
+      stack: err.stack
+    });
+    return formatResponse(500, { message: 'Something went wrong' });
+  }
 };
 ```
 
@@ -101,10 +117,12 @@ export const handler = async (event, context) => {
 - Unnecessary dependency injection patterns
 
 ### API Gateway Functions
-- **CORS headers**: Always include CORS headers in responses
+- **CORS headers**: Use `formatResponse` utility for consistent CORS headers
 - **Status codes**: Use appropriate HTTP status codes
-- **Request validation**: Validate input using Zod schemas
-- **Response format**: Consistent JSON response structure
+- **Request validation**: Validate input using JSON Schema with Powertools validator
+- **Response format**: Consistent JSON response structure via `formatResponse`
+- **Authorization**: Extract `tenantId` and `userId` from `event.requestContext.authorizer`
+- **Pagination**: Use `getPagingParams` and `buildPagingParams` utilities
 
 ### Event-Driven Functions
 - **Event parsing**: Parse EventBridge/S3 events properly
@@ -222,10 +240,24 @@ try {
 ```
 
 ### Logging Standards
-- **Structured logging**: Use JSON format for logs
-- **Context**: Include relevant context in log messages
-- **Log levels**: Use appropriate log levels (error, warn, info, debug)
+- **Lambda Powertools Logger**: Use `@aws-lambda-powertools/logger` for all logging
+- **Service name**: Set service name in logger initialization
+- **Error logging only**: Only log errors, not info or debug in production
+- **Structured context**: Include relevant context in error logs
 - **No sensitive data**: Never log passwords, tokens, or PII
+
+Example:
+```javascript
+import { Logger } from '@aws-lambda-powertools/logger';
+
+const logger = new Logger({ serviceName: 'episodes' });
+
+logger.error('Failed to create episode', {
+  error: err.message,
+  stack: err.stack,
+  episodeId: event.pathParameters?.episodeId
+});
+```
 
 ## Performance Optimization
 
@@ -253,6 +285,52 @@ try {
 - **Tracing enabled**: X-Ray tracing is enabled globally
 - **Custom segments**: Add custom segments for detailed tracing
 - **Error tracking**: Use tracing to identify performance bottlenecks
+
+## Frontend Development
+
+### React Application Structure
+- **Framework**: React 19 with TypeScript
+- **Build tool**: Vite for fast development and optimized builds
+- **Styling**: Tailwind CSS v4 for utility-first styling
+- **Routing**: React Router v7 for client-side routing
+- **Authentication**: AWS Amplify for Cognito integration
+
+### Frontend Standards
+- **Functional components**: Use functional components with hooks exclusively
+- **TypeScript**: Strict type checking enabled
+- **Context API**: Use React Context for global state (Auth, User, Toast, Sidebar)
+- **Custom hooks**: Extract reusable logic into custom hooks
+- **Error boundaries**: Wrap routes in error boundaries for graceful error handling
+- **Lazy loading**: Use React.lazy for route-level code splitting
+
+### Component Organization
+```
+src/
+├── components/
+│   ├── auth/          # Authentication components
+│   ├── common/        # Reusable UI components
+│   ├── dashboard/     # Dashboard-specific components
+│   ├── episodes/      # Episode management components
+│   └── layout/        # Layout components (Sidebar, Header)
+├── contexts/          # React Context providers
+├── hooks/             # Custom React hooks
+├── pages/             # Route-level page components
+├── api/               # API client functions
+├── types/             # TypeScript type definitions
+└── utils/             # Utility functions
+```
+
+### API Integration
+- **Client**: Simple fetch-based API client in `src/api/client.ts`
+- **Error handling**: Centralized error handling with user-friendly messages
+- **Authentication**: JWT tokens from Cognito in Authorization header
+- **Type safety**: TypeScript interfaces for all API responses
+
+### State Management
+- **Local state**: useState for component-level state
+- **Global state**: Context API for auth, user profile, notifications
+- **No Redux**: Keep it simple with Context API and custom hooks
+- **Server state**: Fetch on mount, no complex caching layer
 
 ## General build rules
 - **No SAM Validate** - This CLI command always fails when open api specs are involved. Use `sam build` instead.

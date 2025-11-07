@@ -2,13 +2,13 @@
 
 ## Product Vision
 
-**Transform livestream content into engaging social media assets through AI-powered post-production automation.**
+**Transform livestream content into engaging social media clips through AI-powered post-production automation.**
 
-Our platform empowers content creators, streamers, and media companies to maximize the value of their live content by automatically identifying and extracting clips, generating infographics, creating comics, and optimizing all content for social media distribution across multiple platforms.
+Our platform empowers content creators, streamers, and media companies to maximize the value of their live content by automatically identifying and extracting clips optimized for social media distribution across multiple platforms. Teams can collaborate on content creation with role-based access and shared workflows.
 
 ## Product Mission
 
-To eliminate the manual, time-intensive process of post-production for livestream content, enabling creators to focus on content creation while our AI handles the heavy lifting of clip generation, visual content creation (infographics and comics), optimization, and social media preparation.
+To eliminate the manual, time-intensive process of post-production for livestream content, enabling creators to focus on content creation while our AI handles the heavy lifting of clip detection, video processing, and optimization for social media.
 
 ## Target Users
 
@@ -40,13 +40,12 @@ To eliminate the manual, time-intensive process of post-production for livestrea
 
 ## Core Value Propositions
 
-### 1. Automated Content Generation
-- **AI-Powered Clip Detection**: Advanced transcript analysis to identify engaging moments
-- **Infographic Creation**: Automatically generates visual summaries of key points and statistics
-- **Comic Generation**: Creates engaging comic-style visual narratives from content highlights
-- **Context Understanding**: Recognizes discussion topics, sentiment, and audience engagement cues
-- **Quality Scoring**: Ranks potential content by engagement potential and visual appeal
-- **Customizable Criteria**: Adjustable parameters for different content types and audiences
+### 1. Automated Clip Generation
+- **AI-Powered Clip Detection**: Advanced transcript analysis to identify engaging moments using AWS Bedrock
+- **Context Understanding**: Rnizes discussion topics, sentiment, and audience engagement cues
+- **Multi-Speaker Support**: Tracks different speakers and conversation dynamics
+- **Automated Video Processing**: Extracts and stitches video segments from multi-track sources
+- **Quality Scoring**: Ranks potential clips by engagement potential
 
 ### 2. Multi-Platform Optimization
 - **Platform-Specific Formatting**: Automatic resizing and optimization for each social platform
@@ -60,12 +59,18 @@ To eliminate the manual, time-intensive process of post-production for livestrea
 - **Topic Extraction**: Automatically tags clips with relevant topics and themes
 - **Sentiment Analysis**: Understands emotional tone and engagement levels
 
-### 4. Streamlined Workflow
-- **One-Click Processing**: Upload once, get clips, infographics, and comics for all platforms
+### 4. Team Collaboration
+- **Multi-Tenant Architecture**: Secure team workspaces with isolated data
+- **Role-Based Access**: Owner, Administrator, and Member roles with appropriate permissions
+- **Team Invitations**: Email-based invitation system with acceptance workflow
+- **Shared Episodes**: Team members collaborate on episode content and clips
+- **Notifications**: Real-time notifications for team activities and clip processing
+
+### 5. Streamlined Workflow
+- **One-Click Processing**: Upload video tracks and transcripts to trigger automated clip detection
 - **Batch Operations**: Process multiple episodes simultaneously
-- **Review Interface**: Easy approval/rejection workflow for generated content
-- **Visual Content Library**: Organized storage of all generated visual assets
-- **Scheduling Integration**: Direct publishing to social media platforms (future feature)
+- **Review Interface**: Approve, reject, or modify AI-detected clips
+- **Status Tracking**: Monitor clip processing through detection, processing, and completion stages
 
 ## Key Features
 
@@ -75,48 +80,42 @@ To eliminate the manual, time-intensive process of post-production for livestrea
 - **Series Organization**: Group episodes by series or show format
 - **Air Date Tracking**: Maintain chronological organization of content
 
-### AI-Powered Content Generation
-- **Clip Detection**: Analyze spoken content for interesting moments
-- **Infographic Generation**: Create data visualizations and key point summaries
-- **Comic Creation**: Generate comic-style visual stories from content highlights
-- **Engagement Prediction**: Score all content types based on likely audience engagement
-- **Context Preservation**: Ensure all generated content maintains narrative coherence
+### AI-Powered Clip Detection
+- **Transcript Analysis**: Analyze spoken content using AWS Bedrock AI models
+- **Engagement Prediction**: Score clips based on likely audience engagement
+- **Context Preservation**: Maintain narrative coherence across clip segments
 - **Speaker Attribution**: Track who is speaking in multi-person content
-- **Visual Style Consistency**: Maintain brand consistency across all visual content
+- **Memory Retention**: AI agents remember context across episodes for improved detection
 
-### Content Processing Pipeline
-- **Automated Transcription**: Generate accurate transcripts from audio tracks
-- **Video Preprocessing**: Chunk long-form content for efficient processing
-- **Quality Analysis**: Assess audio/video quality and suggest improvements
-- **Format Conversion**: Prepare content for different platform requirements
-
-### Social Media Optimization
-- **Platform Templates**: Pre-configured settings for major social platforms
-- **Multi-Format Content**: Clips, infographics, and comics optimized for each platform
-- **Branding Integration**: Consistent visual branding across all content types
-- **Caption Generation**: Automatic subtitle generation for accessibility
-- **Thumbnail Creation**: Generate engaging thumbnail images for all content
-- **Visual Asset Variants**: Multiple size and format variants for different social platforms
+### Video Processing Pipeline
+- **Multi-Track Upload**: Support for multiple video tracks (main camera, guest camera, screen share)
+- **Multipart Upload**: Efficient large file uploads with resumable capability
+- **Automated Preprocessing**: Video chunking using AWS MediaConvert for efficient processing
+- **Segment Extraction**: Extract specific time ranges from source videos
+- **Clip Stitching**: Combine multiple segments into final clip videos
+- **S3 Storage**: Secure cloud storage for all video assets
 
 ## Technical Capabilities
 
 ### Simple, Scalable Architecture
 - **Serverless Infrastructure**: AWS Lambda functions that do one thing well
-- **Event-Driven Processing**: Direct EventBridge events trigger specific functions
-- **Proven AWS Services**: DynamoDB, S3, Lambda - no custom frameworks
-- **Auto-Scaling**: AWS handles scaling automatically, no custom orchestration
+- **Event-Driven Processing**: EventBridge events trigger specific functions
+- **Step Functions Workflows**: Orchestrate complex clip generation pipelines
+- **Proven AWS Services**: DynamoDB, S3, Lambda, Step Functions, MediaConvert
+- **Auto-Scaling**: AWS handles scaling automatically
 
 ### AI/ML Integration
-- **AWS Bedrock Integration**: Leverages advanced AI models for content analysis
-- **Memory Retention**: AI agents remember context across episodes and series
-- **Continuous Learning**: Improves clip selection based on performance feedback
-- **Custom Model Training**: Ability to fine-tune models for specific content types
+- **AWS Bedrock Integration**: Uses Amazon Nova Pro for content analysis
+- **Agent Memory**: Bedrock Agent Memory for context retention across sessions
+- **Transcript Analysis**: Deep understanding of spoken content for clip detection
+- **Engagement Scoring**: AI-powered ranking of clip potential
 
 ### Data Management
-- **Secure Storage**: Encrypted storage for all content and metadata
-- **Efficient Retrieval**: Optimized database design for fast content access
-- **Backup & Recovery**: Comprehensive data protection and recovery systems
-- **Compliance Ready**: Built with data privacy and compliance in mind
+- **Multi-Tenant Isolation**: Secure data separation between teams
+- **Single-Table Design**: Efficient DynamoDB access patterns
+- **Encrypted Storage**: S3 and DynamoDB encryption at rest
+- **TTL Management**: Automatic cleanup of temporary data
+- **Efficient Queries**: Optimized GSI patterns for fast access
 
 ## Platform Integrations
 
@@ -126,46 +125,42 @@ To eliminate the manual, time-intensive process of post-production for livestrea
 - **LinkedIn Live**: Professional content optimization
 - **Custom RTMP**: Support for any RTMP-compatible streaming service
 
-### Social Media Platforms
-- **Twitter/X**: Optimized video clips for Twitter's format requirements
-- **Instagram**: Stories, Reels, and feed-optimized content
-- **TikTok**: Short-form vertical video optimization
-- **LinkedIn**: Professional networking content formatting
-- **YouTube Shorts**: Vertical short-form content creation
-
-### Content Management
-- **Cloud Storage**: Integration with major cloud storage providers
-- **CDN Distribution**: Global content delivery for fast access
-- **API Access**: RESTful API for custom integrations
-- **Webhook Support**: Real-time notifications for processing events
+### Authentication & Security
+- **AWS Cognito**: User authentication and authorization
+- **JWT Tokens**: Secure API access with token-based auth
+- **Custom Authorizers**: Lambda-based request authorization
+- **Pre-Token Generation**: Custom claims injection for team context
 
 ## User Experience Flow
 
+### Team Setup
+1. **User Registration**: Sign up with email via AWS Cognito
+2. **Profile Creation**: Complete onboarding with name and preferences
+3. **Team Creation**: Create a new team or accept invitation to existing team
+4. **Team Selection**: Set active team for episode management
+
 ### Content Upload
-1. **Episode Creation**: Create new episode with metadata
-2. **Multi-Track Upload**: Upload video tracks (main, guest, screen share)
-3. **Transcript Upload**: Provide existing transcript or auto-generate
-4. **Processing Initiation**: Automatic processing pipeline activation
+1. **Episode Creation**: Create new episode with metadata (title, number, air date, platforms)
+2. **Multi-Track Upload**: Upload video tracks using multipart upload (main, guest, screen share)
+3. **Transcript Upload**: Upload SRT transcript file to S3
+4. **Preprocessing**: Automatic video chunking via MediaConvert
 
-### AI Analysis
-1. **Content Preprocessing**: Video chunking and quality analysis
-2. **Transcript Analysis**: AI-powered content understanding
-3. **Content Generation**: Creation of clips, infographics, and comics
-4. **Visual Design**: Automatic styling and branding of visual content
-5. **Quality Scoring**: Ranking of all content types by engagement potential
+### AI Clip Detection
+1. **Transcript Analysis**: AI agent analyzes transcript for engaging moments
+2. **Clip Suggestions**: System generates clip suggestions with segments and scores
+3. **Status Tracking**: Clips move through detected → processing → processed states
 
-### Review & Approval
-1. **Content Preview**: Review AI-generated clips, infographics, and comics
-2. **Visual Editor**: Tools for customizing infographics and comics
-3. **Editing Tools**: Basic editing capabilities for fine-tuning all content types
-4. **Approval Workflow**: Accept, reject, or modify suggested content
-5. **Batch Operations**: Approve multiple content pieces simultaneously
+### Clip Processing
+1. **Approval**: User approves clips for processing
+2. **Segment Extraction**: Step Functions workflow extracts video segments
+3. **Clip Stitching**: Segments are combined into final clip video
+4. **Storage**: Completed clips stored in S3 with metadata in DynamoDB
 
-### Distribution Preparation
-1. **Platform Selection**: Choose target social media platforms
-2. **Format Optimization**: Automatic formatting for each platform and content type
-3. **Metadata Addition**: Titles, descriptions, and hashtags for all content
-4. **Export & Download**: Retrieve optimized clips, infographics, and comics for distribution
+### Review & Distribution
+1. **Clip Review**: View processed clips with playback URLs
+2. **Status Management**: Approve or reject clips for publication
+3. **Download**: Retrieve clip files for manual distribution
+4. **Notifications**: Receive updates on clip processing status
 
 ## Competitive Advantages
 
@@ -190,64 +185,72 @@ To eliminate the manual, time-intensive process of post-production for livestrea
 ## Success Metrics
 
 ### User Engagement
-- **Content Generation Rate**: Number of clips, infographics, and comics generated per episode
-- **Approval Rate**: Percentage of AI-suggested content approved by users
-- **Content Type Distribution**: Usage patterns across clips, infographics, and comics
-- **Time Savings**: Reduction in manual post-production and design time
+- **Clip Generation Rate**: Number of clips detected and processed per episode
+- **Approval Rate**: Percentage of AI-suggested clips approved by users
+- **Team Adoption**: Number of active teams and team members
+- **Time Savings**: Reduction in manual clip creation time
 - **User Retention**: Monthly and annual user retention rates
 
 ### Content Performance
-- **Social Media Engagement**: Performance of generated content (clips, infographics, comics) on social platforms
-- **View-Through Rates**: Percentage of video clips watched to completion
-- **Interaction Rates**: Engagement with infographics and comics (likes, shares, saves)
-- **Share Rates**: How often different content types are shared by viewers
-- **Conversion Metrics**: Content that drives traffic back to full episodes
+- **Detection Accuracy**: Quality of AI-detected clip suggestions
+- **Processing Success Rate**: Percentage of clips successfully processed
+- **Average Clips Per Episode**: Typical number of clips generated
+- **User Satisfaction**: Feedback on clip quality and relevance
 
 ### Technical Performance
-- **Processing Speed**: Time from upload to content generation (clips, infographics, comics)
-- **Visual Generation Quality**: Accuracy and appeal of AI-generated visual content
+- **Processing Speed**: Time from clip approval to completed video
+- **Workflow Success Rate**: Step Functions execution success rate
 - **System Uptime**: Platform availability and reliability
 - **API Response Times**: Performance of API endpoints
-- **Error Rates**: Frequency of processing failures across all content types
+- **Error Rates**: Frequency of processing failures
 
 ## Roadmap Priorities
 
-### Phase 1: Core Platform (Current)
-- ✅ Episode management and upload system
-- ✅ AI-powered clip detection
-- ✅ Multi-track video processing
-- ✅ Basic transcript analysis
-- 🔄 Infographic generation system
-- 🔄 Comic creation pipeline
+### Phase 1: Core Platform (Completed)
+- Episode management and upload system
+- AI-powered clip detection with AWS Bedrock
+- Multi-track video processing
+- Transcript analysis
+- Multi-tenant team architecture
+- User authentication with AWS Cognito
+- Team invitations and role management
+- Notifications system
+- Step Functions clip generation workflow
+- React frontend with TypeScript
+- Segment extraction and clip stitching
+- Clip status management and approval workflow
 
-### Phase 2: Enhanced AI (Q2 2025)
-- � Advaanced sentiment analysis
-- � Speaker rrecognition and attribution
-- � Topicc modeling and tagging
-- � Engageement prediction algorithms
-- 📋 Advanced infographic templates and styling
-- 📋 Comic character consistency and storytelling
+### Phase 2: Enhanced Features (Q1-Q2 2025)
+- Advanced sentiment analysis in transcripts
+- Improved speaker recognition and attribution
+- Topic modeling and automatic tagging
+- Enhanced engagement prediction algorithms
+- Clip editing capabilities in UI
+- Batch clip processing
+- Team analytics dashboard
 
 ### Phase 3: Social Integration (Q3 2025)
-- 📋 Direct social media publishing for all content types
-- 📋 Platform-specific optimization templates for clips, infographics, and comics
-- 📋 Automated caption and hashtag generation
-- 📋 Performance analytics dashboard with visual content insights
-- 📋 A/B testing for different visual content styles
+- Direct social media publishing (Twitter, LinkedIn, YouTube)
+- Platform-specific video format optimization
+- Automated caption and hashtag generation
+- Performance analytics for published clips
+- A/B testing for clip variations
+- Scheduling and publishing calendar
 
 ### Phase 4: Advanced Features (Q4 2025)
-- 📋 Real-time content generation during live streams
-- 📋 Custom branding and watermarking for all content types
-- 📋 Advanced visual editing tools for infographics and comics
-- 📋 Interactive infographics and animated comics
-- 📋 Team collaboration features with visual asset management
+- Real-time clip detection during live streams
+- Custom branding and watermarking
+- Advanced video editing tools
+- Multi-language transcript support
+- Custom AI model fine-tuning per team
 
 ### Phase 5: Enterprise Features (2026)
-- 📋 White-label solutions with custom visual branding
-- 📋 Advanced analytics and reporting for all content types
-- 📋 Custom AI model training for brand-specific visual styles
-- 📋 Enterprise security and compliance
-- 📋 Custom infographic and comic templates for enterprise brands
+- White-label solutions
+- Advanced analytics and reporting
+- Custom workflow automation
+- Enterprise SSO integration
+- Compliance and audit logging
+- API access for custom integrations
 
 ## Business Model
 
@@ -269,36 +272,3 @@ To eliminate the manual, time-intensive process of post-production for livestrea
 - **Training & Support**: Premium support and training programs
 - **White-Label**: Custom branding and deployment options
 
-## Risk Mitigation
-
-### Technical Risks
-- **AI Accuracy**: Continuous model improvement and human oversight options
-- **Scalability**: Serverless architecture handles traffic spikes automatically
-- **Data Security**: Enterprise-grade security and compliance measures
-- **Platform Dependencies**: Multi-cloud strategy to avoid vendor lock-in
-
-### Business Risks
-- **Competition**: Focus on AI superiority and developer experience
-- **Market Changes**: Flexible architecture adapts to new platforms and formats
-- **Content Rights**: Clear terms of service and content ownership policies
-- **Regulatory Compliance**: Proactive compliance with data protection regulations
-
-## Success Factors
-
-### Product Excellence
-- **AI Accuracy**: Continuously improve clip selection algorithms
-- **User Experience**: Intuitive interface with minimal learning curve
-- **Performance**: Fast processing times and reliable service
-- **Integration**: Seamless workflow integration for content creators
-
-### Market Positioning
-- **Thought Leadership**: Establish expertise in AI-powered content creation
-- **Community Building**: Foster community of content creators and developers
-- **Partnership Strategy**: Strategic partnerships with streaming platforms
-- **Content Marketing**: Demonstrate value through case studies and examples
-
-### Operational Excellence
-- **Customer Support**: Responsive, knowledgeable customer support team
-- **Documentation**: Comprehensive documentation and tutorials
-- **Reliability**: High uptime and consistent service quality
-- **Continuous Improvement**: Regular feature updates and enhancements
