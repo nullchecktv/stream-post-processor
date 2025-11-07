@@ -25,7 +25,7 @@ export const EpisodeSchemas = {
   pathParameters: {
     type: 'object',
     properties: {
-      episodeId: { type: 'string', format: 'uuid' }
+      episodeId: { type: 'string' }
     },
     required: ['episodeId'],
     additionalProperties: false
@@ -63,7 +63,7 @@ export const TrackSchemas = {
   pathParameters: {
     type: 'object',
     properties: {
-      episodeId: { type: 'string', format: 'uuid' },
+      episodeId: { type: 'string' },
       trackName: { type: 'string', minLength: 1, maxLength: 50 }
     },
     required: ['episodeId', 'trackName'],
@@ -214,7 +214,7 @@ export const ClipSchemas = {
   pathParameters: {
     type: 'object',
     properties: {
-      episodeId: { type: 'string', format: 'uuid' },
+      episodeId: { type: 'string'},
       clipId: { type: 'string', minLength: 1 }
     },
     required: ['episodeId', 'clipId'],

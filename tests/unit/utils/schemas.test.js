@@ -52,7 +52,6 @@ describe('Schema Definitions', () => {
         const schema = EpisodeSchemas.pathParameters;
 
         expect(schema.properties.episodeId.type).toBe('string');
-        expect(schema.properties.episodeId.format).toBe('uuid');
         expect(schema.required).toContain('episodeId');
         expect(schema.additionalProperties).toBe(false);
       });
@@ -89,7 +88,6 @@ describe('Schema Definitions', () => {
       test('should validate episode and track parameters', () => {
         const schema = TrackSchemas.pathParameters;
 
-        expect(schema.properties.episodeId.format).toBe('uuid');
         expect(schema.properties.trackName.minLength).toBe(1);
         expect(schema.required).toContain('episodeId');
         expect(schema.required).toContain('trackName');
@@ -222,7 +220,6 @@ describe('Schema Definitions', () => {
       test('should validate clip path parameters', () => {
         const schema = ClipSchemas.pathParameters;
 
-        expect(schema.properties.episodeId.format).toBe('uuid');
         expect(schema.properties.clipId.type).toBe('string');
         expect(schema.required).toContain('episodeId');
         expect(schema.required).toContain('clipId');
@@ -287,12 +284,6 @@ describe('Schema Definitions', () => {
 
     test('should use consistent email validation', () => {
       expect(TeamSchemas.addMember.properties.email.format).toBe('email');
-    });
-
-    test('should use consistent UUID validation', () => {
-      expect(EpisodeSchemas.pathParameters.properties.episodeId.format).toBe('uuid');
-      expect(TrackSchemas.pathParameters.properties.episodeId.format).toBe('uuid');
-      expect(ClipSchemas.pathParameters.properties.episodeId.format).toBe('uuid');
     });
 
     test('should use consistent string length limits', () => {

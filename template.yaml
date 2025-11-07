@@ -189,6 +189,12 @@ Resources:
       UserPoolTags:
         Project: NullCheck
 
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: content-engine-domain
+      UserPoolId: !Ref CognitoUserPool
+
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -1891,6 +1897,10 @@ Outputs:
   UserPoolClientId:
     Description: Cognito User Pool Client ID
     Value: !Ref UserPoolClient
+
+  UserPoolDomain:
+    Description: Cognito User Pool Domain
+    Value: !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com"
 
   FFmpegLayerArn:
     Description: ARN of the FFmpeg Lambda Layer

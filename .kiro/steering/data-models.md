@@ -29,41 +29,174 @@ This system uses **single-table design** in DynamoDB because it works well for o
 
 ## Entity Models
 
-### Episode Entity
+### Team Entity
 
-#### Primary Record
+#### Team Metadata
 ```json
 {
-  "pk": "123e4567-e89b-12d3-a456-426614174000",
+  "pk": "team#123e4567-e89b-12d3-a456-426614174000",
   "sk": "metadata",
-  "GSI1PK": "episodes",
-  "GSI1SK": "2025-01-15T10:30:00Z#123e4567-e89b-12d3-a456-426614174000",
-  "title": "Episode Title",
-  "episodeNumber": 42,
-  "summary": "Episode description",
-  "airDate": "2025-01-15T10:30:00Z",
-  "platforms": ["twitch", "youtube", "linkedin live"],
-  "themes": ["technology", "programming"],
-  "seriesName": "Tech Talk Series",
-  "status": "draft|processing|published|archived",
+  "name": "My Content Team",
+  "description": "Team for podcast production",
+  "ownerId": "user-uuid",
+  "status": "active",
+  "settings": {
+    "defaultPlatforms": ["youtube", "twitch"],
+    "timezone": "America/New_York"
+  },
   "createdAt": "2025-01-15T10:30:00Z",
   "updatedAt": "2025-01-15T10:30:00Z"
 }
 ```
 
 #### Access Patterns
-- **Get episode by ID**: `pk = {episodeId}` AND `sk = metadata`
-- **List episodes chronologically**: GSI1 query with `GSI1PK = episodes`
-- **List episodes by date range**: GSI1 query with `GSI1PK = episodes` and `GSI1SK` between dates
+- **Get team by ID**: `pk = team#{teamId}` AND `sk = metadata`
+- **List user's teams**: GSI1 query with `GSI1PK = user#{userId}#teams`
+
+### Team Membership Entity
+
+#### Membership Record
+```json
+{
+  "pk": "team#123e4567-e89b-12d3-a456-426614174000",
+  "sk": "member#user-uuid",
+  "GSI1PK": "user#user-uuid#teams",
+  "GSI1SK": "2025-01-15T10:30:00Z#123e4567-e89b-12d3-a456-426614174000",
+  "userId": "user-uuid",
+  "teamId": "123e4567-e89b-12d3-a456-426614174000",
+  "role": "owner|administrator|member",
+  "status": "active|removed",
+  "joinedAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### Access Patterns
+- **Get user's membership in team**: `pk = team#{teamId}` AND `sk = member#{userId}`
+- **List team members**: `pk = team#{teamId}` AND `sk` begins with `member#`
+- **List user's teams**: GSI1 query with `GSI1PK = user#{userId}#teams`
+
+### User Profile Entity
+
+#### User Metadata
+```json
+{
+  "pk": "user#user-uuid",
+  "sk": "profile",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "activeTeamId": "team-uuid",
+  "preferences": {
+    "timezone": "America/New_York",
+    "notifications": true
+  },
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### Access Patterns
+- **Get user profile**: `pk = user#{userId}` AND `sk = profile`
+
+### Invitation Entity
+
+#### Invitation Record
+```json
+{
+  "pk": "team#123e4567-e89b-12d3-a456-426614174000",
+  "sk": "invitation#user@example.com",
+  "GSI1PK": "invitation#invitation-uuid",
+  "GSI1SK": "2025-01-15T10:30:00Z",
+  "invitationId": "invitation-uuid",
+  "teamId": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "role": "administrator|member",
+  "status": "pending|accepted|declined|cancelled",
+  "invitedBy": "inviter-user-uuid",
+  "expiresAt": "2025-01-22T10:30:00Z",
+  "ttl": 1642248000,
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### Access Patterns
+- **Get invitation by email**: `pk = team#{teamId}` AND `sk = invitation#{email}`
+- **Get invitation by ID**: GSI1 query with `GSI1PK = invitation#{invitationId}`
+- **List team invitations**: `pk = team#{teamId}` AND `sk` begins with `invitation#`
+
+### Notification Entity
+
+#### Notification Record
+```json
+{
+  "pk": "user#user-uuid",
+  "sk": "notification#2025-01-15T10:30:00Z#notification-uuid",
+  "GSI1PK": "user#user-uuid#notifications",
+  "GSI1SK": "2025-01-15T10:30:00Z",
+  "notificationId": "notification-uuid",
+  "type": "team_invitation|clip_processed|member_added",
+  "title": "New team invitation",
+  "message": "You've been invited to join My Content Team",
+  "isRead": false,
+  "metadata": {
+    "teamId": "team-uuid",
+    "invitationId": "invitation-uuid"
+  },
+  "expiresAt": "2025-02-15T10:30:00Z",
+  "ttl": 1644926400,
+  "createdAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### Access Patterns
+- **List user notifications**: `pk = user#{userId}` AND `sk` begins with `notification#`
+- **Get notification by ID**: `pk = user#{userId}` AND `sk = notification#{timestamp}#{notificationId}`
+- **Query by read status**: GSI1 query with filters
+
+### Episode Entity
+
+#### Primary Record
+```json
+{
+  "pk": "tenant123#123e4567-e89b-12d3-a456-426614174000",
+  "sk": "metadata",
+  "GSI1PK": "tenant123#episodes",
+  "GSI1SK": "2025-01-15T10:30:00Z#123e4567-e89b-12d3-a456-426614174000",
+  "episodeId": "123e4567-e89b-12d3-a456-426614174000",
+  "tenantId": "tenant123",
+  "title": "Episode Title",
+  "episodeNumber": 42,
+  "description": "Episode description",
+  "airDate": "2025-01-15T10:30:00Z",
+  "platforms": ["twitch", "youtube", "linkedin live"],
+  "themes": ["technology", "programming"],
+  "seriesName": "Tech Talk Series",
+  "status": "draft|processing|published|archived",
+  "statusHistory": [
+    {
+      "status": "draft",
+      "timestamp": "2025-01-15T10:30:00Z"
+    }
+  ],
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### Access Patterns
+- **Get episode by ID**: `pk = {tenantId}#{episodeId}` AND `sk = metadata`
+- **List tenant episodes**: GSI1 query with `GSI1PK = {tenantId}#episodes`
+- **List episodes by date range**: GSI1 query with `GSI1PK = {tenantId}#episodes` and `GSI1SK` between dates
 
 ### Transcript Entity
 
 #### Transcript Metadata
 ```json
 {
-  "pk": "123e4567-e89b-12d3-a456-426614174000",
+  "pk": "tenant123#123e4567-e89b-12d3-a456-426614174000",
   "sk": "transcript#main",
-  "s3Key": "123e4567-e89b-12d3-a456-426614174000/transcript.srt",
+  "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/transcript.srt",
   "filename": "meeting-transcript-2025-01-15.srt",
   "uploadedAt": "2025-01-15T10:35:00Z",
   "status": "uploaded|processing|processed|failed",
@@ -76,19 +209,20 @@ This system uses **single-table design** in DynamoDB because it works well for o
 ```
 
 #### Access Patterns
-- **Get episode transcript**: `pk = {episodeId}` AND `sk = transcript#{type}`
-- **List all transcripts for episode**: `pk = {episodeId}` AND `sk` begins with `transcript#`
+- **Get episode transcript**: `pk = {tenantId}#{episodeId}` AND `sk = transcript#{type}`
+- **List all transcripts for episode**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `transcript#`
 
 ### Video Track Entity
 
 #### Track Metadata
 ```json
 {
-  "pk": "123e4567-e89b-12d3-a456-426614174000",
+  "pk": "tenant123#123e4567-e89b-12d3-a456-426614174000",
   "sk": "track#main",
-  "s3Key": "123e4567-e89b-12d3-a456-426614174000/tracks/main.mp4",
+  "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/tracks/main.mp4",
   "trackName": "main",
   "filename": "main-camera-feed.mp4",
+  "speaker": "host",
   "uploadedAt": "2025-01-15T10:45:00Z",
   "status": "uploading|uploaded|processing|processed|failed",
   "uploadMetadata": {
@@ -103,7 +237,7 @@ This system uses **single-table design** in DynamoDB because it works well for o
     "chunks": [
       {
         "chunkNumber": 1,
-        "s3Key": "123e4567-e89b-12d3-a456-426614174000/chunks/main_chunk_001.mp4",
+        "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/chunks/main_chunk_001.mp4",
         "startTime": "00:00:00",
         "endTime": "00:02:00"
       }
@@ -113,8 +247,8 @@ This system uses **single-table design** in DynamoDB because it works well for o
 ```
 
 #### Access Patterns
-- **Get track by name**: `pk = {episodeId}` AND `sk = track#{trackName}`
-- **List all tracks for episode**: `pk = {episodeId}` AND `sk` begins with `track#`
+- **Get track by name**: `pk = {tenantId}#{episodeId}` AND `sk = track#{trackName}`
+- **List all tracks for episode**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `track#`
 
 ### Upload Session Entity
 
@@ -151,23 +285,40 @@ This system uses **single-table design** in DynamoDB because it works well for o
 #### Enhanced Clip with Processing Fields
 ```json
 {
-  "pk": "123e4567-e89b-12d3-a456-426614174000",
-  "sk": "clip#001",
-  "GSI1PK": "clips",
-  "GSI1SK": "2025-01-15T10:30:00Z#123e4567-e89b-12d3-a456-426614174000#001",
-  "title": "Interesting Discussion Point",
-  "description": "AI-generated description of the clip content",
+  "pk": "tenant123#123e4567-e89b-12d3-a456-426614174000",
+  "sk": "clip#clip-uuid",
+  "GSI1PK": "tenant123#clips",
+  "GSI1SK": "2025-01-15T10:30:00Z#123e4567-e89b-12d3-a456-426614174000#clip-uuid",
+  "clipId": "clip-uuid",
+  "episodeId": "123e4567-e89b-12d3-a456-426614174000",
+  "tenantId": "tenant123",
+  "hook": "Interesting Discussion Point",
+  "title": "AI-generated title",
+  "clipType": "discussion|highlight|tutorial",
   "segments": [
     {
       "startTime": "00:15:30",
       "endTime": "00:17:45",
-      "text": "Transcript text for this segment"
+      "speaker": "host",
+      "order": 1
     }
   ],
-  "duration": "00:02:15",
-  "tags": ["discussion", "technical", "important"],
-  "status": "detected|processing|processed|failed|reviewed|approved|rejected|published",
+  "duration": 135,
+  "status": "detected|processing|processed|failed|approved|rejected",
+  "statusHistory": [
+    {
+      "status": "detected",
+      "timestamp": "2025-01-15T10:40:00Z"
+    },
+    {
+      "status": "processing",
+      "timestamp": "2025-01-15T10:41:00Z",
+      "segmentCount": 2
+    }
+  ],
   "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/clips/clip-uuid.mp4",
+  "processingStartedAt": "2025-01-15T10:41:00Z",
+  "processingCompletedAt": "2025-01-15T10:42:15Z",
   "createdAt": "2025-01-15T10:40:00Z",
   "updatedAt": "2025-01-15T10:42:15Z"
 }
@@ -178,15 +329,37 @@ This system uses **single-table design** in DynamoDB because it works well for o
 - **processing**: Clip is currently being processed (segment extraction/stitching)
 - **processed**: Successfully processed and video file is available
 - **failed**: Processing failed due to technical issues
-- **reviewed**: Human has reviewed the processed clip
-- **approved**: Approved for publication
-- **rejected**: Rejected and will not be published
-- **published**: Published to social media platforms
+- **approved**: User approved clip for publication
+- **rejected**: User rejected clip
 
 #### Access Patterns
-- **Get clip by ID**: `pk = {episodeId}` AND `sk = clip#{clipId}`
-- **List clips for episode**: `pk = {episodeId}` AND `sk` begins with `clip#`
-- **List all clips chronologically**: GSI1 query with `GSI1PK = clips`
+- **Get clip by ID**: `pk = {tenantId}#{episodeId}` AND `sk = clip#{clipId}`
+- **List clips for episode**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `clip#`
+- **List tenant clips**: GSI1 query with `GSI1PK = {tenantId}#clips`
+
+### Segment Entity
+
+#### Segment Record
+```json
+{
+  "pk": "tenant123#123e4567-e89b-12d3-a456-426614174000",
+  "sk": "segment#clip-uuid#1",
+  "clipId": "clip-uuid",
+  "order": 1,
+  "startTime": "00:15:30",
+  "endTime": "00:17:45",
+  "speaker": "host",
+  "status": "processing|completed|failed",
+  "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/segments/clip-uuid-1.mp4",
+  "duration": 135,
+  "createdAt": "2025-01-15T10:41:00Z",
+  "updatedAt": "2025-01-15T10:41:30Z"
+}
+```
+
+#### Access Patterns
+- **Get segment**: `pk = {tenantId}#{episodeId}` AND `sk = segment#{clipId}#{order}`
+- **List clip segments**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `segment#{clipId}#`
 
 ### Agent Memory Entity
 
