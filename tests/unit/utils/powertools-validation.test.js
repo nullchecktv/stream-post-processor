@@ -42,7 +42,7 @@ jest.mock('../../../functions/utils/api.mjs', () => ({
 
 const { validate } = require('@aws-lambda-powertools/validation');
 const { SchemaValidationError } = require('@aws-lambda-powertools/validation/errors');
-const { validateRequest, validatePathParameters, validateQueryParameters } = require('../../../functions/utils/powertools-validation.mjs');
+const { validateRequest, validatePathParameters, validateQueryParameters } = require('../../../functions/utils/validation.mjs');
 
 describe('Powertools Validation Utilities', () => {
   beforeEach(() => {

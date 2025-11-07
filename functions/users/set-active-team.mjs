@@ -3,7 +3,7 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import { APIGatewayClient, FlushStageAuthorizersCacheCommand } from '@aws-sdk/client-api-gateway';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
-import { validateRequest } from '../utils/powertools-validation.mjs';
+import { validateRequest } from '../utils/validation.mjs';
 import { UserSchemas } from '../utils/schemas.mjs';
 
 const logger = new Logger({ serviceName: 'users' });

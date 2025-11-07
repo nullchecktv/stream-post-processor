@@ -363,12 +363,17 @@ Resources:
               Resource:
                 - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
                 - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-premier-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-premier-v1:0
+
             - Effect: Allow
               Action:
                 - bedrock:ListInferenceProfiles
               Resource:
                 - !Sub arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
                 - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-premier-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-premier-v1:0
             - Effect: Allow
               Action:
                 - s3:GetObject
@@ -380,7 +385,7 @@ Resources:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
           TABLE_NAME: !Ref StreamPostProcessingTable
-          MODEL_ID: us.amazon.nova-pro-v1:0
+          MODEL_ID: us.amazon.nova-premier-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
         TranscriptAdded:

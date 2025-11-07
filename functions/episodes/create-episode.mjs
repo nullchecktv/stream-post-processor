@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
-import { validateRequest } from '../utils/powertools-validation.mjs';
+import { validateRequest } from '../utils/validation.mjs';
 import { EpisodeSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();

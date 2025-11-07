@@ -17,12 +17,14 @@ jest.mock('../../../functions/utils/api.mjs', () => ({
   formatResponse: (statusCode, body) => ({ statusCode, body })
 }));
 
-jest.mock('../../../functions/utils/powertools-validation.mjs', () => ({
+jest.mock('../../../functions/utils/validation.mjs', () => ({
   validateRequest: jest.fn(),
   validatePathParameters: jest.fn()
 }));
 
-jest.mock('../../../functions/utils/validate.mjs', () => ({
+jest.mock('../../../functions/utils/validation.mjs', () => ({
+  validateRequest: jest.fn(),
+  validatePathParameters: jest.fn(),
   requireTeamMember: jest.fn(),
   requireTeamExists: jest.fn(),
   checkExists: jest.fn()
@@ -35,8 +37,7 @@ jest.mock('../../../functions/utils/notifications.mjs', () => ({
 
 
 const { handler } = require('../../../functions/teams/add-member.mjs');
-const { validateRequest, validatePathParameters } = require('../../../functions/utils/powertools-validation.mjs');
-const { requireTeamMember, requireTeamExists, checkExists } = require('../../../functions/utils/validate.mjs');
+const { validateRequest, validatePathParameters, requireTeamMember, requireTeamExists, checkExists } = require('../../../functions/utils/validation.mjs');
 const { createTeamInvitationNotification } = require('../../../functions/utils/notifications.mjs');
 
 const { Logger } = require('@aws-lambda-powertools/logger');

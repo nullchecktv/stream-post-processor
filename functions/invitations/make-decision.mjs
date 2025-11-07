@@ -2,7 +2,7 @@ import { DynamoDBClient, GetItemCommand, UpdateItemCommand, PutItemCommand } fro
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
-import { validateRequest, validatePathParameters } from '../utils/powertools-validation.mjs';
+import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { removeNotificationsByInvitation } from '../utils/notifications.mjs';
 import { randomUUID } from 'crypto';
 

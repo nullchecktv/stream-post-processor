@@ -2,7 +2,7 @@ import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
-import { validateRequest, requireTeamMember } from '../utils/validate.mjs';
+import { validateRequest, requireTeamMember } from '../utils/validation.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'teams' });
