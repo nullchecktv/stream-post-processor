@@ -1,6 +1,9 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, QueryCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+
+const logger = new Logger({ serviceName: 'auth' });
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
@@ -11,7 +14,7 @@ export const handler = async (event) => {
     const userId = userAttributes.sub;
     const email = userAttributes.email.toLowerCase();
 
-    console.log(`Processing post-confirmation for user ${userId} with email ${email}`);
+    logger.info('Processing post-confirmation for user', { userId, email });
 
     const pendingInvitationsResponse = await ddb.send(new QueryCommand({
       TableName: process.env.TABLE_NAME,
@@ -22,12 +25,12 @@ export const handler = async (event) => {
     }));
 
     if (!pendingInvitationsResponse.Items || pendingInvitationsResponse.Items.length === 0) {
-      console.log(`No pending invitations found for email ${email}`);
+      logger.info('No pending invitations found for email', { email });
       return event;
     }
 
     const invitations = pendingInvitationsResponse.Items.map(item => unmarshall(item));
-    console.log(`Found ${invitations.length} pending invitations for ${email}`);
+    logger.info('Found pending invitations for email', { email, invitationCount: invitations.length });
 
     const now = new Date().toISOString();
     const membershipRecords = [];
@@ -101,17 +104,16 @@ export const handler = async (event) => {
       }
     }
 
-    console.log(`Successfully auto-linked user ${userId} to ${invitations.length} teams`);
+    logger.info('Successfully auto-linked user to teams', { userId, teamCount: invitations.length });
 
     return event;
 
   } catch (err) {
-    console.error('Error in post-confirmation trigger:', {
+    logger.error('Error in post-confirmation trigger', {
       error: err.message,
       stack: err.stack,
       userId: event.request?.userAttributes?.sub,
-      email: event.request?.userAttributes?.email,
-      timestamp: new Date().toISOString()
+      email: event.request?.userAttributes?.email
     });
 
     // Don't throw errors in Cognito triggers as it would block user registration

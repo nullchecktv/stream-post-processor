@@ -2,11 +2,14 @@ import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
-import { parseBody } from '../utils/api.mjs';
+import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
+import { EpisodeSchemas, TranscriptSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
+const logger = new Logger({ serviceName: 'episodes' });
 
 try { s3.middlewareStack.remove('flexibleChecksumsMiddleware'); } catch {}
 
@@ -14,24 +17,19 @@ const TTL_SECONDS = 15 * 60;
 
 export const handler = async (event) => {
   try {
-    const { tenantId } = event.requestContext.authorizer;
-
-    if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
-      return formatResponse(401, { error: 'Unauthorized' });
+    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    if (!pathValidation.success) {
+      return pathValidation.error;
     }
 
-    const { episodeId } = event.pathParameters;
-
-    const body = parseBody(event);
-    let filename;
-    try {
-      if (body && typeof body.filename === 'string' && body.filename.trim()) {
-        filename = body.filename.trim();
-      }
-    } catch {
-      return formatResponse(400, { message: 'Must include a valid filename' });
+    const requestValidation = await validateRequest(event, TranscriptSchemas.upload);
+    if (!requestValidation.success) {
+      return requestValidation.error;
     }
+
+    const { tenantId, data } = requestValidation;
+    const { episodeId } = pathValidation.data;
+    const { filename } = data;
 
     const idempotencyKey = marshall({ pk: `${tenantId}#${episodeId}`, sk: 'transcript-upload-url' });
     const existing = await ddb.send(new GetItemCommand({
@@ -97,7 +95,13 @@ export const handler = async (event) => {
       ...(filename && { requiredHeaders: { 'x-amz-meta-filename': filename } })
     });
   } catch (err) {
-    console.error('Error creating transcript upload URL:', err);
+    logger.error('Error creating transcript upload URL', {
+      error: err.message,
+      stack: err.stack,
+      name: err.name,
+      episodeId: event.pathParameters?.episodeId,
+      filename: event.body ? JSON.parse(event.body)?.filename : undefined
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

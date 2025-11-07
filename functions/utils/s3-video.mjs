@@ -1,8 +1,11 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { promises as fs } from 'fs';
 import { createReadStream, createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
 import { join } from 'path';
+
+const logger = new Logger({ serviceName: 'utils' });
 
 const s3 = new S3Client();
 
@@ -23,7 +26,12 @@ export const downloadVideoFile = async (bucket, key, localPath) => {
     await pipeline(response.Body, writeStream);
 
   } catch (error) {
-    console.error(`Failed to download ${key}:`, error);
+    logger.error('Failed to download video file from S3', {
+      error: error.message,
+      stack: error.stack,
+      bucket,
+      key
+    });
     throw new Error(`Failed to download video file from S3: ${error.message}`);
   }
 };
@@ -53,7 +61,13 @@ export const uploadVideoFile = async (bucket, key, localPath) => {
       etag: response.ETag
     };
   } catch (error) {
-    console.error(`Failed to upload ${localPath}:`, error);
+    logger.error('Failed to upload video file to S3', {
+      error: error.message,
+      stack: error.stack,
+      bucket,
+      key,
+      localPath
+    });
     throw new Error(`Failed to upload video file to S3: ${error.message}`);
   }
 };
@@ -85,7 +99,12 @@ export const getS3FileSize = async (bucket, key) => {
     const response = await s3.send(command);
     return response.ContentLength || 0;
   } catch (error) {
-    console.error(`Failed to get file size for ${key}:`, error);
+    logger.error('Failed to get S3 file size', {
+      error: error.message,
+      stack: error.stack,
+      bucket,
+      key
+    });
     throw new Error(`Failed to get S3 file size: ${error.message}`);
   }
 };
@@ -135,7 +154,14 @@ export const uploadSegmentFile = async (bucket, episodeId, clipId, segmentIndex,
       uploadedAt: new Date().toISOString()
     };
   } catch (error) {
-    console.error(`Failed to upload segment ${segmentIndex}:`, error);
+    logger.error('Failed to upload segment file to S3', {
+      error: error.message,
+      stack: error.stack,
+      bucket,
+      episodeId,
+      clipId,
+      segmentIndex
+    });
     throw new Error(`Failed to upload segment file to S3: ${error.message}`);
   }
 };
@@ -149,13 +175,21 @@ export const batchUploadSegments = async (bucket, episodeId, clipId, segmentFile
       const result = await uploadSegmentFile(bucket, episodeId, clipId, index, localPath, metadata);
       results.push(result);
     } catch (error) {
-      console.error(`Failed to upload segment ${index}:`, error);
+      logger.error('Failed to upload segment in batch', {
+        error: error.message,
+        stack: error.stack,
+        index
+      });
       errors.push({ index, error: error.message });
     }
   }
 
   if (errors.length > 0) {
-    console.error(`${errors.length} segments failed to upload:`, errors);
+    logger.error('Multiple segments failed to upload', {
+      errorCount: errors.length,
+      totalSegments: segmentFiles.length,
+      errors
+    });
     throw new Error(`Failed to upload ${errors.length} out of ${segmentFiles.length} segments`);
   }
 
@@ -194,7 +228,12 @@ export const downloadSegmentFiles = async (bucket, segmentKeys, tempDir, options
 
       } catch (error) {
         lastError = error;
-        console.error(`Failed to download segment ${i} (attempt ${attempt}): ${error.message}`);
+        logger.error('Failed to download segment', {
+          error: error.message,
+          segmentIndex: i,
+          attempt,
+          segmentKey
+        });
 
         if (attempt < maxRetries) {
           await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -208,7 +247,11 @@ export const downloadSegmentFiles = async (bucket, segmentKeys, tempDir, options
   }
 
   if (errors.length > 0) {
-    console.error(`Failed to download ${errors.length} segments:`, errors);
+    logger.error('Multiple segments failed to download', {
+      errorCount: errors.length,
+      totalSegments: segmentKeys.length,
+      errors
+    });
     throw new Error(`Failed to download ${errors.length} out of ${segmentKeys.length} segments`);
   }
 
@@ -269,7 +312,11 @@ export const cleanupSegmentFiles = async (bucket, segmentKeys, options = {}) => 
 
         } catch (error) {
           lastError = error;
-          console.error(`Failed to delete batch ${batchIndex + 1} (attempt ${attempt}): ${error.message}`);
+          logger.error('Failed to delete batch', {
+            error: error.message,
+            batchIndex: batchIndex + 1,
+            attempt
+          });
 
           if (attempt < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -288,13 +335,19 @@ export const cleanupSegmentFiles = async (bucket, segmentKeys, options = {}) => 
     }
 
     if (results.failed > 0) {
-      console.warn('Some segment files could not be deleted. This may result in storage costs but does not affect functionality.');
+      logger.warn('Some segment files could not be deleted. This may result in storage costs but does not affect functionality.', {
+        failedCount: results.failed
+      });
     }
 
     return results;
 
   } catch (error) {
-    console.error('Critical error during segment cleanup:', error);
+    logger.error('Critical error during segment cleanup', {
+      error: error.message,
+      stack: error.stack,
+      segmentCount: segmentKeys.length
+    });
     results.failed = segmentKeys.length;
     results.errors.push({
       Code: 'CleanupFailed',
@@ -318,7 +371,10 @@ export const cleanupLocalFiles = async (filePaths) => {
     } catch (error) {
       results.failed++;
       results.errors.push({ filePath, error: error.message });
-      console.warn(`Failed to cleanup local file ${filePath}: ${error.message}`);
+      logger.warn('Failed to cleanup local file', {
+        filePath,
+        error: error.message
+      });
     }
   }
 
@@ -375,7 +431,13 @@ export const uploadFinalClip = async (bucket, episodeId, clipId, localPath, meta
       }
     };
   } catch (error) {
-    console.error(`Failed to upload final clip:`, error);
+    logger.error('Failed to upload final clip to S3', {
+      error: error.message,
+      stack: error.stack,
+      bucket,
+      episodeId,
+      clipId
+    });
     throw new Error(`Failed to upload final clip to S3: ${error.message}`);
   }
 };
@@ -385,13 +447,21 @@ export const verifySegmentIntegrity = async (bucket, key, expectedSize) => {
     const actualSize = await getS3FileSize(bucket, key);
 
     if (actualSize !== expectedSize) {
-      console.error(`Size mismatch for ${key}: expected ${expectedSize}, got ${actualSize}`);
+      logger.error('Size mismatch for segment', {
+        key,
+        expectedSize,
+        actualSize
+      });
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error(`Failed to verify segment integrity for ${key}:`, error);
+    logger.error('Failed to verify segment integrity', {
+      error: error.message,
+      stack: error.stack,
+      key
+    });
     return false;
   }
 };
@@ -442,7 +512,11 @@ export const verifyFinalClipIntegrity = async (bucket, key, expectedSize, expect
     return results;
 
   } catch (error) {
-    console.error(`Failed to verify final clip integrity for ${key}:`, error);
+    logger.error('Failed to verify final clip integrity', {
+      error: error.message,
+      stack: error.stack,
+      key
+    });
     return {
       exists: false,
       valid: false,

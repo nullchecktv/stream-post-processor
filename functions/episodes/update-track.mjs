@@ -1,15 +1,17 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { parseBody, formatResponse, formatEmptyResponse, sanitizeTrackName } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'episodes' });
 
 export const handler = async (event) => {
   try {
     const { tenantId } = event.requestContext.authorizer;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -58,7 +60,13 @@ export const handler = async (event) => {
 
     return formatEmptyResponse();
   } catch (error) {
-    console.error('Error updating track:', error);
+    logger.error('Error updating track', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      episodeId: event.pathParameters?.episodeId,
+      trackName: event.pathParameters?.trackName
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

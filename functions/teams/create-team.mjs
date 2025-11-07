@@ -1,43 +1,28 @@
 import { DynamoDBClient, TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
-import { parseBody, formatResponse } from '../utils/api.mjs';
+import { Logger } from '@aws-lambda-powertools/logger';
+import { formatResponse } from '../utils/api.mjs';
+import { validateRequest } from '../utils/validation.mjs';
+import { TeamSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
-    const { userId } = event.requestContext.authorizer;
+    const validation = await validateRequest(event, TeamSchemas.create);
+    if (!validation.success) return validation.error;
 
-    if (!userId) {
-      console.error('Missing userId in authorizer context');
-      return formatResponse(401, { error: 'Unauthorized' });
-    }
-
-    const data = parseBody(event);
-    if (data === null) {
-      return formatResponse(400, { message: 'Invalid request' });
-    }
-
-    const errors = [];
-    const name = (data?.name ?? '').toString().trim();
-
-    if (!name) errors.push('name is required');
-    if (name.length > 100) errors.push('name must be 100 characters or less');
-
-    const description = data?.description ? String(data.description) : undefined;
-    if (description && description.length > 500) errors.push('description must be 500 characters or less');
-
-    if (errors.length) {
-      return formatResponse(400, { message: errors.join(', ') });
-    }
+    const { userId, data } = validation;
+    const { name, description, settings } = data;
 
     const now = new Date().toISOString();
     const teamId = randomUUID();
 
-    const settings = {
-      defaultPlatforms: data?.settings?.defaultPlatforms || [],
-      timezone: data?.settings?.timezone || 'UTC'
+    const teamSettings = {
+      defaultPlatforms: settings?.defaultPlatforms || [],
+      timezone: settings?.timezone || 'UTC'
     };
 
     const teamItem = {
@@ -49,7 +34,7 @@ export const handler = async (event) => {
       ...(description && { description }),
       ownerId: userId,
       status: 'active',
-      settings,
+      settings: teamSettings,
       createdAt: now,
       updatedAt: now
     };
@@ -89,7 +74,11 @@ export const handler = async (event) => {
 
     return formatResponse(201, { id: teamId });
   } catch (err) {
-    console.error('Error creating team:', err);
+    logger.error('Error creating team', {
+      error: err.message,
+      stack: err.stack,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

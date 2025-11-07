@@ -1,6 +1,8 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
+const logger = new Logger({ serviceName: 'utils' });
 const ddb = new DynamoDBClient();
 
 
@@ -13,26 +15,42 @@ const ddb = new DynamoDBClient();
  */
 export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
   if (!speaker || typeof speaker !== 'string') {
-    console.warn(`Invalid speaker parameter: ${speaker}`);
+    logger.warn('Invalid speaker parameter', {
+      speaker,
+      episodeId,
+      tenantId
+    });
     return null;
   }
 
   const tracks = await getTracksForEpisode(episodeId, tenantId);
 
   if (tracks.length === 0) {
-    console.error(`No tracks found for episode '${episodeId}'`);
+    logger.error('No tracks found for episode', {
+      episodeId,
+      tenantId
+    });
     return null;
   }
 
-  console.log(`Found ${tracks.length} tracks for episode '${episodeId}':`);
-  tracks.forEach(track => {
-    console.log(`  Track '${track.trackName}': speakers = ${JSON.stringify(track.speakers)}`);
+  logger.info('Found tracks for episode', {
+    episodeId,
+    tenantId,
+    trackCount: tracks.length,
+    tracks: tracks.map(track => ({
+      trackName: track.trackName,
+      speakers: track.speakers
+    }))
   });
 
   const matchingTrack = tracks.find(track => {
     const speakers = track.speakers;
     if (!Array.isArray(speakers)) {
-      console.warn(`Track '${track.trackName}' has no speakers array`);
+      logger.warn('Track has no speakers array', {
+        trackName: track.trackName,
+        episodeId,
+        tenantId
+      });
       return false;
     }
 
@@ -45,9 +63,18 @@ export const selectTrackForSpeaker = async (episodeId, speaker, tenantId) => {
   });
 
   if (matchingTrack) {
-    console.log(`FOUND matching track '${matchingTrack.trackName}' for speaker '${speaker}'`);
+    logger.info('Found matching track for speaker', {
+      speaker,
+      trackName: matchingTrack.trackName,
+      episodeId,
+      tenantId
+    });
   } else {
-    console.log(`NO matching track found for speaker '${speaker}'`);
+    logger.info('No matching track found for speaker', {
+      speaker,
+      episodeId,
+      tenantId
+    });
   }
 
   return matchingTrack || null;
@@ -130,7 +157,12 @@ const getTracksForEpisode = async (episodeId, tenantId) => {
 
     return validTracks;
   } catch (error) {
-    console.error(`Failed to query tracks for episode '${episodeId}'`);
+    logger.error('Failed to query tracks for episode', {
+      error: error.message,
+      stack: error.stack,
+      episodeId,
+      tenantId
+    });
     throw error;
   }
 };

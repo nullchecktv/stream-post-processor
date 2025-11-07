@@ -1,9 +1,12 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { z } from 'zod';
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import crypto, { randomUUID } from 'crypto';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
+
+const logger = new Logger({ serviceName: 'tools' });
 
 const ddb = new DynamoDBClient();
 const MAX_CLIPS_PER_REQUEST = 10;
@@ -44,7 +47,9 @@ export const createClipTool = {
   handler: async (tenantId, { episodeId, clips }) => {
     try {
       if (!tenantId) {
-        console.error('Missing tenantId in tool handler');
+        logger.error('Missing tenantId in tool handler', {
+          episodeId
+        });
         return 'Unauthorized: Missing tenant context';
       }
 
@@ -98,7 +103,12 @@ export const createClipTool = {
           try {
             await incrementClipsCreated(tenantId, clip.clipType);
           } catch (statsErr) {
-            console.error('Error updating clip stats:', statsErr);
+            logger.error('Error updating clip stats', {
+              error: statsErr.message,
+              tenantId,
+              clipType: clip.clipType,
+              clipId: id
+            });
           }
 
           return { id, clipHash };
@@ -107,11 +117,22 @@ export const createClipTool = {
 
       const created = results.filter((r) => r.status === 'fulfilled' && r.value).length;
 
-      console.log(`Created ${created} clips for episode ${episodeId} (tenant: ${tenantId})`);
+      logger.info('Created clips for episode', {
+        created,
+        episodeId,
+        tenantId,
+        totalRequested: clips.length
+      });
 
       return `${created} clips added for episode ${episodeId}. All clips have been created with tenant isolation.`;
     } catch (err) {
-      console.error('Error creating clips:', err);
+      logger.error('Error creating clips', {
+        error: err.message,
+        stack: err.stack,
+        episodeId,
+        tenantId,
+        clipCount: clips?.length || 0
+      });
       return 'Something went wrong while creating clips';
     }
   }

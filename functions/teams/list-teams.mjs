@@ -1,15 +1,17 @@
 import { DynamoDBClient, QueryCommand, BatchGetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
     const { userId } = event.requestContext.authorizer;
 
     if (!userId) {
-      console.error('Missing userId in authorizer context');
+      logger.error('Missing userId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -77,7 +79,11 @@ export const handler = async (event) => {
       count: teams.length
     });
   } catch (err) {
-    console.error('Error listing teams:', err);
+    logger.error('Error listing teams', {
+      error: err.message,
+      stack: err.stack,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

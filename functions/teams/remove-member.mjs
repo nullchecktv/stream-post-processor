@@ -1,22 +1,36 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
-import { validateRequest, requireTeamMember, requireTeamExists, checkExists } from '../utils/validate.mjs';
+import { validatePathParameters, validateQueryParameters, requireTeamMember, requireTeamExists, checkExists } from '../utils/validation.mjs';
+import { TeamSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
-    const { teamId } = event.pathParameters;
-    const targetUserId = event.pathParameters.userId;
-    const confirmDelete = event.queryStringParameters?.confirmDelete === 'true';
+    const { userId } = event.requestContext.authorizer;
 
-    const validation = validateRequest(event, {});
-    if (validation.error) return validation.error;
+    if (!userId) {
+      logger.error('Missing userId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
 
-    const { userId } = validation;
+    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParametersWithUser);
+    if (!pathValidation.success) {
+      return pathValidation.error;
+    }
+
+    const queryValidation = await validateQueryParameters(event, TeamSchemas.removeMemberQuery);
+    if (!queryValidation.success) {
+      return queryValidation.error;
+    }
+
+    const { teamId, userId: targetUserId } = pathValidation.data;
+    const confirmDelete = queryValidation.data.confirmDelete === 'true';
 
     const teamCheck = await requireTeamExists(teamId);
     if (teamCheck.error) return teamCheck.error;
@@ -109,7 +123,13 @@ export const handler = async (event) => {
     return formatEmptyResponse();
 
   } catch (err) {
-    console.error('Error removing team member:', err);
+    logger.error('Error removing team member', {
+      error: err.message,
+      stack: err.stack,
+      teamId: event.pathParameters?.teamId,
+      targetUserId: event.pathParameters?.userId,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

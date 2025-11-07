@@ -1,10 +1,12 @@
 import { DynamoDBClient, GetItemCommand, TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
+const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
@@ -12,7 +14,7 @@ export const handler = async (event) => {
     const { teamId } = event.pathParameters;
 
     if (!userId) {
-      console.error('Missing userId in authorizer context');
+      logger.error('Missing userId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -86,7 +88,12 @@ export const handler = async (event) => {
     if (err.name === 'ConditionalCheckFailedException') {
       return formatResponse(404, { message: 'Team not found' });
     }
-    console.error('Error deleting team:', err);
+    logger.error('Error deleting team', {
+      error: err.message,
+      stack: err.stack,
+      teamId: event.pathParameters?.teamId,
+      userId: event.requestContext?.authorizer?.userId
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

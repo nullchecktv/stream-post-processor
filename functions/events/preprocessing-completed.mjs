@@ -1,6 +1,9 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+
+const logger = new Logger({ serviceName: 'events' });
 
 
 const ddb = new DynamoDBClient();
@@ -16,7 +19,7 @@ export const handler = async (event) => {
     const jobId = (detail?.jobId || '').toString().trim();
 
     if (!episodeId || !trackName) {
-      console.warn('Missing identifiers in MediaConvert completion event.', JSON.stringify({ jobId, meta }));
+      logger.warn('Missing identifiers in MediaConvert completion event', { jobId, meta });
       return { statusCode: 200 };
     }
 
@@ -25,11 +28,11 @@ export const handler = async (event) => {
       tenantId = (meta.tenantId || '').toString().trim();
 
       if (!tenantId) {
-        console.error('Missing tenantId in MediaConvert completion event metadata');
+        logger.error('Missing tenantId in MediaConvert completion event metadata');
         return { statusCode: 200 };
       }
     } catch (e) {
-      console.error(`Failed to extract tenantId from MediaConvert event: ${e.message}`);
+      logger.error('Failed to extract tenantId from MediaConvert event', { error: e.message });
       return { statusCode: 200 };
     }
 
@@ -45,7 +48,7 @@ export const handler = async (event) => {
       const m3u8s = contents.map(o => o.Key).filter(Boolean).filter(k => k.endsWith('.m3u8'));
       manifestKey = m3u8s.find(k => /(^|\/)index\.m3u8$/.test(k)) || m3u8s[0] || '';
     } catch (e) {
-      console.warn('Could not list S3 output for manifest:', e?.message || e);
+      logger.warn('Could not list S3 output for manifest', { error: e?.message || e });
     }
 
     let segmentIndex = [];
@@ -62,7 +65,7 @@ export const handler = async (event) => {
           totalDurationSeconds = total;
         }
       } catch (e) {
-        console.warn('Failed to fetch/parse manifest for indexing:', e?.message || e);
+        logger.warn('Failed to fetch/parse manifest for indexing', { error: e?.message || e });
       }
     }
 
@@ -99,7 +102,7 @@ export const handler = async (event) => {
 
     return { statusCode: 200 };
   } catch (err) {
-    console.error('Error handling MediaConvert completion:', err);
+    logger.error('Error handling MediaConvert completion', { error: err.message, stack: err.stack });
     throw err;
   }
 };

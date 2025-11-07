@@ -2,6 +2,9 @@ import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
+
+const logger = new Logger({ serviceName: 'auth' });
 
 let verifier;
 const cognito = new CognitoIdentityProviderClient();
@@ -17,7 +20,7 @@ export const handler = async (event) => {
 
     const tokenMatch = authorizationToken.match(/^Bearer\s+(.+)$/);
     if (!tokenMatch) {
-      console.error('Invalid authorization token format');
+      logger.error('Invalid authorization token format');
       throw new Error('Unauthorized');
     }
 
@@ -38,7 +41,7 @@ export const handler = async (event) => {
     const tokenTenantId = userInfo['custom:tenantId'] || decoded.tenantId || userId;
 
     if (!userId) {
-      console.error('Missing userId (sub) in user attributes');
+      logger.error('Missing userId (sub) in user attributes');
       throw new Error('Unauthorized');
     }
 
@@ -56,7 +59,11 @@ export const handler = async (event) => {
 
     return policy;
   } catch (error) {
-    console.error('Authorization failed:', error.message);
+    logger.error('Authorization failed', {
+      error: error.message,
+      stack: error.stack,
+      methodArn: event.methodArn
+    });
 
     throw new Error('Unauthorized');
   }
@@ -74,7 +81,10 @@ const getUserAttributes = async (accessToken) => {
 
     return attrs;
   } catch (err) {
-    console.error("Error fetching user attributes:", err);
+    logger.error('Error fetching user attributes', {
+      error: err.message,
+      stack: err.stack
+    });
     throw new Error('Failed to fetch user attributes');
   }
 };
@@ -95,7 +105,11 @@ const getUserProfile = async (userId) => {
 
     return unmarshall(response.Item);
   } catch (err) {
-    console.error("Error fetching user profile:", err);
+    logger.error('Error fetching user profile', {
+      error: err.message,
+      stack: err.stack,
+      userId
+    });
     return null;
   }
 };

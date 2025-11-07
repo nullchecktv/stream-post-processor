@@ -1,6 +1,12 @@
 // Unit tests for tenant isolation functionality
 // Tests verify tenant ID extraction, key prefixing, and unauthorized access handling
 
+// Mock Logger before any imports
+jest.mock('@aws-lambda-powertools/logger', () => {
+  const { Logger } = require('../helpers/logger-mock');
+  return { Logger };
+});
+
 const { mockClient } = require('aws-sdk-client-mock');
 const { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand, QueryCommand } = require('@aws-sdk/client-dynamodb');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
@@ -18,11 +24,18 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
 process.env.TABLE_NAME = 'test-table';
 process.env.BUCKET_NAME = 'test-bucket';
 
+const { Logger } = require('@aws-lambda-powertools/logger');
+
 describe('Tenant Isolation Tests', () => {
+  let mockLogger;
+
   beforeEach(() => {
     ddbMock.reset();
     s3Mock.reset();
     jest.clearAllMocks();
+
+    // Create fresh logger mock for each test
+    mockLogger = new Logger({ serviceName: 'utils' });
   });
 
   describe('Tenant ID Extraction', () => {
@@ -420,31 +433,56 @@ describe('Tenant Isolation Tests', () => {
   });
 
   describe('Error Logging', () => {
-    test('should log missing tenantId error', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
+    test('should log missing tenantId error using Logger', () => {
       const tenantId = null;
 
       if (!tenantId) {
-        console.error('Missing tenantId in authorizer context');
+        mockLogger.error('Missing tenantId in authorizer context');
       }
 
-      expect(consoleSpy).toHaveBeenCalledWith('Missing tenantId in authorizer context');
-
-      consoleSpy.mockRestore();
+      expect(mockLogger.error).toHaveBeenCalledWith('Missing tenantId in authorizer context');
     });
 
-    test('should include tenant context in operation logs', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
+    test('should include tenant context in operation logs using Logger', () => {
       const tenantId = 'tenant123';
       const operation = 'create-episode';
 
-      console.log(`${operation} for tenant: ${tenantId}`);
+      mockLogger.info(`${operation} for tenant: ${tenantId}`);
 
-      expect(consoleSpy).toHaveBeenCalledWith('create-episode for tenant: tenant123');
+      expect(mockLogger.info).toHaveBeenCalledWith('create-episode for tenant: tenant123');
+    });
 
-      consoleSpy.mockRestore();
+    test('should log structured data with Logger', () => {
+      const tenantId = 'tenant123';
+      const operation = 'create-episode';
+      const episodeId = 'episode-456';
+
+      mockLogger.info('Operation started', {
+        operation,
+        tenantId,
+        episodeId
+      });
+
+      expect(mockLogger.info).toHaveBeenCalledWith('Operation started', {
+        operation: 'create-episode',
+        tenantId: 'tenant123',
+        episodeId: 'episode-456'
+      });
+    });
+
+    test('should log errors with context using Logger', () => {
+      const error = new Error('Database connection failed');
+      const tenantId = 'tenant123';
+
+      mockLogger.error('Operation failed', {
+        error: error.message,
+        tenantId
+      });
+
+      expect(mockLogger.error).toHaveBeenCalledWith('Operation failed', {
+        error: 'Database connection failed',
+        tenantId: 'tenant123'
+      });
     });
   });
 });

@@ -1,8 +1,11 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, UploadPartCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { formatResponse, parseBody, sanitizeTrackName } from '../utils/api.mjs';
+
+const logger = new Logger({ serviceName: 'episodes' });
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -12,7 +15,7 @@ export const handler = async (event) => {
     const { tenantId } = event.requestContext.authorizer;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -51,7 +54,12 @@ export const handler = async (event) => {
 
     return formatResponse(200, { urls });
   } catch (err) {
-    console.error('Error signing track upload parts:', err);
+    logger.error('Error signing track upload parts', {
+      error: err.message,
+      stack: err.stack,
+      episodeId: event?.pathParameters?.episodeId,
+      trackName: event?.pathParameters?.trackName
+    });
     return formatResponse(500, { message: 'Failed to sign part URLs' });
   }
 };

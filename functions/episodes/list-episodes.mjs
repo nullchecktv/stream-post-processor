@@ -1,16 +1,18 @@
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
+const logger = new Logger({ serviceName: 'episodes' });
 
 export const handler = async (event) => {
   try {
     const { tenantId } = event.requestContext.authorizer;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -45,7 +47,11 @@ export const handler = async (event) => {
 
     return formatResponse(200, buildPagingParams(episodes, res.LastEvaluatedKey));
   } catch (err) {
-    console.error(err);
+    logger.error('Error listing episodes', {
+      error: err.message,
+      stack: err.stack,
+      name: err.name
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

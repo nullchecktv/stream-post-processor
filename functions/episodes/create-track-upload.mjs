@@ -1,36 +1,34 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CreateMultipartUploadCommand } from '@aws-sdk/client-s3';
-import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
+import { Logger } from '@aws-lambda-powertools/logger';
+import { formatResponse, sanitizeTrackName } from '../utils/api.mjs';
+import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
+import { EpisodeSchemas, TrackSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
+const logger = new Logger({ serviceName: 'episodes' });
 
 const TTL_SECONDS = 15 * 60;
 
 
 export const handler = async (event) => {
   try {
-    const { tenantId } = event.requestContext.authorizer;
-
-    if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
-      return formatResponse(401, { error: 'Unauthorized' });
+    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    if (!pathValidation.success) {
+      return pathValidation.error;
     }
 
-    const { episodeId } = event.pathParameters;
-
-    const body = parseBody(event);
-
-    // Validate request body
-    const validationErrors = validateTrackUploadRequest(body);
-    if (validationErrors.length > 0) {
-      return formatResponse(400, { message: validationErrors.join(', ') });
+    const requestValidation = await validateRequest(event, TrackSchemas.create);
+    if (!requestValidation.success) {
+      return requestValidation.error;
     }
 
-    const { filename, trackName: rawTrackName, speakers } = body;
+    const { tenantId, data } = requestValidation;
+    const { episodeId } = pathValidation.data;
+    const { filename, trackName: rawTrackName, speakers } = data;
 
-    // Sanitize track name and trim/validate speakers
     const trackName = sanitizeTrackName(rawTrackName);
     const normalizedSpeakers = speakers ? speakers.map(speaker => speaker.trim()).filter(speaker => speaker.length > 0) : [];
 
@@ -99,7 +97,13 @@ export const handler = async (event) => {
       }
     });
   } catch (err) {
-    console.error('Error initiating track upload:', err);
+    logger.error('Error initiating track upload', {
+      error: err.message,
+      stack: err.stack,
+      name: err.name,
+      episodeId: event.pathParameters?.episodeId,
+      trackName: event.body ? JSON.parse(event.body)?.trackName : undefined
+    });
     return formatResponse(500, { message: 'Failed to initiate track upload' });
   }
 };
@@ -111,33 +115,4 @@ const getExt = (filename) => {
   return m ? `.${m[1].toLowerCase()}` : '';
 };
 
-const validateTrackUploadRequest = (data) => {
-  const errors = [];
 
-  if (!data || typeof data !== 'object') {
-    errors.push('Request body must be a valid object');
-    return errors;
-  }
-
-  if (!data.filename || typeof data.filename !== 'string' || data.filename.trim().length === 0) {
-    errors.push('filename is required and must be a non-empty string');
-  }
-
-  if (!data.trackName || typeof data.trackName !== 'string' || data.trackName.trim().length === 0) {
-    errors.push('trackName is required and must be a non-empty string');
-  }
-
-  if (data.speakers !== undefined) {
-    if (!Array.isArray(data.speakers)) {
-      errors.push('speakers must be an array');
-    } else {
-      data.speakers.forEach((speaker, index) => {
-        if (!speaker || typeof speaker !== 'string' || speaker.trim().length === 0) {
-          errors.push(`speakers[${index}] must be a non-empty string`);
-        }
-      });
-    }
-  }
-
-  return errors;
-};

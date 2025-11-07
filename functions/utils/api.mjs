@@ -1,4 +1,7 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { decrypt, encrypt } from './encoding.mjs';
+
+const logger = new Logger({ serviceName: 'utils' });
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': process.env.ORIGIN || '*',
@@ -58,7 +61,10 @@ export const getPagingParams = (event) => {
       const tokenStr = decrypt(nextToken);
       nextToken = JSON.parse(tokenStr);
     } catch (e) {
-      console.warn('Invalid nextToken supplied');
+      logger.warn('Invalid nextToken supplied', {
+        error: e.message,
+        nextToken: nextToken
+      });
       nextToken = undefined;
     }
   }

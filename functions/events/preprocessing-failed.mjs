@@ -1,5 +1,8 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
+
+const logger = new Logger({ serviceName: 'events' });
 
 const ddb = new DynamoDBClient();
 
@@ -20,13 +23,13 @@ export const handler = async (event) => {
     ).toString();
 
     if (!episodeId || !trackName) {
-      console.warn('Missing identifiers in MediaConvert failure event.', JSON.stringify({ jobId, meta, status }));
+      logger.warn('Missing identifiers in MediaConvert failure event', { jobId, meta, status });
       return { statusCode: 200 };
     }
 
     const tenantId = (meta.tenantId || '').toString().trim();
     if (!tenantId) {
-      console.error('Missing tenantId in MediaConvert failure event metadata');
+      logger.error('Missing tenantId in MediaConvert failure event metadata');
       return { statusCode: 200 };
     }
 
@@ -56,10 +59,15 @@ export const handler = async (event) => {
       })
     }));
 
-    console.error(`Marked ${episodeId}/track#${trackName} as ProcessingFailed (job ${jobId || 'n/a'}): ${reason}`);
+    logger.error('Marked track as ProcessingFailed', {
+      episodeId,
+      trackName,
+      jobId: jobId || 'n/a',
+      reason
+    });
     return { statusCode: 200 };
   } catch (err) {
-    console.error('Error handling MediaConvert failure:', err);
+    logger.error('Error handling MediaConvert failure', { error: err.message, stack: err.stack });
     throw err;
   }
 };

@@ -1,3 +1,4 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
@@ -6,6 +7,8 @@ import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 
+const logger = new Logger({ serviceName: 'agents' });
+
 const ddb = new DynamoDBClient();
 const tools = convertToBedrockTools([createClipTool]);
 
@@ -13,7 +16,9 @@ export const handler = async (event) => {
   try {
     const rawKey = event?.detail?.object?.key;
     if (!rawKey) {
-      console.log('Unsupported event shape (expecting EventBridge S3 event):', JSON.stringify(event?.detail || {}));
+      logger.info('Unsupported event shape (expecting EventBridge S3 event)', {
+        eventDetail: event?.detail || {}
+      });
       return { statusCode: 200 };
     }
 
@@ -24,18 +29,25 @@ export const handler = async (event) => {
       tenantId = parsed.tenantId;
       episodeId = parsed.episodeId;
     } catch (e) {
-      console.warn(`Skipping object with unexpected key: ${transcriptKey}. Reason: ${e.message}`);
+      logger.warn('Skipping object with unexpected key', {
+        transcriptKey,
+        reason: e.message
+      });
       return { statusCode: 200 };
     }
 
     if (!tenantId) {
-      console.error('Missing tenantId in S3 key');
+      logger.error('Missing tenantId in S3 key', {
+        transcriptKey
+      });
       return { statusCode: 200 };
     }
 
     const transcript = await loadAndPreprocessTranscript(transcriptKey);
     if (!transcript) {
-      console.error(`Could not find transcript with provided key ${transcriptKey}`);
+      logger.error('Could not find transcript with provided key', {
+        transcriptKey
+      });
       throw new Error('Could not find transcript');
     }
 
@@ -47,7 +59,11 @@ export const handler = async (event) => {
       }));
       episodeMeta = episodeResponse?.Item ? unmarshall(episodeResponse.Item) : undefined;
     } catch (e) {
-      console.warn('Failed to load episode metadata for prompt enrichment', e);
+      logger.warn('Failed to load episode metadata for prompt enrichment', {
+        error: e.message,
+        episodeId,
+        tenantId
+      });
     }
 
     const hasDescription = Boolean(episodeMeta?.description);
@@ -187,7 +203,12 @@ ${transcript}
 
     return { message: response };
   } catch (err) {
-    console.error(err);
+    logger.error('AI agent clip detection failed', {
+      error: err.message,
+      stack: err.stack,
+      episodeId: episodeId || 'unknown',
+      tenantId: tenantId || 'unknown'
+    });
     throw err;
   }
 };

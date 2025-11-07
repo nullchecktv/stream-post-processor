@@ -1,29 +1,25 @@
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { APIGatewayClient, FlushStageAuthorizersCacheCommand } from '@aws-sdk/client-api-gateway';
-import { parseBody, formatResponse, formatEmptyResponse } from '../utils/api.mjs';
+import { Logger } from '@aws-lambda-powertools/logger';
+import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
+import { validateRequest } from '../utils/validation.mjs';
+import { UserSchemas } from '../utils/schemas.mjs';
+
+const logger = new Logger({ serviceName: 'users' });
 
 const ddb = new DynamoDBClient();
 const apiGateway = new APIGatewayClient();
 
 export const handler = async (event) => {
   try {
-    const { userId } = event.requestContext.authorizer;
-
-    if (!userId) {
-      return formatResponse(401, { error: 'Unauthorized', message: 'Valid JWT token required' });
+    const validation = await validateRequest(event, UserSchemas.setActiveTeam);
+    if (!validation.success) {
+      return validation.error;
     }
 
-    const data = parseBody(event);
-    if (data === null) {
-      return formatResponse(400, { error: 'ValidationError', message: 'Invalid request body' });
-    }
-
+    const { userId, data } = validation;
     const { teamId } = data;
-
-    if (teamId !== null && teamId !== undefined && (typeof teamId !== 'string' || !teamId.trim())) {
-      return formatResponse(400, { message: 'teamId must be a non-empty string or null to clear active team' });
-    }
 
     if (teamId) {
       const membershipResponse = await ddb.send(new GetItemCommand({
@@ -76,7 +72,12 @@ export const handler = async (event) => {
         stageName: stage
       }));
     } catch (cacheError) {
-      console.error('Failed to flush authorizer cache:', cacheError);
+      logger.error('Failed to flush authorizer cache', {
+        error: cacheError.message,
+        stack: cacheError.stack,
+        userId,
+        teamId
+      });
       // Don't fail the request if cache flush fails
     }
 
@@ -90,7 +91,12 @@ export const handler = async (event) => {
       });
     }
 
-    console.error('Error setting active team:', err);
+    logger.error('Error setting active team', {
+      error: err.message,
+      stack: err.stack,
+      userId: event.requestContext?.authorizer?.userId,
+      teamId: event.body ? JSON.parse(event.body).teamId : undefined
+    });
     return formatResponse(500, {
       error: 'InternalError',
       message: 'Something went wrong'

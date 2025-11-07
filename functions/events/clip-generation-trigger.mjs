@@ -1,7 +1,10 @@
+import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
+
+const logger = new Logger({ serviceName: 'events' });
 
 const ddb = new DynamoDBClient();
 const sfn = new SFNClient();
@@ -11,7 +14,7 @@ export const handler = async (event) => {
     const { tenantId, episodeId } = event.detail;
 
     if (!tenantId || !episodeId) {
-      console.error('Missing required fields in event detail:', { tenantId, episodeId });
+      logger.error('Missing required fields in event detail', { tenantId, episodeId });
       throw new Error('Missing required fields: tenantId and episodeId are required');
     }
 
@@ -30,7 +33,7 @@ export const handler = async (event) => {
     }));
 
     if (!queryResult.Items || queryResult.Items.length === 0) {
-      console.log(`No clips with status 'detected' found for episode ${episodeId}`);
+      logger.info('No clips with status detected found for episode', { episodeId });
       return {
         statusCode: 200,
         message: 'No clips found for processing',
@@ -40,7 +43,7 @@ export const handler = async (event) => {
     }
 
     const clips = queryResult.Items.map(item => unmarshall(item));
-    console.log(`Found ${clips.length} clips to process for episode ${episodeId}`);
+    logger.info('Found clips to process for episode', { episodeId, clipCount: clips.length });
 
     // Start Step Functions execution for each clip
     const executionPromises = clips.map(async (clip) => {
@@ -66,7 +69,7 @@ export const handler = async (event) => {
           status: 'started'
         };
       } catch (error) {
-        console.error(`Failed to start execution for clip ${clip.clipId}:`, error);
+        logger.error('Failed to start execution for clip', { clipId: clip.clipId, error: error.message });
 
         return {
           clipId: clip.clipId,
@@ -88,7 +91,7 @@ export const handler = async (event) => {
       (result.status === 'fulfilled' && result.value.status === 'failed')
     ).length;
 
-    console.log(`Clip generation trigger completed: ${successful} started, ${failed} failed`);
+    logger.info('Clip generation trigger completed', { successful, failed });
 
     return {
       statusCode: 200,
@@ -104,7 +107,7 @@ export const handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('Error in clip generation trigger:', error);
+    logger.error('Error in clip generation trigger', { error: error.message, stack: error.stack });
 
     // For malformed events or validation errors, return success to avoid retries
     if (error.message.includes('Missing required fields')) {

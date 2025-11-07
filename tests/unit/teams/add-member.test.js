@@ -1,408 +1,721 @@
 const { mockClient } = require('aws-sdk-client-mock');
-const { DynamoDBClient, GetItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
 const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge');
-const { handler } = require('../../../functions/teams/add-member.mjs');
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
+
+// Mock Logger before any imports
+jest.mock('@aws-lambda-powertools/logger', () => {
+  const { Logger } = require('../../helpers/logger-mock');
+  return { Logger };
+});
 
 const ddbMock = mockClient(DynamoDBClient);
 const eventBridgeMock = mockClient(EventBridgeClient);
 
-process.env.TABLE_NAME = 'test-table';
+// Mock the utilities
+jest.mock('../../../functions/utils/api.mjs', () => ({
+  formatResponse: (statusCode, body) => ({ statusCode, body })
+}));
 
-describe('add-member function', () => {
+jest.mock('../../../functions/utils/validation.mjs', () => ({
+  validateRequest: jest.fn(),
+  validatePathParameters: jest.fn()
+}));
+
+jest.mock('../../../functions/utils/validation.mjs', () => ({
+  validateRequest: jest.fn(),
+  validatePathParameters: jest.fn(),
+  requireTeamMember: jest.fn(),
+  requireTeamExists: jest.fn(),
+  checkExists: jest.fn()
+}));
+
+jest.mock('../../../functions/utils/notifications.mjs', () => ({
+  createTeamInvitationNotification: jest.fn()
+}));
+
+
+
+const { handler } = require('../../../functions/teams/add-member.mjs');
+const { validateRequest, validatePathParameters, requireTeamMember, requireTeamExists, checkExists } = require('../../../functions/utils/validation.mjs');
+const { createTeamInvitationNotification } = require('../../../functions/utils/notifications.mjs');
+
+const { Logger } = require('@aws-lambda-powertools/logger');
+
+describe('Enhanced Team Add Member Handler', () => {
+  let mockLogger;
+
   beforeEach(() => {
     ddbMock.reset();
     eventBridgeMock.reset();
-    eventBridgeMock.on(PutEventsCommand).resolves({});
+    jest.clearAllMocks();
+    process.env.TABLE_NAME = 'test-table';
+
+    // Create fresh logger mock for each test
+    mockLogger = new Logger({ serviceName: 'teams' });
   });
 
-  const createValidEvent = (overrides = {}) => ({
-    requestContext: {
-      authorizer: {
-        userId: '123e4567-e89b-12d3-a456-426614174000',
-        tenantId: '456e7890-e89b-12d3-a456-426614174001'
-      }
-    },
-    pathParameters: {
-      teamId: '456e7890-e89b-12d3-a456-426614174001'
-    },
-    body: JSON.stringify({
-      email: 'newmember@example.com',
-      role: 'member'
-    }),
-    ...overrides
-  });
+  describe('Request validation and authorization', () => {
+    test('should validate path parameters', async () => {
+      validatePathParameters.mockResolvedValueOnce({
+        success: false,
+        error: { statusCode: 400, body: { message: 'Invalid team ID' } }
+      });
 
-  const mockTeamExists = (teamId = '456e7890-e89b-12d3-a456-426614174001', teamName = 'Test Team') => {
-    ddbMock.on(GetItemCommand, {
-      TableName: 'test-table',
-      Key: {
-        pk: { S: `team#${teamId}` },
-        sk: { S: 'metadata' }
-      }
-    }).resolves({
-      Item: {
-        pk: { S: `team#${teamId}` },
-        sk: { S: 'metadata' },
-        name: { S: teamName },
-        status: { S: 'active' }
-      }
-    });
-  };
-
-  const mockRequesterMembership = (userId = '123e4567-e89b-12d3-a456-426614174000', teamId = '456e7890-e89b-12d3-a456-426614174001', role = 'owner') => {
-    ddbMock.on(GetItemCommand, {
-      TableName: 'test-table',
-      Key: {
-        pk: { S: `team#${teamId}` },
-        sk: { S: `user#${userId}` }
-      }
-    }).resolves({
-      Item: {
-        pk: { S: `team#${teamId}` },
-        sk: { S: `user#${userId}` },
-        userId: { S: userId },
-        role: { S: role },
-        status: { S: 'active' }
-      }
-    });
-  };
-
-  const mockInviterProfile = (userId = '123e4567-e89b-12d3-a456-426614174000', name = 'John Doe') => {
-    ddbMock.on(GetItemCommand, {
-      TableName: 'test-table',
-      Key: {
-        pk: { S: `user#${userId}` },
-        sk: { S: 'profile' }
-      }
-    }).resolves({
-      Item: {
-        pk: { S: `user#${userId}` },
-        sk: { S: 'profile' },
-        name: { S: name },
-        email: { S: 'inviter@example.com' }
-      }
-    });
-  };
-
-  const mockNoPendingInvitation = (email = 'newmember@example.com', teamId = '456e7890-e89b-12d3-a456-426614174001') => {
-    ddbMock.on(GetItemCommand, {
-      TableName: 'test-table',
-      Key: {
-        pk: { S: `invitation#${email}` },
-        sk: { S: `team#${teamId}` }
-      }
-    }).resolves({});
-  };
-
-  describe('successful member addition', () => {
-    test('should add member with valid request', async () => {
-      const event = createValidEvent();
-
-      mockTeamExists();
-      mockRequesterMembership();
-      mockInviterProfile();
-      mockNoPendingInvitation();
-
-      ddbMock.on(PutItemCommand).resolves({});
+      const event = {
+        pathParameters: { teamId: 'invalid' }
+      };
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(201);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBe('Team member invitation sent successfully');
-      // Response only contains message for simplicity
+      expect(result.statusCode).toBe(400);
+      expect(result.body.message).toBe('Invalid team ID');
     });
 
-    test('should add administrator with specified role', async () => {
-      const event = createValidEvent({
-        body: JSON.stringify({
-          email: 'admin@example.com',
-          role: 'administrator'
-        })
+    test('should validate request body', async () => {
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { teamId: 'team-123' }
       });
 
-      mockTeamExists();
-      mockRequesterMembership();
-      mockInviterProfile();
-      mockNoPendingInvitation('admin@example.com');
+      validateRequest.mockResolvedValueOnce({
+        success: false,
+        error: { statusCode: 400, body: { message: 'Invalid email format' } }
+      });
 
-      ddbMock.on(PutItemCommand).resolves({});
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'invalid-email' })
+      };
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(201);
-      const body = JSON.parse(result.body);
-      // Simplified response
+      expect(result.statusCode).toBe(400);
+      expect(result.body.message).toBe('Invalid email format');
     });
 
-    test('should default to member role when not specified', async () => {
-      const event = createValidEvent({
-        body: JSON.stringify({
-          email: 'newmember@example.com'
-        })
+    test('should require team existence', async () => {
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { teamId: 'team-123' }
       });
 
-      mockTeamExists();
-      mockRequesterMembership();
-      mockInviterProfile();
-      mockNoPendingInvitation();
-
-      ddbMock.on(PutItemCommand).resolves({});
-
-      const result = await handler(event);
-
-      expect(result.statusCode).toBe(201);
-      const body = JSON.parse(result.body);
-      // Simplified response
-    });
-  });
-
-  describe('validation errors', () => {
-    test('should return 404 for non-existent team', async () => {
-      ddbMock.on(GetItemCommand).resolves({});
-
-      const event = createValidEvent({
-        pathParameters: { teamId: 'invalid-id' }
+      validateRequest.mockResolvedValueOnce({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'newuser@example.com', role: 'member' }
       });
+
+      requireTeamExists.mockResolvedValueOnce({
+        error: { statusCode: 404, body: { message: 'Team not found' } }
+      });
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'newuser@example.com' })
+      };
 
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBe('Team not found');
+      expect(result.body.message).toBe('Team not found');
     });
 
-    test('should reject invalid email format', async () => {
-      const event = createValidEvent({
-        body: JSON.stringify({
-          email: 'invalid-email',
-          role: 'member'
-        })
+    test('should require administrator role', async () => {
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { teamId: 'team-123' }
       });
+
+      validateRequest.mockResolvedValueOnce({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'newuser@example.com', role: 'member' }
+      });
+
+      requireTeamExists.mockResolvedValueOnce({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValueOnce({
+        error: { statusCode: 403, body: { message: 'Insufficient permissions' } }
+      });
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'newuser@example.com' })
+      };
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(400);
-      const body = JSON.parse(result.body);
-      expect(body.message).toContain('must be a valid email address');
-    });
-
-    test('should reject invalid role', async () => {
-      const event = createValidEvent({
-        body: JSON.stringify({
-          email: 'newmember@example.com',
-          role: 'invalid-role'
-        })
-      });
-
-      const result = await handler(event);
-
-      expect(result.statusCode).toBe(400);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
-    });
-
-    test('should reject missing email', async () => {
-      const event = createValidEvent({
-        body: JSON.stringify({
-          role: 'member'
-        })
-      });
-
-      const result = await handler(event);
-
-      expect(result.statusCode).toBe(400);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
-    });
-
-    test('should reject malformed JSON body', async () => {
-      const event = createValidEvent({
-        body: 'invalid-json'
-      });
-
-      const result = await handler(event);
-
-      expect(result.statusCode).toBe(400);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
+      expect(result.statusCode).toBe(403);
+      expect(result.body.message).toBe('Insufficient permissions');
     });
   });
 
-  describe('permission validation', () => {
-    test('should reject request from non-member', async () => {
-      const event = createValidEvent();
+  describe('Existing user detection', () => {
+    beforeEach(() => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
+      });
 
-      mockTeamExists();
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'existinguser@example.com', role: 'member' }
+      });
 
-      // Mock no membership found
-      ddbMock.on(GetItemCommand, {
-        TableName: 'test-table',
-        Key: {
-          pk: { S: 'team#456e7890-e89b-12d3-a456-426614174001' },
-          sk: { S: 'user#123e4567-e89b-12d3-a456-426614174000' }
-        }
-      }).resolves({});
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
 
-      const result = await handler(event);
+      requireTeamMember.mockResolvedValue({});
 
-      expect(result.statusCode).toBe(403);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
+      checkExists.mockResolvedValue({ name: 'Inviter Name' });
     });
 
-    test('should reject request from regular member', async () => {
-      const event = createValidEvent();
-
-      mockTeamExists();
-      mockRequesterMembership('123e4567-e89b-12d3-a456-426614174000', '456e7890-e89b-12d3-a456-426614174001', 'member');
-
-      const result = await handler(event);
-
-      expect(result.statusCode).toBe(403);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
-    });
-
-    test('should allow request from administrator', async () => {
-      const event = createValidEvent();
-
-      mockTeamExists();
-      mockRequesterMembership('123e4567-e89b-12d3-a456-426614174000', '456e7890-e89b-12d3-a456-426614174001', 'administrator');
-      mockInviterProfile();
-      mockNoPendingInvitation();
+    test('should detect existing user and create notification', async () => {
+      // Mock no existing invitation (checkExistingInvitation) then existing user found (findUserByEmail)
+      ddbMock.on(QueryCommand)
+        .resolvesOnce({ Items: [] }) // No existing invitation (checkExistingInvitation)
+        .resolvesOnce({
+          Items: [marshall({ pk: 'user#existing-user-789', email: 'existinguser@example.com' })]
+        }); // Existing user found (findUserByEmail)
 
       ddbMock.on(PutItemCommand).resolves({});
+      ddbMock.on(UpdateItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      createTeamInvitationNotification.mockResolvedValueOnce({
+        id: 'notif-123'
+      });
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'existinguser@example.com' })
+      };
 
       const result = await handler(event);
 
       expect(result.statusCode).toBe(201);
+      expect(result.body.invitationType).toBe('existing_user');
+      expect(result.body.message).toBe('Team member invitation sent successfully');
+
+      // Verify invitation creation
+      const putCall = ddbMock.calls().find(call => call.args[0] instanceof PutItemCommand);
+      const invitationItem = unmarshall(putCall.args[0].input.Item);
+      expect(invitationItem.type).toBe('existing_user');
+      expect(invitationItem.invitedUserId).toBe('existing-user-789');
+
+      // Verify notification creation
+      expect(createTeamInvitationNotification).toHaveBeenCalledWith(
+        'existing-user-789',
+        'team-123',
+        'Test Team',
+        'Inviter Name',
+        expect.any(String)
+      );
+
+      // Verify notification ID update
+      const updateCall = ddbMock.calls().find(call => call.args[0] instanceof UpdateItemCommand);
+      expect(updateCall).toBeDefined();
+      expect(updateCall.args[0].input.UpdateExpression).toBe('SET notificationId = :notificationId');
+    });
+
+    test('should handle new user (not found in system)', async () => {
+      // Mock no existing user found
+      ddbMock.on(QueryCommand)
+        .resolvesOnce({ Items: [] }) // User not found
+        .resolvesOnce({ Items: [] }); // No existing invitation
+
+      ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'newuser@example.com' })
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(201);
+      expect(result.body.invitationType).toBe('new_user');
+
+      // Verify invitation creation
+      const putCall = ddbMock.calls().find(call => call.args[0] instanceof PutItemCommand);
+      const invitationItem = unmarshall(putCall.args[0].input.Item);
+      expect(invitationItem.type).toBe('new_user');
+      expect(invitationItem.invitedUserId).toBeUndefined();
+
+      // Verify no notification creation for new users
+      expect(createTeamInvitationNotification).not.toHaveBeenCalled();
+    });
+
+    test('should handle notification creation failure gracefully', async () => {
+      // Mock no existing invitation then existing user found
+      ddbMock.on(QueryCommand)
+        .resolvesOnce({ Items: [] }) // No existing invitation (checkExistingInvitation)
+        .resolvesOnce({
+          Items: [marshall({ pk: 'user#existing-user-789', email: 'existinguser@example.com' })]
+        }); // Existing user found (findUserByEmail)
+
+      ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      createTeamInvitationNotification.mockRejectedValueOnce(new Error('Notification service error'));
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'existinguser@example.com' })
+      };
+
+      const result = await handler(event);
+
+      // Should still succeed even if notification creation fails
+      expect(result.statusCode).toBe(201);
+      expect(result.body.invitationType).toBe('existing_user');
     });
   });
 
-  describe('duplicate invitation handling', () => {
-    test('should reject duplicate invitation', async () => {
-      const event = createValidEvent();
-
-      mockTeamExists();
-      mockRequesterMembership();
-
-      // Mock existing invitation
-      ddbMock.on(GetItemCommand, {
-        TableName: 'test-table',
-        Key: {
-          pk: { S: 'invitation#newmember@example.com' },
-          sk: { S: 'team#456e7890-e89b-12d3-a456-426614174001' }
-        }
-      }).resolves({
-        Item: {
-          pk: { S: 'invitation#newmember@example.com' },
-          sk: { S: 'team#456e7890-e89b-12d3-a456-426614174001' },
-          status: { S: 'pending' }
-        }
+  describe('Duplicate invitation prevention', () => {
+    beforeEach(() => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
       });
+
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'user@example.com', role: 'member' }
+      });
+
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValue({});
+      checkExists.mockResolvedValue({ name: 'Inviter Name' });
+    });
+
+    test('should prevent duplicate invitations', async () => {
+      // Mock existing pending invitation (checkExistingInvitation should return an invitation)
+      ddbMock.on(QueryCommand)
+        .resolvesOnce({
+          Items: [marshall({
+            pk: 'invitation#existing-inv-123',
+            email: 'user@example.com',
+            status: 'pending'
+          })]
+        }); // Existing invitation found (checkExistingInvitation)
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
 
       const result = await handler(event);
 
       expect(result.statusCode).toBe(409);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
-      expect(body.message).toContain('pending invitation');
+      expect(result.body.message).toBe('User already has a pending invitation to this team');
     });
-  });
 
-  describe('team validation', () => {
-    test('should reject non-existent team', async () => {
-      const event = createValidEvent();
+    test('should allow invitation if no pending invitation exists', async () => {
+      ddbMock.on(QueryCommand)
+        .resolvesOnce({ Items: [] }) // User lookup
+        .resolvesOnce({ Items: [] }); // No existing invitation
 
-      // Mock team not found
-      ddbMock.on(GetItemCommand, {
-        TableName: 'test-table',
-        Key: {
-          pk: { S: 'team#456e7890-e89b-12d3-a456-426614174001' },
-          sk: { S: 'metadata' }
-        }
-      }).resolves({});
+      ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(404);
-      const body = JSON.parse(result.body);
-      expect(body.message).toBeDefined();
+      expect(result.statusCode).toBe(201);
     });
   });
 
-  describe('event publishing', () => {
-    test('should publish team member added event', async () => {
-      const event = createValidEvent();
+  describe('Invitation data structure', () => {
+    beforeEach(() => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
+      });
 
-      mockTeamExists();
-      mockRequesterMembership();
-      mockInviterProfile();
-      mockNoPendingInvitation();
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'user@example.com', role: 'administrator' }
+      });
+
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValue({});
+      checkExists.mockResolvedValue({ name: 'John Doe' });
+
+      ddbMock.on(QueryCommand)
+        .resolves({ Items: [] }); // No existing user or invitation
 
       ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+    });
 
-      await handler(event);
+    test('should create invitation with correct structure', async () => {
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com', role: 'administrator' })
+      };
 
-      expect(eventBridgeMock.calls()).toHaveLength(1);
-      const eventCall = eventBridgeMock.calls()[0];
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(201);
+
+      const putCall = ddbMock.calls().find(call => call.args[0] instanceof PutItemCommand);
+      const invitationItem = unmarshall(putCall.args[0].input.Item);
+
+      expect(invitationItem).toMatchObject({
+        email: 'user@example.com',
+        teamId: 'team-123',
+        teamName: 'Test Team',
+        role: 'administrator',
+        invitedBy: 'user-456',
+        inviterName: 'John Doe',
+        status: 'pending',
+        type: 'new_user'
+      });
+
+      expect(invitationItem.id).toBeDefined();
+      expect(invitationItem.expiresAt).toBeDefined();
+      expect(invitationItem.ttl).toBeDefined();
+      expect(invitationItem.createdAt).toBeDefined();
+
+      // Verify TTL is set to 7 days
+      const now = Math.floor(Date.now() / 1000);
+      const expectedTTL = now + (7 * 24 * 60 * 60);
+      expect(invitationItem.ttl).toBeGreaterThanOrEqual(expectedTTL - 10);
+      expect(invitationItem.ttl).toBeLessThanOrEqual(expectedTTL + 10);
+    });
+
+    test('should default role to member if not specified', async () => {
+      validateRequest.mockResolvedValueOnce({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'user@example.com' } // No role specified
+      });
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(201);
+
+      const putCall = ddbMock.calls().find(call => call.args[0] instanceof PutItemCommand);
+      const invitationItem = unmarshall(putCall.args[0].input.Item);
+
+      expect(invitationItem.role).toBe('member');
+    });
+
+    test('should normalize email to lowercase', async () => {
+      validateRequest.mockResolvedValueOnce({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'User@Example.COM', role: 'member' }
+      });
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'User@Example.COM' })
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(201);
+
+      const putCall = ddbMock.calls().find(call => call.args[0] instanceof PutItemCommand);
+      const invitationItem = unmarshall(putCall.args[0].input.Item);
+
+      expect(invitationItem.email).toBe('user@example.com');
+    });
+  });
+
+  describe('Event publishing', () => {
+    beforeEach(() => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
+      });
+
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'user@example.com', role: 'member' }
+      });
+
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValue({});
+      checkExists.mockResolvedValue({ name: 'John Doe' });
+
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+      ddbMock.on(PutItemCommand).resolves({});
+    });
+
+    test('should publish team member added event', async () => {
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(201);
+
+      const eventCall = eventBridgeMock.calls().find(call => call.args[0] instanceof PutEventsCommand);
+      expect(eventCall).toBeDefined();
+
       const eventEntry = eventCall.args[0].input.Entries[0];
-
       expect(eventEntry.Source).toBe('nullcheck');
       expect(eventEntry.DetailType).toBe('Team Member Added');
 
-      const detail = JSON.parse(eventEntry.Detail);
-      expect(detail.teamId).toBe('456e7890-e89b-12d3-a456-426614174001');
-      expect(detail.email).toBe('newmember@example.com');
-      expect(detail.role).toBe('member');
-      expect(detail.invitedBy).toBe('123e4567-e89b-12d3-a456-426614174000');
+      const eventDetail = JSON.parse(eventEntry.Detail);
+      expect(eventDetail).toMatchObject({
+        teamId: 'team-123',
+        teamName: 'Test Team',
+        email: 'user@example.com',
+        role: 'member',
+        invitedBy: 'user-456',
+        inviterName: 'John Doe',
+        invitationType: 'new_user'
+      });
+
+      expect(eventDetail.invitationId).toBeDefined();
+      expect(eventDetail.invitedAt).toBeDefined();
+    });
+
+    test('should include notification ID in event for existing users', async () => {
+      // Mock no existing invitation then existing user found
+      ddbMock.on(QueryCommand)
+        .resolvesOnce({ Items: [] }) // No existing invitation (checkExistingInvitation)
+        .resolvesOnce({
+          Items: [marshall({ pk: 'user#existing-789', email: 'user@example.com' })]
+        }); // Existing user found (findUserByEmail)
+
+      ddbMock.on(UpdateItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      createTeamInvitationNotification.mockResolvedValueOnce({
+        id: 'notif-456'
+      });
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(201);
+
+      const eventCall = eventBridgeMock.calls().find(call => call.args[0] instanceof PutEventsCommand);
+      const eventDetail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);
+
+      expect(eventDetail.invitationType).toBe('existing_user');
+      expect(eventDetail.notificationId).toBe('notif-456');
     });
   });
 
-  describe('email normalization', () => {
-    test('should normalize email to lowercase', async () => {
-      const event = createValidEvent({
-        body: JSON.stringify({
-          email: 'NewMember@Example.COM',
-          role: 'member'
-        })
+  describe('Error handling', () => {
+    test('should handle DynamoDB errors during invitation creation', async () => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
       });
 
-      mockTeamExists();
-      mockRequesterMembership();
-      mockInviterProfile();
-      mockNoPendingInvitation('newmember@example.com');
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'user@example.com', role: 'member' }
+      });
 
-      ddbMock.on(PutItemCommand).resolves({});
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValue({});
+      checkExists.mockResolvedValue({ name: 'John Doe' });
+
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+      ddbMock.on(PutItemCommand).rejects(new Error('DynamoDB error'));
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
 
       const result = await handler(event);
 
-      expect(result.statusCode).toBe(201);
-      const body = JSON.parse(result.body);
-      // Simplified response
+      expect(result.statusCode).toBe(500);
+      expect(result.body.message).toBe('Something went wrong');
     });
 
-    test('should trim whitespace from email', async () => {
-      const event = createValidEvent({
-        body: JSON.stringify({
-          email: '  newmember@example.com  ',
-          role: 'member'
-        })
+    test('should handle EventBridge errors gracefully', async () => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
       });
 
-      mockTeamExists();
-      mockRequesterMembership();
-      mockInviterProfile();
-      mockNoPendingInvitation();
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'user@example.com', role: 'member' }
+      });
+
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValue({});
+      checkExists.mockResolvedValue({ name: 'John Doe' });
+
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+      ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).rejects(new Error('EventBridge error'));
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(500);
+      expect(result.body.message).toBe('Something went wrong');
+    });
+
+    test('should handle user lookup errors gracefully', async () => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
+      });
+
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'user@example.com', role: 'member' }
+      });
+
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValue({});
+      checkExists.mockResolvedValue({ name: 'John Doe' });
+
+      // First query (user lookup) fails, second query (invitation check) succeeds
+      ddbMock.on(QueryCommand)
+        .rejectsOnce(new Error('Query error'))
+        .resolvesOnce({ Items: [] });
 
       ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'user@example.com' })
+      };
+
+      const result = await handler(event);
+
+      // Should treat as new user when lookup fails
+      expect(result.statusCode).toBe(201);
+      expect(result.body.invitationType).toBe('new_user');
+    });
+  });
+
+  describe('Integration between invitations and notifications', () => {
+    test('should create complete invitation flow for existing user', async () => {
+      validatePathParameters.mockResolvedValue({
+        success: true,
+        data: { teamId: 'team-123' }
+      });
+
+      validateRequest.mockResolvedValue({
+        success: true,
+        userId: 'user-456',
+        data: { email: 'existing@example.com', role: 'member' }
+      });
+
+      requireTeamExists.mockResolvedValue({
+        team: { id: 'team-123', name: 'Test Team' }
+      });
+
+      requireTeamMember.mockResolvedValue({});
+      checkExists.mockResolvedValue({ name: 'John Doe' });
+
+      // Mock no existing invitation then existing user found
+      ddbMock.on(QueryCommand)
+        .resolvesOnce({ Items: [] }) // No existing invitation (checkExistingInvitation)
+        .resolvesOnce({
+          Items: [marshall({ pk: 'user#existing-789', email: 'existing@example.com' })]
+        }); // Existing user found (findUserByEmail)
+
+      ddbMock.on(PutItemCommand).resolves({});
+      ddbMock.on(UpdateItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      createTeamInvitationNotification.mockResolvedValueOnce({
+        id: 'notif-123',
+        type: 'team_invitation',
+        title: 'Team Invitation',
+        message: 'You have been invited to join Test Team'
+      });
+
+      const event = {
+        pathParameters: { teamId: 'team-123' },
+        body: JSON.stringify({ email: 'existing@example.com' })
+      };
 
       const result = await handler(event);
 
       expect(result.statusCode).toBe(201);
-      const body = JSON.parse(result.body);
-      // Simplified response
+      expect(result.body.invitationType).toBe('existing_user');
+
+      // Verify invitation creation with user ID
+      const putCall = ddbMock.calls().find(call => call.args[0] instanceof PutItemCommand);
+      const invitationItem = unmarshall(putCall.args[0].input.Item);
+      expect(invitationItem.invitedUserId).toBe('existing-789');
+
+      // Verify notification creation
+      expect(createTeamInvitationNotification).toHaveBeenCalledWith(
+        'existing-789',
+        'team-123',
+        'Test Team',
+        'John Doe',
+        invitationItem.id
+      );
+
+      // Verify notification ID update
+      const updateCall = ddbMock.calls().find(call => call.args[0] instanceof UpdateItemCommand);
+      expect(updateCall.args[0].input.UpdateExpression).toBe('SET notificationId = :notificationId');
+
+      // Verify event includes notification ID
+      const eventCall = eventBridgeMock.calls().find(call => call.args[0] instanceof PutEventsCommand);
+      const eventDetail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);
+      expect(eventDetail.notificationId).toBe('notif-123');
     });
   });
 });

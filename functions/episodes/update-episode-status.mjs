@@ -1,11 +1,13 @@
 import { DynamoDBClient, GetItemCommand, QueryCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { Logger } from '@aws-lambda-powertools/logger';
 import { parseBody, formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
 const eb = new EventBridgeClient();
+const logger = new Logger({ serviceName: 'episodes' });
 
 const VALID_STATUSES = new Set(['Ready for Clip Gen']);
 
@@ -14,7 +16,7 @@ export const handler = async (event) => {
     const { tenantId } = event.requestContext.authorizer;
 
     if (!tenantId) {
-      console.error('Missing tenantId in authorizer context');
+      logger.error('Missing tenantId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
@@ -126,14 +128,26 @@ export const handler = async (event) => {
           ]
         }));
       } catch (error) {
-        console.error('Failed to publish Begin Clip Generation event:', error);
+        logger.error('Failed to publish Begin Clip Generation event', {
+          error: error.message,
+          stack: error.stack,
+          name: error.name,
+          tenantId,
+          episodeId
+        });
       }
     }
 
     return formatEmptyResponse();
 
   } catch (error) {
-    console.error('Error updating episode status:', error);
+    logger.error('Error updating episode status', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      episodeId: event.pathParameters?.episodeId,
+      status: event.body ? JSON.parse(event.body)?.status : undefined
+    });
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

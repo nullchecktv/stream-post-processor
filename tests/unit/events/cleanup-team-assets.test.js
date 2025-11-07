@@ -1,11 +1,27 @@
 // Unit tests for cleanup team assets function
 // These tests validate batch deletion operations and error handling
 
+// Mock Logger before any imports
+jest.mock('@aws-lambda-powertools/logger', () => {
+  const { Logger } = require('../../helpers/logger-mock');
+  return { Logger };
+});
+
 // Mock environment variables
 process.env.TABLE_NAME = 'test-table';
 process.env.BUCKET_NAME = 'test-bucket';
 
+const { Logger } = require('@aws-lambda-powertools/logger');
+
 describe('Cleanup Team Assets Function', () => {
+  let mockLogger;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Create fresh logger mock for each test
+    mockLogger = new Logger({ serviceName: 'events' });
+  });
+
   describe('Batch Deletion Operations', () => {
     const simulateBatchDeletion = (items, batchSize, maxRetries) => {
       const batches = [];

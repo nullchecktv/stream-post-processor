@@ -1,11 +1,27 @@
 // Unit tests for delete clip function
 // These tests validate clip deletion logic and S3 file cleanup
 
+// Mock Logger before any imports
+jest.mock('@aws-lambda-powertools/logger', () => {
+  const { Logger } = require('../../helpers/logger-mock');
+  return { Logger };
+});
+
 // Mock environment variables
 process.env.TABLE_NAME = 'test-table';
 process.env.BUCKET_NAME = 'test-bucket';
 
+const { Logger } = require('@aws-lambda-powertools/logger');
+
 describe('Delete Clip Function', () => {
+  let mockLogger;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Create fresh logger mock for each test
+    mockLogger = new Logger({ serviceName: 'clips' });
+  });
+
   describe('Request Validation', () => {
     const validateDeleteRequest = (pathParams, requestContext) => {
       if (!requestContext?.authorizer?.tenantId) {

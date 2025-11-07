@@ -1,10 +1,26 @@
 // Unit tests for get episode function
 // These tests validate episode retrieval and status computation
 
-// Mock environables
+// Mock Logger before any imports
+jest.mock('@aws-lambda-powertools/logger', () => {
+  const { Logger } = require('../../helpers/logger-mock');
+  return { Logger };
+});
+
+// Mock environment variables
 process.env.TABLE_NAME = 'test-table';
 
+const { Logger } = require('@aws-lambda-powertools/logger');
+
 describe('Get Episode Function', () => {
+  let mockLogger;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Create fresh logger mock for each test
+    mockLogger = new Logger({ serviceName: 'episodes' });
+  });
+
   describe('Status Computation', () => {
     const getCurrentStatus = (statusHistory) => {
       if (!statusHistory || !Array.isArray(statusHistory) || statusHistory.length === 0) {
