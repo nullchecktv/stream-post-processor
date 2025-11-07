@@ -1,6 +1,12 @@
 import { validate } from '@aws-lambda-powertools/validation';
 import { SchemaValidationError } from '@aws-lambda-powertools/validation/errors';
+import { Logger } from '@aws-lambda-powertools/logger';
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse, parseBody } from './api.mjs';
+
+const logger = new Logger({ serviceName: 'utils' });
+const ddb = new DynamoDBClient();
 
 export const validateRequest = (event, schema) => {
   const tenantId = event?.requestContext?.authorizer?.tenantId;
@@ -95,4 +101,54 @@ export const validateQueryParameters = async (event, schema) => {
     }
     throw error;
   }
+};
+
+export const checkExists = async (pk, sk) => {
+  try {
+    const response = await ddb.send(new GetItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({ pk, sk })
+    }));
+    return response.Item ? unmarshall(response.Item) : null;
+  } catch (error) {
+    logger.error('Error checking existence', {
+      error: error.message,
+      stack: error.stack,
+      pk,
+      sk
+    });
+    return null;
+  }
+};
+
+export const requireTeamMember = async (teamId, userId, requiredRole = null) => {
+  const membership = await checkExists(`team#${teamId}`, `user#${userId}`);
+
+  if (!membership) {
+    return { error: formatResponse(403, { message: 'Not a team member' }) };
+  }
+
+  if (membership.status !== 'active') {
+    return { error: formatResponse(403, { message: 'Membership not active' }) };
+  }
+
+  if (requiredRole) {
+    const roleHierarchy = { member: 1, administrator: 2, owner: 3 };
+    const userLevel = roleHierarchy[membership.role] || 0;
+    const requiredLevel = roleHierarchy[requiredRole] || 0;
+
+    if (userLevel < requiredLevel) {
+      return { error: formatResponse(403, { message: `Requires ${requiredRole} role or higher` }) };
+    }
+  }
+
+  return { membership };
+};
+
+export const requireTeamExists = async (teamId) => {
+  const team = await checkExists(`team#${teamId}`, 'metadata');
+  if (!team) {
+    return { error: formatResponse(404, { message: 'Team not found' }) };
+  }
+  return { team };
 };

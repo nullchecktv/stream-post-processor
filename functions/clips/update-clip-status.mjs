@@ -2,8 +2,8 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
-import { CLIP_STATUS, validateStatusUpdate, createStatusUpdateParams } from '../utils/clips.mjs';
-import { validateRequest, validatePathParameters } from '../utils/powertools-validation.mjs';
+import { validateStatusUpdate, createStatusUpdateParams } from '../utils/clips.mjs';
+import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { ClipSchemas } from '../utils/schemas.mjs';
 
 const logger = new Logger({ serviceName: 'clips' });

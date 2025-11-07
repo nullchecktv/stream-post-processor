@@ -3,7 +3,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CreateMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, sanitizeTrackName } from '../utils/api.mjs';
-import { validateRequest, validatePathParameters } from '../utils/powertools-validation.mjs';
+import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { EpisodeSchemas, TrackSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();

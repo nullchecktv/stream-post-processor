@@ -9,7 +9,7 @@ jest.mock('../../../functions/utils/api.mjs', () => ({
   formatResponse: (statusCode, body) => ({ statusCode, body })
 }));
 
-jest.mock('../../../functions/utils/powertools-validation.mjs', () => ({
+jest.mock('../../../functions/utils/validation.mjs', () => ({
   validateRequest: jest.fn(),
   validatePathParameters: jest.fn()
 }));
@@ -21,7 +21,7 @@ jest.mock('../../../functions/utils/notifications.mjs', () => ({
 
 
 const { handler } = require('../../../functions/invitations/make-decision.mjs');
-const { validateRequest, validatePathParameters } = require('../../../functions/utils/powertools-validation.mjs');
+const { validateRequest, validatePathParameters } = require('../../../functions/utils/validation.mjs');
 const { removeNotificationsByInvitation } = require('../../../functions/utils/notifications.mjs');
 
 describe('Make Invitation Decision Handler', () => {

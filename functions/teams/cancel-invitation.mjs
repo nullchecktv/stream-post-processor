@@ -3,7 +3,7 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
-import { validateRequest, requireTeamMember, requireTeamExists } from '../utils/validate.mjs';
+import { validateRequest, requireTeamMember, requireTeamExists } from '../utils/validation.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();

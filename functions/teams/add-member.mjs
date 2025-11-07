@@ -3,8 +3,7 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
-import { validateRequest, validatePathParameters } from '../utils/powertools-validation.mjs';
-import { requireTeamMember, requireTeamExists, checkExists } from '../utils/validate.mjs';
+import { validateRequest, validatePathParameters, requireTeamMember, requireTeamExists, checkExists } from '../utils/validation.mjs';
 import { TeamSchemas } from '../utils/schemas.mjs';
 import { createTeamInvitationNotification } from '../utils/notifications.mjs';
 import { randomUUID } from 'crypto';

@@ -4,7 +4,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
-import { validateRequest, validatePathParameters } from '../utils/powertools-validation.mjs';
+import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { EpisodeSchemas, TranscriptSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();

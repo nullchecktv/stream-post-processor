@@ -2,8 +2,7 @@ import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
-import { getCurrentStatus } from '../utils/status-history.mjs';
-import { validatePathParameters } from '../utils/powertools-validation.mjs';
+import { validatePathParameters } from '../utils/validation.mjs';
 import { EpisodeSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();

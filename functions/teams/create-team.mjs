@@ -3,7 +3,7 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
-import { validateRequest } from '../utils/powertools-validation.mjs';
+import { validateRequest } from '../utils/validation.mjs';
 import { TeamSchemas } from '../utils/schemas.mjs';
 
 const ddb = new DynamoDBClient();
