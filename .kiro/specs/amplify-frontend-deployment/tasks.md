@@ -119,8 +119,8 @@
     - Provide fallback to localhost for local development
     - _Requirements: 5.1, 5.5_
 
-- [ ] 6. Create deployment documentation
-  - [ ] 6.1 Create GitHub App setup documentation
+- [x] 6. Create deployment documentation
+  - [x] 6.1 Create GitHub App setup documentation
     - Document how to access AWS Amplify GitHub App installation page
     - Provide step-by-step installation instructions with screenshots
     - Explain repository selection and permissions
@@ -128,27 +128,27 @@
     - Add verification steps to confirm successful installation
     - _Requirements: 1.1, 4.1_
 
-  - [ ] 6.2 Document GitHub App installation process
+  - [x] 6.2 Document GitHub App installation process
     - Add instructions for installing AWS Amplify GitHub App
     - Document repository access configuration
     - Explain one-time setup requirement
     - Link to detailed setup documentation
     - _Requirements: 1.1, 4.1_
 
-  - [ ] 6.3 Document deployment sequence
+  - [x] 6.3 Document deployment sequence
     - Explain backend deployment prerequisite
     - Document GitHub App installation step
     - Explain frontend stack deployment
     - Document verification steps
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-  - [ ] 6.4 Document PR preview workflow
+  - [x] 6.4 Document PR preview workflow
     - Explain automatic preview creation
     - Document preview URL format
     - Explain automatic cleanup on PR close
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ] 6.5 Add troubleshooting guide
+  - [x] 6.5 Add troubleshooting guide
     - Document common deployment errors
     - Explain GitHub App authentication issues
     - Document Amplify build failures
