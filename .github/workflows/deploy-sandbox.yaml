@@ -1,5 +1,5 @@
-name: Deploy Sandbox
-run-name: Deploy ${{ github.actor }} Sandbox
+name: Deploy Backend (Sandbox)
+run-name: Deploy ${{ github.actor }} Sandbox - Backend
 
 on:
   workflow_dispatch:
@@ -48,4 +48,3 @@ jobs:
       STACK_NAME: stream-post-processor-${{ needs.prepare-deployment.outputs.env_descriptor }}
       ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
     secrets: inherit
-    
