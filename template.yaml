@@ -1889,18 +1889,26 @@ Outputs:
   ApiUrl:
     Description: API Gateway URL
     Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api"
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiUrl'
 
   UserPoolId:
     Description: Cognito User Pool ID
     Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolId'
 
   UserPoolClientId:
     Description: Cognito User Pool Client ID
     Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolClientId'
 
   UserPoolDomain:
     Description: Cognito User Pool Domain
     Value: !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com"
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolDomain'
 
   FFmpegLayerArn:
     Description: ARN of the FFmpeg Lambda Layer

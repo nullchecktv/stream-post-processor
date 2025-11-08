@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Frontend Amplify App deployment for livestream post-production platform
+
+Parameters:
+  BackendStackName:
+    Type: String
+    Description: Name of the backend CloudFormation stack for cross-stack references
+
+  Repository:
+    Type: String
+    Description: GitHub repository in owner/repo format
+
+  Branch:
+    Type: String
+    Default: main
+    Description: Git branch to deploy
+
+Resources:
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: babbling-brook
+      Repository: !Sub 'https://github.com/${Repository}'
+      BuildSpec: |
+        version: 1
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - cd frontend
+                - npm ci
+            build:
+              commands:
+                - npm run build
+          artifacts:
+            baseDirectory: frontend/dist
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - frontend/node_modules/**/*
+      EnvironmentVariables:
+        - Name: VITE_API_URL
+          Value:
+            Fn::ImportValue: !Sub '${BackendStackName}-ApiUrl'
+        - Name: VITE_USER_POOL_ID
+          Value:
+            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolId'
+        - Name: VITE_USER_POOL_CLIENT_ID
+          Value:
+            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolClientId'
+        - Name: VITE_USER_POOL_DOMAIN
+          Value:
+            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolDomain'
+        - Name: VITE_AWS_REGION
+          Value: !Ref AWS::Region
+
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt AmplifyApp.AppId
+      BranchName: !Ref Branch
+      EnableAutoBuild: true
+      EnablePullRequestPreview: true
+      PullRequestEnvironmentName: preview
+
+Outputs:
+  AmplifyAppId:
+    Description: Amplify App ID
+    Value: !GetAtt AmplifyApp.AppId
+    Export:
+      Name: !Sub '${AWS::StackName}-AmplifyAppId'
+
+  AmplifyAppUrl:
+    Description: Amplify App URL
+    Value: !Sub 'https://${Branch}.${AmplifyApp.DefaultDomain}'
+    Export:
+      Name: !Sub '${AWS::StackName}-AmplifyAppUrl'
+
+  AmplifyBranchName:
+    Description: Deployed branch name
+    Value: !Ref Branch

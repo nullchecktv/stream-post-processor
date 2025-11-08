@@ -1,0 +1,85 @@
+name: Deploy Frontend (Dev)
+run-name: Deploy Frontend - ${{ github.actor }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/template.yaml'
+      - 'frontend/samconfig.yaml.template'
+      - '.github/workflows/deploy-frontend-dev.yaml'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  prepare-deployment:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      env_hash: ${{ steps.prepare-parameters.outputs.env_hash }}
+      backend_stack_name: ${{ steps.prepare-parameters.outputs.backend_stack_name }}
+      frontend_stack_name: ${{ steps.prepare-parameters.outputs.frontend_stack_name }}
+    steps:
+      - name: Prepare parameters
+        id: prepare-parameters
+        run: |
+          ENV_DESCRIPTOR="env-${{ github.actor }}"
+          ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
+          BACKEND_STACK_NAME="stream-post-processor-dev"
+          FRONTEND_STACK_NAME="stream-post-processor-frontend-dev"
+
+          echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
+          echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
+          echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy Frontend
+    needs: [prepare-deployment]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
+
+      - name: Generate samconfig
+        working-directory: frontend
+        env:
+          STACK_NAME: ${{ needs.prepare-deployment.outputs.frontend_stack_name }}
+          BACKEND_STACK_NAME: ${{ needs.prepare-deployment.outputs.backend_stack_name }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: main
+        run: |
+          envsubst < samconfig.yaml.template > samconfig.yaml
+          echo "Generated samconfig.yaml:"
+          cat samconfig.yaml
+
+      - name: Deploy frontend stack
+        working-directory: frontend
+        run: |
+          sam build --template-file template.yaml
+
+          sam deploy \
+            --config-file samconfig.yaml \
+            --config-env dev \
+            --s3-bucket "${{ secrets.ARTIFACTS_BUCKET_NAME }}" \
+            --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
+            --no-fail-on-empty-changeset
+
+      - name: Get Amplify URL
+        run: |
+          AMPLIFY_URL=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.frontend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`AmplifyAppUrl`].OutputValue' \
+            --output text)
+
+          echo "# Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "* Frontend URL: $AMPLIFY_URL" >> $GITHUB_STEP_SUMMARY

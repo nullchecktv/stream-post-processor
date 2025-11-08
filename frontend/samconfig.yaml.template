@@ -1,0 +1,13 @@
+version: 0.1
+
+dev:
+  deploy:
+    parameters:
+      stack_name: ${STACK_NAME}
+      region: us-east-1
+      capabilities: CAPABILITY_IAM
+      parameter_overrides:
+        BackendStackName=${BACKEND_STACK_NAME}
+        Repository=${REPOSITORY}
+        Branch=${BRANCH}
+      confirm_changeset: false
