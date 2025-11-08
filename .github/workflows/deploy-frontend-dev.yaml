@@ -4,8 +4,8 @@ run-name: Deploy Frontend - ${{ github.actor }}
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
     paths:
       - 'frontend/template.yaml'
       - 'frontend/samconfig.yaml.template'
