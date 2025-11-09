@@ -194,7 +194,7 @@ Resources:
   UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: content-engine-${EnvironmentName}
+      Domain: !Sub content-engine-${EnvironmentName}
       UserPoolId: !Ref CognitoUserPool
 
   UserPoolClient:
