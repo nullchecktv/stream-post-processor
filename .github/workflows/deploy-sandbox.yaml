@@ -29,7 +29,7 @@ jobs:
         run: |
           ENV_DESCRIPTOR="env-${{ github.actor }}"
           ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
-
+          ENV_NAME="${{ github.actor }}"
 
           echo "ENV_DESCRIPTOR=$ENV_DESCRIPTOR" >> $GITHUB_ENV
           echo "ENV_HASH=$ENV_HASH" >> $GITHUB_ENV
@@ -53,4 +53,3 @@ jobs:
       ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
       ENV_NAME: ${{ needs.prepare-deployment.outputs.env_name }}
     secrets: inherit
-    

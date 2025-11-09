@@ -27,7 +27,7 @@ jobs:
         run: |
           ENV_DESCRIPTOR="env-dev"
           ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
-
+          ENV_NAME=dev
 
           echo "ENV_DESCRIPTOR=$ENV_DESCRIPTOR" >> $GITHUB_ENV
           echo "ENV_HASH=$ENV_HASH" >> $GITHUB_ENV
