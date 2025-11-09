@@ -22,22 +22,26 @@ jobs:
     outputs:
       env_descriptor: ${{ steps.prepare-parameters.outputs.env_descriptor }}
       env_hash: ${{ steps.prepare-parameters.outputs.env_hash }}
+      env_name: ${{ steps.prepare-parameters.outputs.env_name }}
     steps:
       - name: Prepare parameters
         id: prepare-parameters
         run: |
           ENV_DESCRIPTOR="env-${{ github.actor }}"
           ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
-
+          ENV_NAME="${{ github.actor }}"
 
           echo "ENV_DESCRIPTOR=$ENV_DESCRIPTOR" >> $GITHUB_ENV
           echo "ENV_HASH=$ENV_HASH" >> $GITHUB_ENV
+          echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
           echo "# RUN METADATA" >> $GITHUB_STEP_SUMMARY
           echo "* Environment Descriptor - $ENV_DESCRIPTOR" >> $GITHUB_STEP_SUMMARY
           echo "* Environment Hash - $ENV_HASH" >> $GITHUB_STEP_SUMMARY
+          echo "* Environment Name - $ENV_NAME" >> $GITHUB_STEP_SUMMARY
 
           echo "env_descriptor=$ENV_DESCRIPTOR" >> $GITHUB_OUTPUT
           echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
+          echo "env_name=$ENV_NAME" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy
@@ -47,5 +51,5 @@ jobs:
       ENV: dev
       STACK_NAME: stream-post-processor-${{ needs.prepare-deployment.outputs.env_descriptor }}
       ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
+      ENV_NAME: ${{ needs.prepare-deployment.outputs.env_name }}
     secrets: inherit
-    

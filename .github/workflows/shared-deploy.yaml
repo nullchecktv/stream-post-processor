@@ -12,6 +12,9 @@ on:
       ENV_HASH:
         type: string
         required: true
+      ENV_NAME:
+        type: string
+        required: true
 
 jobs:
   deploy:
@@ -38,6 +41,7 @@ jobs:
         env:
           STACK_NAME: ${{ inputs.STACK_NAME }}
           ENV_HASH: ${{ inputs.ENV_HASH }}
+          ENV_NAME: ${{ inputs.ENV_NAME }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml
