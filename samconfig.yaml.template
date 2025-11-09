@@ -11,6 +11,7 @@ dev:
       parameter_overrides: [
         "EnvironmentHash=$ENV_HASH",
         "EncryptionKey=$ENCRYPTION_KEY"
+        "EnvironmentName=$ENV_NAME"
       ]
   global:
     parameters:

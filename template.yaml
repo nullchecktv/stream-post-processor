@@ -18,6 +18,9 @@ Parameters:
   EnvironmentHash:
     Type: String
     Description: A hash of the current environment
+  EnvironmentName:
+    Type: String
+    Description: Name of the current environment
   FromEmailAddress:
     Type: String
     Default: ""
@@ -162,7 +165,6 @@ Resources:
     Type: AWS::Cognito::UserPool
     DeletionPolicy: Delete
     Properties:
-      UserPoolName: !Sub "${AWS::StackName}-user-pool"
       AutoVerifiedAttributes:
         - email
       UsernameAttributes:
@@ -192,7 +194,7 @@ Resources:
   UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: content-engine-domain
+      Domain: content-engine-${EnvironmentName}
       UserPoolId: !Ref CognitoUserPool
 
   UserPoolClient:
