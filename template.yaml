@@ -201,7 +201,6 @@ Resources:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       UserPoolId: !Ref CognitoUserPool
-      ClientName: !Sub "${AWS::StackName}-client"
       AllowedOAuthFlows:
         - code
       AllowedOAuthScopes:
