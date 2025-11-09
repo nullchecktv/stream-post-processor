@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { LogOut, Users, ChevronDown, User, HelpCircle } from 'lucide-react'
+import { LogOut, Users, ChevronDown, HelpCircle } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useUser } from '../../hooks/useUser'
 import { useHelpTips } from '../../hooks/useHelpTips'

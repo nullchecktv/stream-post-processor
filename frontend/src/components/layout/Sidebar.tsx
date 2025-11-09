@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronRight, ChevronsLeft, ChevronsRight, Activity, User as UserIcon } from 'lucide-react'
+import { ChevronRight, ChevronsLeft, ChevronsRight, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useSidebar } from '../../hooks/useSidebar'
 import { useUser } from '../../hooks/useUser'
@@ -7,7 +7,7 @@ import { useSidebarLabels } from '../../hooks/useSidebarLabels'
 import { SidebarItem } from './SidebarItem'
 import { SidebarSection } from './SidebarSection'
 import { SidebarLabel } from './SidebarLabel'
-import { Home, Video, Users, Settings } from 'lucide-react'
+import { Home, Video, Users, Settings, Bell, User } from 'lucide-react'
 
 export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar()
@@ -93,6 +93,8 @@ export function Sidebar() {
         style={{ height: 'calc(100vh - 4rem)' }}
         onMouseEnter={() => !isMobile && isCollapsed && setShowExpandButton(true)}
         onMouseLeave={() => !isMobile && isCollapsed && setShowExpandButton(false)}
+        role="navigation"
+        aria-label="Main navigation"
       >
         {!isMobile && isCollapsed && showExpandButton && (
           <button
@@ -197,7 +199,7 @@ export function Sidebar() {
           )}
         </div>
 
-        <nav className="flex-1 py-4 overflow-y-auto">
+        <nav className="flex-1 py-4 overflow-y-auto" aria-label="Primary navigation">
           <SidebarSection title="PAGES" isCollapsed={isCollapsed}>
             <SidebarItem
               to="/"
@@ -215,6 +217,18 @@ export function Sidebar() {
               to="/teams"
               icon={Users}
               label="Teams"
+              isCollapsed={isCollapsed}
+            />
+            <SidebarItem
+              to="/notifications"
+              icon={Bell}
+              label="Notifications"
+              isCollapsed={isCollapsed}
+            />
+            <SidebarItem
+              to="/profile"
+              icon={User}
+              label="Profile"
               isCollapsed={isCollapsed}
             />
           </SidebarSection>

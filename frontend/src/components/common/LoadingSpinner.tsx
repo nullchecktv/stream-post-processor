@@ -1,5 +1,5 @@
 interface LoadingSpinnerProps {
-  variant?: 'inline' | 'page' | 'section'
+  variant?: 'inline' | 'page' | 'section' | 'card'
   size?: 'sm' | 'md' | 'lg'
 }
 
@@ -29,6 +29,14 @@ export function LoadingSpinner({ variant = 'section', size = 'md' }: LoadingSpin
           {spinner}
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (variant === 'card') {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 flex items-center justify-center animate-pulse">
+        {spinner}
       </div>
     )
   }

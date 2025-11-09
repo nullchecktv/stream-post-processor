@@ -14,12 +14,17 @@ export const usersApi = {
     return result
   },
 
-  setActiveTeam: async (teamId: string) => {
-    const result = await apiRequest<UserProfile>('/me/teams', {
+  setActiveTeam: async (teamId: string | null) => {
+    const result = await apiRequest<{
+      activeTeamId: string | null
+      message: string
+      requiresTokenRefresh: boolean
+    }>('/me/teams', {
       method: 'POST',
       body: JSON.stringify({ teamId }),
     })
     apiCache.invalidate('GET:/me')
+    apiCache.invalidate('GET:/teams')
     return result
   },
 }

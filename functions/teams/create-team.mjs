@@ -1,5 +1,5 @@
-import { DynamoDBClient, TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
-import { marshall } from '@aws-sdk/util-dynamodb';
+import { DynamoDBClient, TransactWriteItemsCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
@@ -19,6 +19,16 @@ export const handler = async (event) => {
 
     const now = new Date().toISOString();
     const teamId = randomUUID();
+
+    const userProfileResponse = await ddb.send(new GetItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({
+        pk: `user#${userId}`,
+        sk: 'profile'
+      })
+    }));
+
+    const userProfile = userProfileResponse.Item ? unmarshall(userProfileResponse.Item) : null;
 
     const teamSettings = {
       defaultPlatforms: settings?.defaultPlatforms || [],
@@ -46,6 +56,8 @@ export const handler = async (event) => {
       GSI1SK: `${now}#${teamId}`,
       userId,
       teamId,
+      email: userProfile?.email,
+      name: userProfile?.name,
       role: 'owner',
       status: 'active',
       joinedAt: now,

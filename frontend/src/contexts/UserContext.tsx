@@ -2,6 +2,7 @@ import { createContext, useEffect, useState, useCallback, type ReactNode } from 
 import { usersApi } from '../api/users'
 import type { UserProfile } from '../types'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from './ToastContext'
 
 interface UserContextType {
   profile: UserProfile | null
@@ -11,6 +12,13 @@ interface UserContextType {
   updateProfile: (data: Partial<UserProfile>) => Promise<void>
 }
 
+// UserProfile interface includes team-related fields:
+// - activeTeamId: string | null
+// - teams: TeamMembership[]
+// - ownedTeams: TeamMembership[]
+// - memberTeams: TeamMembership[]
+// These are automatically updated when refreshProfile() is called by TeamContext
+
 export const UserContext = createContext<UserContextType | undefined>(undefined)
 
 interface UserProviderProps {
@@ -19,6 +27,7 @@ interface UserProviderProps {
 
 export function UserProvider({ children }: UserProviderProps) {
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const { showSuccess, showError } = useToast()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,9 +59,11 @@ export function UserProvider({ children }: UserProviderProps) {
       setError(null)
       const updatedProfile = await usersApi.updateProfile(data)
       setProfile(updatedProfile)
+      showSuccess('Profile updated successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile'
       setError(errorMessage)
+      showError(errorMessage)
       throw err
     }
   }
