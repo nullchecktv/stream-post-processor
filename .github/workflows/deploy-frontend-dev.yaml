@@ -29,8 +29,8 @@ jobs:
         run: |
           ENV_DESCRIPTOR="env-${{ github.actor }}"
           ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
-          BACKEND_STACK_NAME="stream-post-processor-dev"
-          FRONTEND_STACK_NAME="stream-post-processor-frontend-dev"
+          BACKEND_STACK_NAME="babbling-brook-dev"
+          FRONTEND_STACK_NAME="babbling-brook-dev-frontend-dev"
 
           echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
           echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
