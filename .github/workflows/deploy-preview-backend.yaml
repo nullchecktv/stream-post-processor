@@ -1,5 +1,5 @@
-name: Deploy Backend (Sandbox)
-run-name: Deploy ${{ github.actor }} Sandbox - Backend
+name: Deploy Backend Preview
+run-name: Backend Preview - ${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -49,7 +49,7 @@ jobs:
     uses: ./.github/workflows/shared-deploy.yaml
     with:
       ENV: dev
-      STACK_NAME: stream-post-processor-${{ needs.prepare-deployment.outputs.env_descriptor }}
+      STACK_NAME: babbling-brook-${{ needs.prepare-deployment.outputs.env_descriptor }}
       ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
       ENV_NAME: ${{ needs.prepare-deployment.outputs.env_name }}
     secrets: inherit

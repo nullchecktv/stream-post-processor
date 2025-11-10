@@ -1,5 +1,5 @@
 name: Deploy Frontend Preview
-run-name: Preview - ${{ github.actor }}
+run-name: Frontend Preview - ${{ github.actor }}
 
 on:
   pull_request:
