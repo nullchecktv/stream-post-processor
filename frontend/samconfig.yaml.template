@@ -9,5 +9,6 @@ dev:
       parameter_overrides:
         BackendStackName=${BACKEND_STACK_NAME}
         Repository=${REPOSITORY}
-        Branch=${BRANCH}
+        Branch=${BRANCH},
+        GitHubPAT=${GH_PAT}
       confirm_changeset: false
