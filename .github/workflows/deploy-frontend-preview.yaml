@@ -24,7 +24,7 @@ jobs:
       - name: Prepare parameters
         id: prepare-parameters
         run: |
-          ENV_DESCRIPTOR="pr-${{ github.actor }}"
+          ENV_DESCRIPTOR="env-${{ github.actor }}"
           BACKEND_STACK_NAME="babbling-brook-dev"
           FRONTEND_STACK_NAME="babbling-brook-frontend-$ENV_DESCRIPTOR"
 
