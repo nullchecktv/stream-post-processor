@@ -43,6 +43,8 @@ jobs:
           ENV_HASH: ${{ inputs.ENV_HASH }}
           ENV_NAME: ${{ inputs.ENV_NAME }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          MOMENTO_API_KEY: ${{ secrets.MOMENTO_API_KEY }}
+          CACHE_NAME: ${{ inputs.CACHE_NAME }}
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml
 
