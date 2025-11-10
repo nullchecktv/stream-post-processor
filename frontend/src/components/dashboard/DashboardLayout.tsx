@@ -8,8 +8,9 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, onCreateEpisode }: DashboardLayoutProps) {
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-gray-50 via-accent/5 to-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="relative min-h-full bg-gradient-to-br from-gray-50 via-primary/3 to-accent/5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,200,180,0.02),transparent_50%),radial-gradient(circle_at_70%_60%,rgba(100,180,220,0.02),transparent_50%)] hidden sm:block"></div>
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </div>
 
@@ -26,16 +27,16 @@ export function DashboardLayout({ children, onCreateEpisode }: DashboardLayoutPr
         >
           <button
             onClick={onCreateEpisode}
-            className="relative bg-gradient-to-br from-primary to-primary-dark text-white rounded-full p-4 shadow-lg hover:shadow-2xl transition-all transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-primary/50 focus:ring-offset-2 group"
+            className="relative bg-gradient-to-br from-primary via-primary-dark to-primary-light text-white rounded-full p-5 shadow-2xl hover:shadow-primary/50 transition-all transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-primary/40 focus:ring-offset-2 group"
             aria-label="Create new episode"
           >
-            <div className="absolute inset-0 bg-white/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute inset-0 bg-white/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity animate-pulse"></div>
             <svg
-              className="w-6 h-6 relative z-10"
+              className="w-7 h-7 relative z-10"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="2"
+              strokeWidth="2.5"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >

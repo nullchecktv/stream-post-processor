@@ -37,7 +37,7 @@ export function TeamStep({ onComplete, onSkip }: TeamStepProps) {
     setError(null)
 
     try {
-      await teamsApi.create(data)
+      await teamsApi.createTeam(data)
       onComplete()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create team')

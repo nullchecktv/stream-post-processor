@@ -96,6 +96,17 @@ export const handler = async (event) => {
     const updateTime = new Date().toISOString();
 
     if (action === 'accept') {
+      // Get user profile for denormalized data
+      const userProfileResponse = await ddb.send(new GetItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: marshall({
+          pk: `user#${userId}`,
+          sk: 'profile'
+        })
+      }));
+
+      const userProfile = userProfileResponse.Item ? unmarshall(userProfileResponse.Item) : null;
+
       // Update invitation status
       await ddb.send(new UpdateItemCommand({
         TableName: process.env.TABLE_NAME,
@@ -115,7 +126,7 @@ export const handler = async (event) => {
         ConditionExpression: '#status = :pendingStatus'
       }));
 
-      // Create team membership
+      // Create team membership with denormalized user data
       const membershipId = randomUUID();
       const membership = {
         pk: `team#${invitation.teamId}`,
@@ -125,6 +136,8 @@ export const handler = async (event) => {
         id: membershipId,
         teamId: invitation.teamId,
         userId,
+        email: userProfile?.email || invitation.email,
+        name: userProfile?.name,
         role: invitation.role,
         status: 'active',
         joinedAt: updateTime,

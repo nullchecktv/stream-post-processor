@@ -36,7 +36,7 @@ export function SidebarLabel({ label, color, count, isCollapsed, onClick }: Side
           onClick={onClick}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
-          className="w-full flex items-center justify-center py-2 hover:bg-gray-50 rounded-lg transition-colors group"
+          className="w-full flex items-center justify-center py-2 hover:bg-gray-50 rounded-lg transition-colors group cursor-pointer"
         >
           <div className="relative">
             <div className={`w-3 h-3 rounded-sm ${colorDots[color]}`} />
@@ -61,7 +61,7 @@ export function SidebarLabel({ label, color, count, isCollapsed, onClick }: Side
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all hover:shadow-sm border ${colorClasses[color]}`}
+      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all hover:shadow-sm border cursor-pointer ${colorClasses[color]}`}
     >
       <div className="flex items-center gap-2">
         <div className={`w-2 h-2 rounded-sm ${colorDots[color]}`} />

@@ -9,6 +9,7 @@ import { z } from 'zod'
 interface CreateEpisodeModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
 }
 
 const createEpisodeSchema = z.object({
@@ -20,7 +21,7 @@ const createEpisodeSchema = z.object({
 
 type CreateEpisodeFormData = z.infer<typeof createEpisodeSchema>
 
-export function CreateEpisodeModal({ isOpen, onClose }: CreateEpisodeModalProps) {
+export function CreateEpisodeModal({ isOpen, onClose, onSuccess }: CreateEpisodeModalProps) {
   const navigate = useNavigate()
   const [formData, setFormData] = useState<CreateEpisodeFormData>({
     title: '',
@@ -63,6 +64,7 @@ export function CreateEpisodeModal({ isOpen, onClose }: CreateEpisodeModalProps)
       const response = await episodesApi.create(episodeData)
 
       onClose()
+      onSuccess?.()
       navigate(`/episodes/${response.id}`)
     } catch (err) {
       if (err instanceof z.ZodError) {

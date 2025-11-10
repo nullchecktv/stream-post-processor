@@ -1,13 +1,14 @@
+import { forwardRef } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'text'
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   children: ReactNode
 }
 
-export function Button({
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
@@ -15,14 +16,15 @@ export function Button({
   children,
   className = '',
   ...props
-}: ButtonProps) {
-  const baseClasses = 'font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center transform hover:scale-105 active:scale-95'
+}, ref) {
+  const baseClasses = 'font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer inline-flex items-center justify-center transform hover:scale-105 active:scale-95'
 
   const variantClasses = {
     primary: 'bg-primary text-white hover:bg-primary-dark hover:shadow-md focus:ring-primary',
     secondary: 'bg-accent text-gray-800 hover:bg-accent/80 hover:shadow-md focus:ring-accent',
     danger: 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md focus:ring-red-500',
     ghost: 'bg-transparent border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:ring-gray-400',
+    text: 'bg-transparent text-gray-700 hover:text-gray-900 hover:underline focus:ring-gray-400',
   }
 
   const sizeClasses = {
@@ -33,6 +35,7 @@ export function Button({
 
   return (
     <button
+      ref={ref}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
@@ -62,4 +65,4 @@ export function Button({
       {children}
     </button>
   )
-}
+})

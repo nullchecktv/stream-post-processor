@@ -39,6 +39,8 @@ export const handler = async (event) => {
       const member = unmarshall(item);
       return {
         userId: member.userId,
+        email: member.email,
+        name: member.name,
         role: member.role,
         status: member.status,
         joinedAt: member.joinedAt
@@ -65,6 +67,7 @@ export const handler = async (event) => {
           role: invitation.role,
           status: invitation.status,
           invitedBy: invitation.invitedBy,
+          inviterName: invitation.inviterName,
           expiresAt: invitation.expiresAt,
           createdAt: invitation.createdAt
         };
