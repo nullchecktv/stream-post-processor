@@ -5,6 +5,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { EpisodeDetailSkeleton } from '../components/common/EpisodeDetailSkeleton'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { Button } from '../components/common/Button'
+import { EpisodeNavigation } from '../components/episodes/EpisodeNavigation'
 import { EpisodeStatusChip } from '../components/episodes/EpisodeStatusChip'
 import { StatusHistoryTimeline } from '../components/episodes/StatusHistoryTimeline'
 import { formatDate } from '../utils/date'
@@ -75,6 +76,7 @@ function EpisodeOverviewPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb />
+      <EpisodeNavigation />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">

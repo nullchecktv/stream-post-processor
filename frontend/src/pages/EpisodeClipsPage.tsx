@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { Breadcrumb } from '../components/common/Breadcrumb'
+import { EpisodeNavigation } from '../components/episodes/EpisodeNavigation'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { ClipsList } from '../components/episodes/ClipsList'
 import type { EpisodeDetail } from '../types'
@@ -79,6 +80,7 @@ function EpisodeClipsPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb />
+      <EpisodeNavigation />
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">

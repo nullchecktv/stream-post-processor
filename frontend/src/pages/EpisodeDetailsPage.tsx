@@ -4,6 +4,7 @@ import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../contexts/ToastContext'
 import { Breadcrumb } from '../components/common/Breadcrumb'
+import { EpisodeNavigation } from '../components/episodes/EpisodeNavigation'
 import { EpisodeForm } from '../components/episodes/EpisodeForm'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import type { Episode } from '../types'
@@ -99,6 +100,7 @@ function EpisodeDetailsPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb />
+      <EpisodeNavigation />
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="mb-6">

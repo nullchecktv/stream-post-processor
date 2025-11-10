@@ -5,6 +5,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 // Removed uploads list duplication; dialog handles active uploads
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { Breadcrumb } from '../components/common/Breadcrumb'
+import { EpisodeNavigation } from '../components/episodes/EpisodeNavigation'
 import { TranscriptUploader } from '../components/episodes/TranscriptUploader'
 import { TrackUploader } from '../components/episodes/TrackUploader'
 import { formatDate } from '../utils/date'
@@ -63,6 +64,7 @@ function EpisodeContentPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb />
+      <EpisodeNavigation />
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Transcript</h2>
