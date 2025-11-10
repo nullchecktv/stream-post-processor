@@ -1,5 +1,4 @@
 name: Deploy Frontend (Dev)
-run-name: Deploy Frontend - ${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -32,7 +31,7 @@ jobs:
         run: |
           ENV_DESCRIPTOR="env-${{ github.actor }}"
           BACKEND_STACK_NAME="babbling-brook-dev"
-          FRONTEND_STACK_NAME="babbling-brook-dev-frontend-dev"
+          FRONTEND_STACK_NAME="babbling-brook-frontend-dev"
 
           echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
           echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
