@@ -1,12 +1,66 @@
 export type Platform = 'linkedin live' | 'X' | 'twitch' | 'youtube'
 
-export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived'
+export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived' | 'Ready for Clip Gen'
 
 export interface EpisodeListView {
   id: string
   title: string
-  status?: string
+  episodeNumber: number
+  status: string
   airDate?: string
+  platforms?: Platform[]
+  themes?: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StatusHistoryEntry {
+  status: string
+  timestamp: string
+  duration?: number
+  metadata?: Record<string, unknown>
+}
+
+export interface TrackInfo {
+  name: string
+  status: string
+  filename?: string
+  uploadedAt?: string
+  speakers?: string[]
+}
+
+export interface TranscriptInfo {
+  filename: string
+  uploadedAt: string
+  status: string
+}
+
+export interface ClipSegment {
+  startTime: string
+  endTime: string
+  speaker?: string
+  order: number
+}
+
+export interface ClipListView {
+  id: string
+  episodeId: string
+  title: string
+  hook: string
+  status: 'detected' | 'processing' | 'processed' | 'approved' | 'rejected' | 'published'
+  duration: number
+  segments: ClipSegment[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EpisodeDetail extends EpisodeListView {
+  description?: string
+  seriesName?: string
+  statusHistory: StatusHistoryEntry[]
+  tracks: TrackInfo[]
+  transcript?: TranscriptInfo
+  clips: ClipListView[]
 }
 
 export interface Episode {
@@ -19,8 +73,38 @@ export interface Episode {
   platforms?: Platform[]
   themes?: string[]
   seriesName?: string
+  metrics: {
+    tracksCount: number
+    hasTranscript: boolean
+    clipsCount: number
+  }
   createdAt: string
   updatedAt: string
+}
+
+export interface UploadState {
+  id: string
+  episodeId: string
+  type: 'transcript' | 'track'
+  trackName?: string
+  filename: string
+  status: 'pending' | 'uploading' | 'processing' | 'completed' | 'failed'
+  progress: number
+  error?: string
+  startedAt: string
+  completedAt?: string
+}
+
+export interface Activity {
+  id: string
+  type: 'clip_detected' | 'clip_processed' | 'clip_failed' | 'preprocessing_completed' | 'preprocessing_failed' | 'status_changed'
+  title: string
+  message: string
+  episodeId: string
+  clipId?: string
+  isRead: boolean
+  createdAt: string
+  metadata?: Record<string, unknown>
 }
 
 export interface Team {

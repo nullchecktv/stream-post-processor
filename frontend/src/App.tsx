@@ -4,12 +4,14 @@ import { AuthProvider } from './contexts/AuthContext'
 import { UserProvider } from './contexts/UserContext'
 import { TeamProvider } from './contexts/TeamContext'
 import { ActivityProvider } from './contexts/ActivityContext'
+import { UploadProvider } from './contexts/UploadContext'
 import { SidebarProvider } from './contexts/SidebarContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthGuard } from './components/auth/AuthGuard'
 import { ProfileGuard } from './components/auth/ProfileGuard'
 import { TeamGuard } from './components/auth/TeamGuard'
 import { PageLayout } from './components/layout'
+import { EpisodeLayout } from './components/episodes/EpisodeLayout'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 
@@ -20,7 +22,10 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const EpisodesListPage = lazy(() => import('./pages/EpisodesListPage'))
-const EpisodeDetailPage = lazy(() => import('./pages/EpisodeDetailPage'))
+const EpisodeOverviewPage = lazy(() => import('./pages/EpisodeOverviewPage'))
+const EpisodeDetailsPage = lazy(() => import('./pages/EpisodeDetailsPage'))
+const EpisodeContentPage = lazy(() => import('./pages/EpisodeContentPage'))
+const EpisodeClipsPage = lazy(() => import('./pages/EpisodeClipsPage'))
 const TeamsListPage = lazy(() => import('./pages/TeamsListPage'))
 const TeamDetailPage = lazy(() => import('./pages/TeamDetailPage'))
 const TeamSettingsPage = lazy(() => import('./pages/TeamSettingsPage'))
@@ -38,7 +43,8 @@ function App() {
             <UserProvider>
               <TeamProvider>
                 <ActivityProvider>
-                  <SidebarProvider>
+                  <UploadProvider>
+                    <SidebarProvider>
                     <Suspense fallback={<LoadingSpinner variant="page" />}>
                       <Routes>
                         <Route path="/login" element={<LoginPage />} />
@@ -55,7 +61,12 @@ function App() {
                               <Route path="/profile" element={<ProfilePage />} />
                               <Route element={<TeamGuard />}>
                                 <Route path="/episodes" element={<EpisodesListPage />} />
-                                <Route path="/episodes/:id" element={<EpisodeDetailPage />} />
+                                <Route path="/episodes/:id" element={<EpisodeLayout />}>
+                                  <Route path="overview" element={<EpisodeOverviewPage />} />
+                                  <Route path="details" element={<EpisodeDetailsPage />} />
+                                  <Route path="uploads" element={<EpisodeContentPage />} />
+                                  <Route path="clips" element={<EpisodeClipsPage />} />
+                                </Route>
                                 <Route path="/teams/:teamId" element={<TeamDetailPage />} />
                                 <Route path="/teams/:teamId/settings" element={<TeamSettingsPage />} />
                                 <Route path="/teams/:teamId/members" element={<TeamMembersPage />} />
@@ -66,7 +77,8 @@ function App() {
                         </Route>
                       </Routes>
                     </Suspense>
-                  </SidebarProvider>
+                    </SidebarProvider>
+                  </UploadProvider>
                 </ActivityProvider>
               </TeamProvider>
             </UserProvider>

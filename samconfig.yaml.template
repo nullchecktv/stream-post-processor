@@ -11,7 +11,9 @@ dev:
       parameter_overrides: [
         "EnvironmentHash=$ENV_HASH",
         "EncryptionKey=$ENCRYPTION_KEY",
-        "EnvironmentName=$ENV_NAME"
+        "EnvironmentName=$ENV_NAME",
+        "MomentoApiKey=$MOMENTO_API_KEY",
+        "MomentoCacheName=$CACHE_NAME"
       ]
   global:
     parameters:

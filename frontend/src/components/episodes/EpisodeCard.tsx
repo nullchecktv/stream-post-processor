@@ -1,24 +1,27 @@
 import { useNavigate } from 'react-router-dom'
 import type { EpisodeListView } from '../../types'
 import { formatDate } from '../../utils/date'
+import { EpisodeStatusChip } from './EpisodeStatusChip'
 
 interface EpisodeCardProps {
   episode: EpisodeListView
   variant?: 'default' | 'compact'
+  tracksCount?: number
+  transcriptCount?: number
+  clipsCount?: number
 }
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-gradient-to-br from-gray-100 to-gray-50 text-gray-700 border border-gray-200 shadow-sm',
-  processing: 'bg-gradient-to-br from-blue-100 to-blue-50 text-blue-700 border border-blue-200 shadow-sm',
-  published: 'bg-gradient-to-br from-primary/20 to-primary/10 text-primary-dark border border-primary/30 shadow-sm',
-  archived: 'bg-gradient-to-br from-amber-100 to-amber-50 text-amber-700 border border-amber-200 shadow-sm',
-}
-
-export function EpisodeCard({ episode, variant = 'default' }: EpisodeCardProps) {
+export function EpisodeCard({
+  episode,
+  variant = 'default',
+  tracksCount = 0,
+  transcriptCount = 0,
+  clipsCount = 0
+}: EpisodeCardProps) {
   const navigate = useNavigate()
 
   const handleClick = () => {
-    navigate(`/episodes/${episode.id}`)
+    navigate(`/episodes/${episode.id}/overview`)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -46,7 +49,7 @@ export function EpisodeCard({ episode, variant = 'default' }: EpisodeCardProps) 
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-primary transition-colors">
-              {episode.title}
+              Episode #{episode.episodeNumber}: {episode.title}
             </h3>
             {episode.airDate && (
               <p className="text-xs text-gray-500 mt-1 flex items-center">
@@ -59,13 +62,7 @@ export function EpisodeCard({ episode, variant = 'default' }: EpisodeCardProps) 
           </div>
         </div>
         {episode.status && (
-          <span
-            className={`ml-3 px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap ${
-              statusColors[episode.status] || statusColors.draft
-            }`}
-          >
-            {episode.status}
-          </span>
+          <EpisodeStatusChip status={episode.status as any} size="sm" />
         )}
       </div>
     )
@@ -84,43 +81,23 @@ export function EpisodeCard({ episode, variant = 'default' }: EpisodeCardProps) 
       <div className="relative p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 mr-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-medium text-gray-500">Episode #{episode.episodeNumber}</span>
+            </div>
             <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-2 line-clamp-2">
               {episode.title}
             </h3>
           </div>
           {episode.status && (
-            <span
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap ${
-                statusColors[episode.status] || statusColors.draft
-              }`}
-            >
-              {episode.status}
-            </span>
+            <EpisodeStatusChip status={episode.status as any} size="md" showIcon />
           )}
         </div>
 
-        {episode.airDate && (
-          <div className="flex items-center text-sm text-gray-600 mb-6 bg-gray-50 rounded-lg px-3 py-2 w-fit">
-            <svg
-              className="w-4 h-4 mr-2 text-primary"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span className="font-medium">{formatDate(episode.airDate)}</span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center space-x-2 text-gray-500">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary/10 to-primary-light/10 rounded-lg flex items-center justify-center">
+        <div className="space-y-3 mb-4">
+          {episode.airDate && (
+            <div className="flex items-center text-sm text-gray-600">
               <svg
-                className="w-4 h-4 text-primary"
+                className="w-4 h-4 mr-2 text-gray-400"
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -128,24 +105,52 @@ export function EpisodeCard({ episode, variant = 'default' }: EpisodeCardProps) 
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
+              <span>Aired: {formatDate(episode.airDate)}</span>
             </div>
-            <span className="text-sm font-medium">Episode</span>
+          )}
+
+          {episode.platforms && episode.platforms.length > 0 && (
+            <div className="flex items-center text-sm text-gray-600">
+              <svg
+                className="w-4 h-4 mr-2 text-gray-400"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+              <span>Platforms: {episode.platforms.join(', ')}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 pt-4 border-t border-gray-100 text-sm text-gray-600">
+          <div className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-gray-400" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span>{tracksCount} track{tracksCount !== 1 ? 's' : ''}</span>
           </div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleClick()
-            }}
-            className="flex items-center text-sm text-primary hover:text-primary-dark font-semibold transition-all group-hover:translate-x-1"
-          >
-            View Details
-            <svg className="w-4 h-4 ml-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M9 5l7 7-7 7" />
+          <div className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-gray-400" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-          </button>
+            <span>{transcriptCount > 0 ? 'Transcript' : 'No transcript'}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-gray-400" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{clipsCount} clip{clipsCount !== 1 ? 's' : ''}</span>
+          </div>
         </div>
       </div>
     </div>

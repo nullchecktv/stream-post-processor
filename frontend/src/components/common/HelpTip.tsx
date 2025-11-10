@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
 import { useHelpTips } from '../../hooks/useHelpTips'
 
@@ -12,12 +13,57 @@ interface HelpTipProps {
 export function HelpTip({ id, content, position = 'bottom', children }: HelpTipProps) {
   const { isDismissed, dismissTip } = useHelpTips()
   const [isVisible, setIsVisible] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0 })
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isDismissed(id)) {
       setTimeout(() => setIsVisible(true), 500)
     }
   }, [id, isDismissed])
+
+  useEffect(() => {
+    if (isVisible && containerRef.current) {
+      const updatePosition = () => {
+        const rect = containerRef.current?.getBoundingClientRect()
+        if (rect) {
+          const offset = 12
+          let top = 0
+          let left = 0
+
+          switch (position) {
+            case 'top':
+              top = rect.top - offset
+              left = rect.left + rect.width / 2
+              break
+            case 'bottom':
+              top = rect.bottom + offset
+              left = rect.left + rect.width / 2
+              break
+            case 'left':
+              top = rect.top + rect.height / 2
+              left = rect.left - offset
+              break
+            case 'right':
+              top = rect.top + rect.height / 2
+              left = rect.right + offset
+              break
+          }
+
+          setCoords({ top, left })
+        }
+      }
+
+      updatePosition()
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true)
+        window.removeEventListener('resize', updatePosition)
+      }
+    }
+  }, [isVisible, position])
 
   const handleDismiss = () => {
     setIsVisible(false)
@@ -28,53 +74,57 @@ export function HelpTip({ id, content, position = 'bottom', children }: HelpTipP
     return <>{children}</>
   }
 
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+  const transformClasses = {
+    top: '-translate-x-1/2 -translate-y-full',
+    bottom: '-translate-x-1/2',
+    left: '-translate-x-full -translate-y-1/2',
+    right: '-translate-y-1/2',
   }
 
   const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-primary',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-primary',
-    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-primary',
-    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-primary',
+    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-white',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-white',
+    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-white',
+    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-white',
   }
 
   return (
-    <div className="relative inline-block">
-      {children}
-      {isVisible && (
+    <>
+      <div ref={containerRef} className="inline-block w-full">
+        {children}
+      </div>
+      {isVisible && createPortal(
         <div
-          className={`absolute z-50 ${positionClasses[position]} animate-fadeIn`}
+          className="fixed z-50 pointer-events-none"
+          style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
           role="tooltip"
         >
-          <div className="bg-white text-gray-800 text-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-64 relative animate-scaleIn">
-            <button
-              onClick={handleDismiss}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
-              aria-label="Dismiss help tip"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+          <div className={`${transformClasses[position]} animate-fadeIn pointer-events-auto`}>
+            <div className="bg-white text-gray-800 text-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-64 relative animate-scaleIn">
+              <button
+                onClick={handleDismiss}
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                aria-label="Dismiss help tip"
               >
-                <path d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="pr-6">{content}</div>
-            <div
-              className={`absolute w-0 h-0 border-8 ${arrowClasses[position].replace('border-t-primary', 'border-t-white').replace('border-b-primary', 'border-b-white').replace('border-l-primary', 'border-l-white').replace('border-r-primary', 'border-r-white')}`}
-            />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="pr-6">{content}</div>
+              <div className={`absolute w-0 h-0 border-8 ${arrowClasses[position]}`} />
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }

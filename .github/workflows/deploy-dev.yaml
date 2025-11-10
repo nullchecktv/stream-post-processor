@@ -54,4 +54,5 @@ jobs:
       STACK_NAME: babbling-brook-dev
       ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
       ENV_NAME: ${{ needs.prepare-deployment.outputs.env_name }}
+      CACHE_NAME: nullcheck-dev
     secrets: inherit

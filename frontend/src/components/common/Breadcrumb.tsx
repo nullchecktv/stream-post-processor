@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 import { ChevronRight, Home } from 'lucide-react'
 import { useTeams } from '../../hooks/useTeams'
+import { useState, useEffect } from 'react'
+import { episodesApi } from '../../api/episodes'
 
 interface BreadcrumbItem {
   label: string
@@ -10,6 +12,23 @@ interface BreadcrumbItem {
 export function Breadcrumb() {
   const location = useLocation()
   const { teams } = useTeams()
+  const [episodeTitle, setEpisodeTitle] = useState<string | null>(null)
+
+  useEffect(() => {
+    const pathSegments = location.pathname.split('/').filter(Boolean)
+    const episodeIndex = pathSegments.indexOf('episodes')
+
+    if (episodeIndex !== -1 && pathSegments[episodeIndex + 1]) {
+      const episodeId = pathSegments[episodeIndex + 1]
+      if (episodeId !== 'overview' && episodeId !== 'details' && episodeId !== 'uploads' && episodeId !== 'clips') {
+        episodesApi.get(episodeId)
+          .then(episode => setEpisodeTitle(episode.title))
+          .catch(() => setEpisodeTitle(null))
+      }
+    } else {
+      setEpisodeTitle(null)
+    }
+  }, [location.pathname])
 
   const generateBreadcrumbs = (): BreadcrumbItem[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -40,8 +59,19 @@ export function Breadcrumb() {
           label: team?.name || 'Team',
           path: `/teams/${segment}`
         })
-      } else if (pathSegments[i - 1] === 'episodes') {
-        breadcrumbs.push({ label: 'Episode Details' })
+      } else if (pathSegments[i - 1] === 'episodes' && segment !== 'overview' && segment !== 'details' && segment !== 'uploads' && segment !== 'clips') {
+        breadcrumbs.push({
+          label: episodeTitle || 'Episode',
+          path: `/episodes/${segment}/overview`
+        })
+      } else if (segment === 'overview' && pathSegments[i - 1]) {
+        breadcrumbs.push({ label: 'Overview' })
+      } else if (segment === 'details' && pathSegments[i - 1]) {
+        breadcrumbs.push({ label: 'Details' })
+      } else if (segment === 'uploads' && pathSegments[i - 1]) {
+        breadcrumbs.push({ label: 'Uploads' })
+      } else if (segment === 'clips' && pathSegments[i - 1]) {
+        breadcrumbs.push({ label: 'Clips' })
       }
     }
 

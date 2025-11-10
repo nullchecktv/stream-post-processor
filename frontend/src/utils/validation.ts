@@ -4,7 +4,7 @@ export const EpisodeSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
   episodeNumber: z.number().int().positive('Episode number must be positive'),
   description: z.string().max(1000, 'Description must be less than 1000 characters').optional(),
-  airDate: z.string().datetime().optional(),
+  airDate: z.string().optional(),
   platforms: z.array(z.enum(['linkedin live', 'X', 'twitch', 'youtube'])).optional(),
   themes: z.array(z.string()).optional(),
   seriesName: z.string().max(100, 'Series name must be less than 100 characters').optional(),
