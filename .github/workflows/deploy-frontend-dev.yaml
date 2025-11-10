@@ -19,7 +19,6 @@ jobs:
     name: Prepare Deployment
     runs-on: ubuntu-latest
     outputs:
-      env_hash: ${{ steps.prepare-parameters.outputs.env_hash }}
       backend_stack_name: ${{ steps.prepare-parameters.outputs.backend_stack_name }}
       frontend_stack_name: ${{ steps.prepare-parameters.outputs.frontend_stack_name }}
       infra_changed: ${{ steps.detect-changes.outputs.infra_changed }}
@@ -44,11 +43,9 @@ jobs:
         id: prepare-parameters
         run: |
           ENV_DESCRIPTOR="env-${{ github.actor }}"
-          ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
           BACKEND_STACK_NAME="babbling-brook-dev"
           FRONTEND_STACK_NAME="babbling-brook-dev-frontend-dev"
 
-          echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
           echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
           echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
 
@@ -71,7 +68,6 @@ jobs:
         working-directory: frontend
         env:
           STACK_NAME: ${{ needs.prepare-deployment.outputs.frontend_stack_name }}
-          ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml
           echo "Generated samconfig.yaml:"
