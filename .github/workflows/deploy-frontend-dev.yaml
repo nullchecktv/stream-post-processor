@@ -198,4 +198,3 @@ jobs:
           ### 📝 Notes
           - This is the **dev** environment
           - Connected to the **dev backend** environment
-          - Infrastructure changes: ${{ needs.prepare-deployment.outputs.infra_changed }}
