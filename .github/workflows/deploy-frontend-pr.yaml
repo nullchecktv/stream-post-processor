@@ -54,7 +54,7 @@ jobs:
   deploy-infrastructure:
     name: Deploy Infrastructure
     needs: [prepare-deployment]
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
+    # if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -91,7 +91,7 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     needs: [prepare-deployment, deploy-infrastructure]
-    if: always() && needs.prepare-deployment.result == 'success' && needs.deploy-infrastructure.result == 'success'
+    # if: always() && needs.prepare-deployment.result == 'success' && needs.deploy-infrastructure.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
