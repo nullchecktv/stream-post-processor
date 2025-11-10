@@ -47,7 +47,8 @@ export const handler = async (event) => {
     const now = new Date().toISOString();
     const updatedProfile = {
       ...existingProfile,
-      updatedAt: now
+      updatedAt: now,
+      activeTeamId: existingProfile.activeTeamId || null
     };
 
     if (data.name !== undefined) {

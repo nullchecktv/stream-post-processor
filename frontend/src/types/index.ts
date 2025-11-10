@@ -62,6 +62,42 @@ export interface UserProfile {
   updatedAt: string
 }
 
+export interface TeamMember {
+  userId: string
+  email: string
+  name?: string
+  role: 'owner' | 'administrator' | 'member'
+  status: 'active' | 'pending'
+  joinedAt: string
+  invitedBy?: string
+  inviterName?: string
+}
+
+export interface PendingInvitation {
+  email: string
+  role: 'administrator' | 'member'
+  invitedBy: string
+  inviterName: string
+  invitedAt: string
+  expiresAt: string
+}
+
+export interface Notification {
+  id: string
+  type: 'team_invitation' | 'member_added' | 'member_removed' | 'role_changed' | 'clip_processed'
+  title: string
+  message: string
+  data?: {
+    teamId?: string
+    teamName?: string
+    inviterName?: string
+    invitationId?: string
+    [key: string]: unknown
+  }
+  isRead: boolean
+  createdAt: string
+}
+
 export interface ApiError {
   error: string
   message: string

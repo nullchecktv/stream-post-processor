@@ -8,10 +8,12 @@ import { SidebarItem } from './SidebarItem'
 import { SidebarSection } from './SidebarSection'
 import { SidebarLabel } from './SidebarLabel'
 import { Home, Video, Users, Settings } from 'lucide-react'
+import { useActivity } from '../../hooks/useActivity'
 
 export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar()
   const { profile } = useUser()
+  const { unreadCount } = useActivity()
   const navigate = useNavigate()
   const labels = useSidebarLabels()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -91,8 +93,10 @@ export function Sidebar() {
           ${sidebarWidth} ${mobileClasses}
         `}
         style={{ height: 'calc(100vh - 4rem)' }}
-        onMouseEnter={() => !isMobile && isCollapsed && setShowExpandButton(true)}
-        onMouseLeave={() => !isMobile && isCollapsed && setShowExpandButton(false)}
+        onMouseEnter={() => { if (!isMobile) setShowExpandButton(true) }}
+        onMouseLeave={() => { if (!isMobile) setShowExpandButton(false) }}
+        role="navigation"
+        aria-label="Main navigation"
       >
         {!isMobile && isCollapsed && showExpandButton && (
           <button
@@ -104,19 +108,29 @@ export function Sidebar() {
           </button>
         )}
 
+        {!isMobile && !isCollapsed && showExpandButton && (
+          <button
+            onClick={toggleSidebar}
+            className="absolute left-full top-1/2 -translate-y-1/2 bg-white border border-l-0 border-gray-200 rounded-r-lg px-1.5 py-8 hover:bg-gray-50 transition-all shadow-md z-50"
+            aria-label="Collapse sidebar"
+          >
+            <ChevronsLeft className="w-4 h-4 text-gray-600" />
+          </button>
+        )}
+
         {activeTeam && (
           <div className={`py-4 border-b border-gray-200 ${isCollapsed ? 'flex justify-center' : 'px-4'}`}>
             {isCollapsed ? (
               <button
                 onClick={() => navigate(`/teams/${activeTeam.teamId}`)}
-                className="w-10 h-10 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 hover:bg-gray-800 transition-colors"
+                className="w-10 h-10 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 hover:bg-gray-800 transition-colors cursor-pointer"
               >
                 {activeTeam.name.charAt(0).toUpperCase()}
               </button>
             ) : (
               <button
                 onClick={() => navigate(`/teams/${activeTeam.teamId}`)}
-                className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
               >
                 <div className="w-10 h-10 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0">
                   {activeTeam.name.charAt(0).toUpperCase()}
@@ -127,23 +141,16 @@ export function Sidebar() {
                   </div>
                   <div className="text-xs text-gray-500">Team Workspace</div>
                 </div>
-                <ChevronsLeft
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    toggleSidebar()
-                  }}
-                  className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-pointer"
-                />
               </button>
             )}
           </div>
         )}
 
-        <div className="px-3 py-3">
+        <div className="px-3 py-2">
           {isCollapsed ? (
             <button
               onClick={() => navigate('/profile')}
-              className="w-full flex items-center justify-center p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
               aria-label="User profile"
             >
               <div
@@ -156,7 +163,7 @@ export function Sidebar() {
           ) : (
             <button
               onClick={() => navigate('/profile')}
-              className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
             >
               <div
                 className="w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-medium flex-shrink-0"
@@ -168,6 +175,9 @@ export function Sidebar() {
                 <div className="text-sm font-medium text-gray-900 truncate">
                   {profile?.name || 'User'}
                 </div>
+                {profile?.email && (
+                  <div className="text-xs text-gray-500 truncate">{profile.email}</div>
+                )}
               </div>
             </button>
           )}
@@ -176,28 +186,34 @@ export function Sidebar() {
         <div className="px-3 py-2 border-b border-gray-200">
           {isCollapsed ? (
             <button
-              className="w-full flex items-center justify-center py-3 text-gray-700 relative"
+              onClick={() => navigate('/activity')}
+              className="w-full flex items-center justify-center py-3 text-gray-700 relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg"
               aria-label="Activity"
             >
               <Activity className="w-7 h-7" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
             </button>
           ) : (
             <button
-              className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-700"
+              onClick={() => navigate('/activity')}
+              className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
             >
               <div className="flex items-center gap-3">
                 <Activity className="w-6 h-6" />
                 <span className="text-sm font-medium">Activity</span>
               </div>
-              <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-semibold rounded-full">
-                7
-              </span>
+              {unreadCount > 0 && (
+                <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-semibold rounded-full">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           )}
         </div>
 
-        <nav className="flex-1 py-4 overflow-y-auto">
+        <nav className="flex-1 py-4 overflow-y-auto" aria-label="Primary navigation">
           <SidebarSection title="PAGES" isCollapsed={isCollapsed}>
             <SidebarItem
               to="/"

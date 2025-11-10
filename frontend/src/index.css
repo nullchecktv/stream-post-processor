@@ -1,6 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #5B8C5A;
+  --color-primary-light: #7BA879;
+  --color-primary-dark: #4A7349;
+  --color-accent: #E6F3D4;
+  --color-success: #E6F3D4;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+}
+
 @layer base {
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -89,6 +100,20 @@
     }
   }
 
+  @keyframes pop {
+    0% {
+      transform: scale(0.9);
+      opacity: 0.6;
+    }
+    60% {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
   .animate-fadeIn {
     animation: fadeIn 0.2s ease-out;
   }
@@ -115,6 +140,10 @@
 
   .animate-pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-pop {
+    animation: pop 150ms ease-out;
   }
 
   .transition-all {
