@@ -16,12 +16,18 @@ Parameters:
     Default: main
     Description: Git branch to deploy
 
+  GitHubPAT:
+    Type: String
+    NoEcho: true
+    Description: Personal Access Token to give Amplify access to GitHub hooks
+
 Resources:
   AmplifyApp:
     Type: AWS::Amplify::App
     Properties:
       Name: babbling-brook
       Repository: !Sub 'https://github.com/${Repository}'
+      AccessToken: !Sub ${GitHubPAT}
       BuildSpec: |
         version: 1
         frontend:
