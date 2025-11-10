@@ -252,3 +252,70 @@ Separate IAM role for MediaConvert service:
 - **DynamoDB**: Point-in-time recovery can be enabled
 - **S3**: Versioning enabled for data protection
 - **Infrastructure**: SAM template serves as infrastructure backup
+
+## SAM Template Best Practices
+
+### Resource Naming
+
+**Avoid Explicit Resource Names**: Do not specify explicit names for AWS resources in SAM templates unless absolutely required for cross-stack references or external integrations.
+
+**Why**:
+- CloudFormation generates unique, deterministic names automatically
+- Explicit names can cause deployment conflicts when creating multiple environments
+- Explicit names prevent CloudFormation from replacing resources during updates
+- AWS-generated names include stack name, making resources traceable
+
+**When Names ARE Required**:
+- DynamoDB tables referenced by name in application code
+- S3 buckets with specific naming requirements for external integrations
+- Resources that must be referenced by external systems
+- Resources with compliance or naming convention requirements
+
+**When Names Should NOT Be Used**:
+- Lambda functions (use logical ID references)
+- IAM roles and policies (CloudFormation manages references)
+- CloudFront distributions (use outputs for URL)
+- S3 buckets for internal use only
+- Origin Access Controls
+- CloudWatch log groups
+- EventBridge rules
+
+**Example - Good**:
+```yaml
+Resources:
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+      # No BucketName specified - CloudFormation generates unique name
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            # Reference by attribute, not hardcoded name
+```
+
+**Example - Bad**:
+```yaml
+Resources:
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'my-app-frontend-${EnvironmentHash}'
+      # Explicit name causes issues with multiple environments
+```
+
+**Accessing Resources**:
+- Use `!Ref` for resource IDs
+- Use `!GetAtt` for resource attributes
+- Export outputs for cross-stack references
+- Use CloudFormation outputs to communicate resource identifiers to applications
+
+**Migration Strategy**:
+- For existing resources with explicit names, keep them to avoid recreation
+- For new resources, omit names and use CloudFormation references
+- Document any resources that require explicit names and why

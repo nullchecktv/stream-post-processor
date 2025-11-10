@@ -2,9 +2,9 @@
 
 ## Overview
 
-This design implements automated deployment of the React frontend application to AWS Amplify using AWS SAM infrastructure as code. The solution creates a separate CloudFormation stack for the frontend with its own GitHub Actions workflow, enabling independent deployment cycles for frontend and backend infrastructure while maintaining proper integration between them.
+This design implements automated deployment of the React frontend application to AWS using CloudFront and S3 with AWS SAM infrastructure as code. The solution creates a separate CloudFormation stack for the frontend with its own GitHub Actions workflow, enabling independent deployment cycles for frontend and backend infrastructure while maintaining proper integration between them.
 
-The design follows the existing project patterns: SAM for infrastructure definition, GitHub Actions for CI/CD, and environment-specific configuration using template substitution. The Amplify App will automatically build and deploy the React application whenever code is pushed to the repository, with proper environment variable injection for backend API connectivity.
+The design follows the existing project patterns: SAM for infrastructure definition, GitHub Actions for CI/CD, and environment-specific configuration. The GitHub Actions workflow builds the React application with environment variables injected at build time, uploads artifacts to S3, and invalidates the CloudFront cache to serve updated content immediately. This approach provides a fully automated, zero-manual-step deployment pipeline without the limitations of Amplify's GitHub App authentication.
 
 ## Architecture
 
@@ -13,13 +13,13 @@ The design follows the existing project patterns: SAM for infrastructure definit
 ```
 GitHub Repository
     ├── frontend/                    # React application code
-    │   ├── template.yaml           # Frontend SAM template (NEW)
-    │   ├── samconfig.yaml.template # Frontend SAM config template (NEW)
+    │   ├── template.yaml           # Frontend SAM template (UPDATED)
+    │   ├── samconfig.yaml.template # Frontend SAM config template (UPDATED)
     │   └── src/                    # React source code
     │
     ├── .github/workflows/
-    │   ├── deploy-dev.yaml         # Backend deployment (existing)
-    │   └── deploy-frontend-dev.yaml # Frontend infrastructure deployment (NEW)
+    │   ├── deploy-dev.yaml         # Backend deployment (UPDATED with path filters)
+    │   └── deploy-frontend-dev.yaml # Frontend deployment (UPDATED)
     │
     └── template.yaml               # Backend SAM template (existing)
 
@@ -27,30 +27,50 @@ Deployment Flow (Infrastructure Changes):
 1. Developer modifies frontend/template.yaml or samconfig.yaml.template
 2. GitHub Actions workflow triggers
 3. Workflow deploys frontend SAM template
-4. SAM creates/updates Amplify App configuration
-5. Amplify App continues with existing builds
+4. SAM creates/updates CloudFront distribution and S3 bucket
+5. Workflow skips build step (no code changes)
 
 Deployment Flow (Frontend Code Changes):
 1. Developer pushes frontend code changes (src/**)
-2. GitHub App notifies Amplify automatically
-3. Amplify builds and deploys React app
-4. No GitHub Actions workflow triggered
-5. Frontend connects to backend API via environment variables
+2. GitHub Actions workflow triggers
+3. Workflow retrieves backend outputs (API URL, Cognito config)
+4. Workflow builds React app with environment variables injected
+5. Workflow uploads build artifacts to S3
+6. Workflow invalidates CloudFront cache
+7. Updated frontend is immediately available
+
+Deployment Flow (Both Changes):
+1. Developer pushes both infrastructure and code changes
+2. GitHub Actions workflow triggers
+3. Workflow deploys SAM template first
+4. Workflow builds React app with environment variables
+5. Workflow uploads artifacts and invalidates cache
+
+Deployment Flow (Pull Request Preview):
+1. Developer creates or updates pull request with frontend changes
+2. GitHub Actions workflow triggers on pull_request event
+3. Workflow generates unique environment hash from GitHub actor name
+4. Workflow deploys temporary CloudFormation stack with unique resources
+5. Workflow builds React app connecting to dev backend
+6. Workflow uploads artifacts to temporary S3 bucket
+7. Workflow outputs temporary CloudFront URL for testing
+8. Developer tests changes in isolated preview environment
+9. After PR is closed/merged, developer manually deletes temporary stack
 ```
 
 ### Separation of Concerns
 
-**GitHub Actions Workflow** (Infrastructure):
-- Deploys CloudFormation stack for Amplify App
-- Updates Amplify App configuration (environment variables, build settings)
-- Manages infrastructure changes only
-- Triggers: Changes to `template.yaml`, `samconfig.yaml.template`, workflow file
+**Frontend GitHub Actions Workflow**:
+- Deploys CloudFormation stack for CloudFront and S3
+- Builds React application with environment variables
+- Uploads build artifacts to S3
+- Invalidates CloudFront cache
+- Triggers: Changes to `frontend/**` files
 
-**Amplify Automatic Builds** (Application):
-- Builds and deploys React application code
-- Handles all frontend code changes automatically
-- Creates PR preview environments
-- Triggers: Any push to connected branch or PR creation via GitHub App
+**Backend GitHub Actions Workflow**:
+- Deploys CloudFormation stack for API, Lambda, DynamoDB, etc.
+- Manages backend infrastructure only
+- Triggers: Changes to backend files (excludes `frontend/**` and `.github/workflows/deploy-frontend-dev.yaml`)
 
 ### Component Interaction
 
@@ -63,8 +83,13 @@ Deployment Flow (Frontend Code Changes):
 │  │                      │  │                              ││
 │  │ Triggers on:         │  │ Triggers on:                 ││
 │  │ - Backend changes    │  │ - frontend/** changes        ││
-│  │ - Manual dispatch    │  │ - .github/workflows/         ││
-│  │                      │  │   deploy-frontend-dev.yaml   ││
+│  │ - Manual dispatch    │  │ - Manual dispatch            ││
+│  │ Excludes:            │  │                              ││
+│  │ - frontend/**        │  │ Steps:                       ││
+│  │ - deploy-frontend-   │  │ 1. Deploy SAM (if infra)     ││
+│  │   dev.yaml           │  │ 2. Build React app           ││
+│  │                      │  │ 3. Upload to S3              ││
+│  │                      │  │ 4. Invalidate CloudFront     ││
 │  └──────────┬───────────┘  └──────────┬───────────────────┘│
 └─────────────┼──────────────────────────┼────────────────────┘
               │                          │
@@ -73,131 +98,156 @@ Deployment Flow (Frontend Code Changes):
     │ Backend Stack   │        │ Frontend Stack      │
     │ (SAM)           │        │ (SAM)               │
     │                 │        │                     │
-    │ - API Gateway   │◄───────┤ - Amplify App       │
-    │ - Lambda        │  API   │ - Branch Config     │
-    │ - DynamoDB      │  URL   │ - Build Settings    │
-    │ - Cognito       │◄───────┤ - Environment Vars  │
+    │ - API Gateway   │◄───────┤ - S3 Bucket         │
+    │ - Lambda        │  API   │ - CloudFront        │
+    │ - DynamoDB      │  URL   │ - OAC               │
+    │ - Cognito       │◄───────┤ - Bucket Policy     │
     └─────────────────┘  Auth  └─────────────────────┘
-                          Config
+                          Config        │
+                                        ▼
+                                ┌───────────────┐
+                                │ Build Process │
+                                │ (GitHub)      │
+                                │               │
+                                │ - npm ci      │
+                                │ - Vite build  │
+                                │ - S3 upload   │
+                                │ - CF invalidate│
+                                └───────────────┘
 ```
 
 ## Components and Interfaces
 
 ### 1. Frontend SAM Template (`frontend/template.yaml`)
 
-**Purpose**: Define AWS Amplify App infrastructure using CloudFormation
+**Purpose**: Define CloudFront and S3 infrastructure for static website hosting
 
 **Key Resources**:
-- `AmplifyApp`: Main Amplify application resource
-- `AmplifyBranch`: Branch configuration for automatic deployments and PR previews
-- `AmplifyDomain` (optional): Custom domain configuration
-
-**Pull Request Preview Features**:
-- Automatic preview deployments for every pull request
-- Unique URL for each PR (e.g., `https://pr-123.branch.amplifyapp.com`)
-- Preview environments automatically deleted when PR is closed
-- Isolated environment variables for preview deployments
+- `FrontendBucket`: S3 bucket for storing build artifacts
+- `CloudFrontOriginAccessControl`: OAC for secure S3 access
+- `CloudFrontDistribution`: CDN distribution for global content delivery
+- `BucketPolicy`: S3 bucket policy allowing CloudFront access only
 
 **Parameters**:
-- `BackendStackName`: Name of the backend stack to import outputs from
-- `Repository`: GitHub repository URL (format: owner/repo)
-- `Branch`: Git branch to deploy (default: main)
 - `EnvironmentHash`: Environment identifier for unique naming
 
-**Note on Authentication**: AWS Amplify uses the **GitHub App** authentication method instead of Personal Access Tokens. The GitHub App must be installed and authorized manually through the AWS Console or GitHub before CloudFormation deployment. This provides:
-- Fine-grained repository access control
-- No token expiration issues
-- Better security with OAuth-based authentication
-- Automatic token rotation by AWS
-
 **Outputs**:
-- `AmplifyAppId`: Amplify App ID
-- `AmplifyAppUrl`: Default Amplify hosting URL
-- `AmplifyBranchName`: Deployed branch name
+- `BucketName`: S3 bucket name for artifact uploads
+- `DistributionId`: CloudFront distribution ID for cache invalidation
+- `DistributionDomainName`: CloudFront domain name (URL)
+- `CloudFrontUrl`: Complete HTTPS URL for the frontend
 
 **Template Structure**:
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Frontend Amplify App deployment
+Description: Frontend CloudFront and S3 deployment
 
 Parameters:
-  BackendStackName:
-    Type: String
-    Description: Name of the backend CloudFormation stack
-  Repository:
-    Type: String
-    Description: GitHub repository (owner/repo)
-  Branch:
-    Type: String
-    Default: main
   EnvironmentHash:
     Type: String
+    Description: Environment identifier for unique naming
 
 Resources:
-  AmplifyApp:
-    Type: AWS::Amplify::App
+  FrontendBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      Name: !Sub 'content-engine-frontend-${EnvironmentHash}'
-      Repository: !Sub 'https://github.com/${Repository}'
-      # Note: AccessToken is omitted - GitHub App authentication is configured
-      # separately through AWS Console or GitHub. This provides better security
-      # and avoids token expiration issues.
-      BuildSpec: |
-        version: 1
-        frontend:
-          phases:
-            preBuild:
-              commands:
-                - cd frontend
-                - npm ci
-            build:
-              commands:
-                - npm run build
-          artifacts:
-            baseDirectory: frontend/dist
-            files:
-              - '**/*'
-          cache:
-            paths:
-              - frontend/node_modules/**/*
-      EnvironmentVariables:
-        - Name: VITE_API_URL
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-ApiUrl'
-        - Name: VITE_USER_POOL_ID
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolId'
-        - Name: VITE_USER_POOL_CLIENT_ID
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolClientId'
-        - Name: VITE_USER_POOL_DOMAIN
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolDomain'
-        - Name: VITE_AWS_REGION
-          Value: !Ref AWS::Region
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
 
-  AmplifyBranch:
-    Type: AWS::Amplify::Branch
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
     Properties:
-      AppId: !GetAtt AmplifyApp.AppId
-      BranchName: !Ref Branch
-      EnableAutoBuild: true
-      EnablePullRequestPreview: true
-      PullRequestEnvironmentName: preview
+      OriginAccessControlConfig:
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref CloudFrontOriginAccessControl
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          Compress: true
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+          MinTTL: 0
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
 
 Outputs:
-  AmplifyAppId:
-    Description: Amplify App ID
-    Value: !GetAtt AmplifyApp.AppId
+  BucketName:
+    Description: S3 bucket name for frontend artifacts
+    Value: !Ref FrontendBucket
     Export:
-      Name: !Sub '${AWS::StackName}-AmplifyAppId'
-  
-  AmplifyAppUrl:
-    Description: Amplify App URL
-    Value: !Sub 'https://${Branch}.${AmplifyApp.DefaultDomain}'
+      Name: !Sub '${AWS::StackName}-BucketName'
+
+  DistributionId:
+    Description: CloudFront distribution ID
+    Value: !Ref CloudFrontDistribution
     Export:
-      Name: !Sub '${AWS::StackName}-AmplifyAppUrl'
+      Name: !Sub '${AWS::StackName}-DistributionId'
+
+  DistributionDomainName:
+    Description: CloudFront distribution domain name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionDomainName'
+
+  CloudFrontUrl:
+    Description: CloudFront URL for the frontend
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontUrl'
 ```
 
 ### 2. Frontend SAM Configuration Template (`frontend/samconfig.yaml.template`)
@@ -207,9 +257,6 @@ Outputs:
 **Template Variables**:
 - `${STACK_NAME}`: Frontend stack name
 - `${ENV_HASH}`: Environment hash for unique naming
-- `${BACKEND_STACK_NAME}`: Backend stack name for cross-stack references
-- `${REPOSITORY}`: GitHub repository
-- `${BRANCH}`: Git branch
 
 **Structure**:
 ```yaml
@@ -222,9 +269,6 @@ dev:
       region: us-east-1
       capabilities: CAPABILITY_IAM
       parameter_overrides:
-        BackendStackName=${BACKEND_STACK_NAME}
-        Repository=${REPOSITORY}
-        Branch=${BRANCH}
         EnvironmentHash=${ENV_HASH}
       confirm_changeset: false
       resolve_s3: true
@@ -232,170 +276,221 @@ dev:
 
 ### 3. Frontend Deployment Workflow (`.github/workflows/deploy-frontend-dev.yaml`)
 
-**Purpose**: Automate frontend deployment on code changes
+**Purpose**: Automate frontend infrastructure deployment and application build/upload
 
 **Trigger Conditions**:
-- Push to main branch with changes to infrastructure files:
-  - `frontend/template.yaml`
-  - `frontend/samconfig.yaml.template`
+- Push to main branch with changes to any frontend files:
+  - `frontend/**` (all frontend files)
 - Changes to the workflow file itself
 - Manual workflow dispatch
 
-**Important**: The workflow only deploys infrastructure changes (SAM template). Amplify automatically handles all frontend code deployments via GitHub App integration. This means:
-- Frontend code changes (`frontend/src/**`) trigger Amplify builds automatically
-- Infrastructure changes trigger GitHub Actions to update the Amplify App configuration
-- No redundant deployments or CI/CD conflicts
+**Workflow Jobs**:
+
+1. **prepare-deployment**: Calculate environment parameters
+   - Generate environment hash from actor name
+   - Set backend stack name for environment variable retrieval
+   - Set frontend stack name
+   - Output parameters for subsequent jobs
+
+2. **deploy-infrastructure**: Deploy SAM template (conditional)
+   - Only runs if infrastructure files changed
+   - Generates samconfig.yaml from template
+   - Deploys CloudFormation stack
+   - Creates/updates S3 bucket and CloudFront distribution
+
+3. **build-and-deploy**: Build React app and upload to S3
+   - Retrieves backend stack outputs (API URL, Cognito config)
+   - Installs Node.js dependencies
+   - Builds React app with environment variables injected
+   - Uploads build artifacts to S3 bucket
+   - Invalidates CloudFront cache
+   - Waits for invalidation to complete
 
 **Workflow Steps**:
 1. Prepare deployment parameters (environment hash, stack names)
 2. Checkout repository
 3. Configure AWS credentials
-4. Generate samconfig.yaml from template
-5. Deploy frontend SAM template
-6. Output Amplify App URL
+4. [Conditional] Deploy SAM template if infrastructure changed
+5. Retrieve backend stack outputs
+6. Setup Node.js environment
+7. Install dependencies with npm ci
+8. Build React app with environment variables
+9. Upload build artifacts to S3
+10. Create CloudFront invalidation
+11. Wait for invalidation to complete
+12. Output CloudFront URL
 
-**Workflow Structure**:
+**Workflow Structure** (simplified):
 ```yaml
 name: Deploy Frontend (Dev)
-run-name: Deploy Frontend - ${{ github.actor }}
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - 'frontend/template.yaml'
-      - 'frontend/samconfig.yaml.template'
-      - '.github/workflows/deploy-frontend-dev.yaml'
-
-permissions:
-  id-token: write
-  contents: read
+    branches: [main]
+    paths: ['frontend/**', '.github/workflows/deploy-frontend-dev.yaml']
 
 jobs:
   prepare-deployment:
-    name: Prepare Deployment
-    runs-on: ubuntu-latest
+    # Calculate environment hash and stack names
     outputs:
-      env_hash: ${{ steps.prepare-parameters.outputs.env_hash }}
-      backend_stack_name: ${{ steps.prepare-parameters.outputs.backend_stack_name }}
-      frontend_stack_name: ${{ steps.prepare-parameters.outputs.frontend_stack_name }}
-    steps:
-      - name: Prepare parameters
-        id: prepare-parameters
-        run: |
-          ENV_DESCRIPTOR="env-${{ github.actor }}"
-          ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
-          BACKEND_STACK_NAME="stream-post-processor-dev"
-          FRONTEND_STACK_NAME="stream-post-processor-frontend-dev"
-          
-          echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
-          echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
-          echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
+      env_hash, backend_stack_name, frontend_stack_name, infra_changed
 
-  deploy:
-    name: Deploy Frontend
+  deploy-infrastructure:
     needs: [prepare-deployment]
-    runs-on: ubuntu-latest
+    if: needs.prepare-deployment.outputs.infra_changed == 'true'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - Generate samconfig.yaml
+      - Deploy SAM template (CloudFront + S3)
 
-      - name: Configure AWS
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          aws-region: us-east-1
-          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
-
-      - name: Generate samconfig
-        working-directory: frontend
-        env:
-          STACK_NAME: ${{ needs.prepare-deployment.outputs.frontend_stack_name }}
-          ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
-          BACKEND_STACK_NAME: ${{ needs.prepare-deployment.outputs.backend_stack_name }}
-          REPOSITORY: ${{ github.repository }}
-          BRANCH: main
-        run: |
-          envsubst < samconfig.yaml.template > samconfig.yaml
-          echo "Generated samconfig.yaml:"
-          cat samconfig.yaml
-
-      - name: Deploy frontend stack
-        working-directory: frontend
-        run: |
-          sam build --template-file template.yaml
-          
-          sam deploy \
-            --config-file samconfig.yaml \
-            --config-env dev \
-            --s3-bucket "${{ secrets.ARTIFACTS_BUCKET_NAME }}" \
-            --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
-            --no-fail-on-empty-changeset
-
-      - name: Get Amplify URL
-        run: |
-          AMPLIFY_URL=$(aws cloudformation describe-stacks \
-            --stack-name ${{ needs.prepare-deployment.outputs.frontend_stack_name }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`AmplifyAppUrl`].OutputValue' \
-            --output text)
-          
-          echo "# Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "* Frontend URL: $AMPLIFY_URL" >> $GITHUB_STEP_SUMMARY
+  build-and-deploy:
+    needs: [prepare-deployment, deploy-infrastructure]
+    if: always() && needs.prepare-deployment.result == 'success'
+    steps:
+      - Retrieve backend outputs (API URL, Cognito)
+      - Setup Node.js
+      - Install dependencies (npm ci)
+      - Build React app with env vars
+      - Upload to S3
+      - Invalidate CloudFront cache
+      - Output CloudFront URL
 ```
 
-### 4. Backend Template Updates
+### 4. Pull Request Preview Workflow (`.github/workflows/deploy-frontend-pr.yaml`)
 
-**Purpose**: Export outputs for frontend stack consumption
+**Purpose**: Deploy temporary preview environments for pull requests
 
-**Required Changes to `template.yaml`**:
+**Trigger Conditions**:
+- Pull request opened, synchronized, or reopened
+- Changes to frontend files only
+- Manual workflow dispatch for cleanup
+
+**Key Differences from Main Workflow**:
+- Uses `github.actor` for environment hash (unique per developer)
+- Stack name includes PR number or actor name for uniqueness
+- Connects to dev backend stack (no separate backend needed)
+- No automatic cleanup (manual stack deletion required)
+
+**Workflow Structure**:
+```yaml
+name: Deploy Frontend PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths: ['frontend/**']
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - deploy
+          - cleanup
+
+jobs:
+  prepare-deployment:
+    outputs:
+      env_hash: # From github.actor
+      backend_stack_name: babbling-brook-dev
+      frontend_stack_name: babbling-brook-frontend-pr-${env_hash}
+      
+  deploy-infrastructure:
+    # Same as main workflow but with PR-specific stack name
+    
+  build-and-deploy:
+    # Same as main workflow
+    # Outputs PR preview URL in comment on PR
+    
+  cleanup:
+    if: github.event.inputs.action == 'cleanup'
+    steps:
+      - Empty S3 bucket
+      - Delete CloudFormation stack
+```
+
+**PR Comment Integration**:
+- Workflow posts comment on PR with preview URL
+- Comment includes instructions for cleanup
+- Updates comment if preview is redeployed
+
+**Cleanup Process**:
+- Manual workflow dispatch with cleanup action
+- Empties S3 bucket before stack deletion
+- Deletes CloudFormation stack and all resources
+
+### 5. Backend Workflow Updates (`.github/workflows/deploy-dev.yaml`)
+
+**Purpose**: Prevent backend deployments when only frontend changes
+
+**Required Changes**:
+```yaml
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '**'
+      - '!frontend/**'
+      - '!.github/workflows/deploy-frontend-dev.yaml'
+```
+
+**Explanation**:
+- `'**'`: Include all files by default
+- `'!frontend/**'`: Exclude all frontend directory files
+- `'!.github/workflows/deploy-frontend-dev.yaml'`: Exclude frontend workflow file
+
+This ensures the backend workflow only triggers when backend files change, avoiding unnecessary deployments.
+
+### 5. Backend Template Updates
+
+**Purpose**: Export outputs for frontend to retrieve at build time
+
+**Note**: Backend outputs are already exported in the current template. The frontend workflow will retrieve these using AWS CLI commands rather than CloudFormation imports, allowing the frontend to be built and deployed independently without tight coupling.
+
+**Existing Exports** (no changes needed):
 ```yaml
 Outputs:
   ApiUrl:
     Description: API Gateway URL
     Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/api"
     Export:
-      Name: !Sub '${AWS::StackName}-ApiUrl'  # ADD Export
+      Name: !Sub '${AWS::StackName}-ApiUrl'
 
   UserPoolId:
     Description: Cognito User Pool ID
     Value: !Ref CognitoUserPool
     Export:
-      Name: !Sub '${AWS::StackName}-UserPoolId'  # ADD Export
+      Name: !Sub '${AWS::StackName}-UserPoolId'
 
   UserPoolClientId:
     Description: Cognito User Pool Client ID
     Value: !Ref UserPoolClient
     Export:
-      Name: !Sub '${AWS::StackName}-UserPoolClientId'  # ADD Export
+      Name: !Sub '${AWS::StackName}-UserPoolClientId'
 
   UserPoolDomain:
     Description: Cognito User Pool Domain
     Value: !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com"
     Export:
-      Name: !Sub '${AWS::StackName}-UserPoolDomain'  # ADD Export
+      Name: !Sub '${AWS::StackName}-UserPoolDomain'
 ```
 
-### 5. Frontend Environment Configuration
+### 6. Frontend Environment Configuration
 
 **Purpose**: Configure React app to use environment variables
 
-**Updates to `frontend/src/aws-exports.ts`**:
+**No Changes Required**: The frontend already uses `import.meta.env.VITE_*` environment variables. The workflow will inject these at build time.
+
+**Existing Configuration** (`frontend/src/aws-exports.ts`):
 ```typescript
 const awsConfig = {
   Auth: {
     Cognito: {
       userPoolId: import.meta.env.VITE_USER_POOL_ID || '',
       userPoolClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID || '',
-      loginWith: {
-        oauth: {
-          domain: import.meta.env.VITE_USER_POOL_DOMAIN?.replace('https://', '') || '',
-          scopes: ['email', 'openid', 'profile'],
-          redirectSignIn: [window.location.origin],
-          redirectSignOut: [window.location.origin],
-          responseType: 'code',
-        },
-      },
+      // ... rest of config
     },
   },
   API: {
@@ -405,41 +500,46 @@ const awsConfig = {
     },
   },
 };
-
-export default awsConfig;
 ```
 
-**Updates to `frontend/src/api/client.ts`**:
+**Existing Configuration** (`frontend/src/api/client.ts`):
 ```typescript
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+```
+
+**Environment Variable Injection** (in workflow):
+```bash
+# Retrieve from backend stack
+VITE_API_URL=$(aws cloudformation describe-stacks ...)
+VITE_USER_POOL_ID=$(aws cloudformation describe-stacks ...)
+# ... etc
+
+# Build with env vars
+npm run build
 ```
 
 ## Data Models
 
 ### GitHub Secrets Required
 
-**No New Secrets Required**: The solution uses GitHub App authentication instead of Personal Access Tokens, eliminating the need for token management in GitHub Secrets.
+**No New Secrets Required**: The solution uses existing GitHub secrets for AWS authentication.
 
 **Existing Secrets** (reused):
 - `PIPELINE_EXECUTION_ROLE`: IAM role for GitHub Actions
 - `CLOUDFORMATION_EXECUTION_ROLE`: IAM role for CloudFormation
 - `ARTIFACTS_BUCKET_NAME`: S3 bucket for SAM artifacts
 
-**GitHub App Setup** (one-time manual step):
-1. Install AWS Amplify GitHub App from: `https://github.com/apps/aws-amplify-us-east-1`
-2. Grant access to the repository
-3. AWS Amplify will automatically use the GitHub App for authentication
-4. GitHub App enables automatic PR preview deployments and status checks
+**No Manual Setup Required**: Unlike Amplify, this solution requires zero manual steps. Everything is automated through GitHub Actions and CloudFormation.
 
 ### CloudFormation Stack Relationships
 
 ```
-Backend Stack (stream-post-processor-dev)
+Backend Stack (babbling-brook-dev)
     ├── Exports:
-    │   ├── stream-post-processor-dev-ApiUrl
-    │   ├── stream-post-processor-dev-UserPoolId
-    │   ├── stream-post-processor-dev-UserPoolClientId
-    │   └── stream-post-processor-dev-UserPoolDomain
+    │   ├── babbling-brook-dev-ApiUrl
+    │   ├── babbling-brook-dev-UserPoolId
+    │   ├── babbling-brook-dev-UserPoolClientId
+    │   └── babbling-brook-dev-UserPoolDomain
     │
     └── Resources:
         ├── API Gateway
@@ -447,21 +547,42 @@ Backend Stack (stream-post-processor-dev)
         ├── DynamoDB Table
         └── Cognito User Pool
 
-Frontend Stack (stream-post-processor-frontend-dev)
-    ├── Imports:
-    │   ├── stream-post-processor-dev-ApiUrl
-    │   ├── stream-post-processor-dev-UserPoolId
-    │   ├── stream-post-processor-dev-UserPoolClientId
-    │   └── stream-post-processor-dev-UserPoolDomain
+Frontend Stack (babbling-brook-dev-frontend-dev)
+    ├── No CloudFormation Imports (loose coupling)
+    │   (Workflow retrieves backend outputs at build time)
     │
     ├── Exports:
-    │   ├── stream-post-processor-frontend-dev-AmplifyAppId
-    │   └── stream-post-processor-frontend-dev-AmplifyAppUrl
+    │   ├── babbling-brook-dev-frontend-dev-BucketName
+    │   ├── babbling-brook-dev-frontend-dev-DistributionId
+    │   ├── babbling-brook-dev-frontend-dev-DistributionDomainName
+    │   └── babbling-brook-dev-frontend-dev-CloudFrontUrl
     │
     └── Resources:
-        ├── Amplify App
-        └── Amplify Branch
+        ├── S3 Bucket (FrontendBucket)
+        ├── CloudFront Distribution
+        ├── Origin Access Control
+        └── Bucket Policy
+
+GitHub Actions Workflow
+    ├── Retrieves backend outputs at runtime:
+    │   ├── Query CloudFormation for ApiUrl
+    │   ├── Query CloudFormation for UserPoolId
+    │   ├── Query CloudFormation for UserPoolClientId
+    │   └── Query CloudFormation for UserPoolDomain
+    │
+    └── Injects as build-time environment variables:
+        ├── VITE_API_URL
+        ├── VITE_USER_POOL_ID
+        ├── VITE_USER_POOL_CLIENT_ID
+        ├── VITE_USER_POOL_DOMAIN
+        └── VITE_AWS_REGION
 ```
+
+**Key Design Decision**: The frontend stack does NOT use CloudFormation `Fn::ImportValue` to import backend outputs. Instead, the GitHub Actions workflow retrieves backend outputs at build time using AWS CLI. This provides:
+- **Loose coupling**: Frontend and backend stacks can be deployed independently
+- **Flexibility**: Can point frontend to different backend stacks (dev, staging, prod)
+- **No circular dependencies**: Backend can be updated without affecting frontend infrastructure
+- **Temporary environments**: Easy to create temporary frontend deployments pointing to any backend
 
 ## Error Handling
 

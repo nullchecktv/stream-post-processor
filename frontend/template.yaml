@@ -1,89 +1,110 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Frontend Amplify App deployment for livestream post-production platform
+Description: Frontend CloudFront and S3 deployment
 
 Parameters:
-  BackendStackName:
+  EnvironmentHash:
     Type: String
-    Description: Name of the backend CloudFormation stack for cross-stack references
-
-  Repository:
-    Type: String
-    Description: GitHub repository in owner/repo format
-
-  Branch:
-    Type: String
-    Default: main
-    Description: Git branch to deploy
-
-  GitHubPAT:
-    Type: String
-    NoEcho: true
-    Description: Personal Access Token to give Amplify access to GitHub hooks
+    Description: Environment identifier for unique naming
 
 Resources:
-  AmplifyApp:
-    Type: AWS::Amplify::App
+  FrontendBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      Name: babbling-brook
-      Repository: !Sub 'https://github.com/${Repository}'
-      AccessToken: !Sub ${GitHubPAT}
-      BuildSpec: |
-        version: 1
-        frontend:
-          phases:
-            preBuild:
-              commands:
-                - cd frontend
-                - npm ci
-            build:
-              commands:
-                - npm run build
-          artifacts:
-            baseDirectory: frontend/dist
-            files:
-              - '**/*'
-          cache:
-            paths:
-              - frontend/node_modules/**/*
-      EnvironmentVariables:
-        - Name: VITE_API_URL
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-ApiUrl'
-        - Name: VITE_USER_POOL_ID
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolId'
-        - Name: VITE_USER_POOL_CLIENT_ID
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolClientId'
-        - Name: VITE_USER_POOL_DOMAIN
-          Value:
-            Fn::ImportValue: !Sub '${BackendStackName}-UserPoolDomain'
-        - Name: VITE_AWS_REGION
-          Value: !Ref AWS::Region
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
 
-  AmplifyBranch:
-    Type: AWS::Amplify::Branch
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
     Properties:
-      AppId: !GetAtt AmplifyApp.AppId
-      BranchName: !Ref Branch
-      EnableAutoBuild: true
-      EnablePullRequestPreview: true
-      PullRequestEnvironmentName: preview
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref CloudFrontOriginAccessControl
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          Compress: true
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+          MinTTL: 0
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
 
 Outputs:
-  AmplifyAppId:
-    Description: Amplify App ID
-    Value: !GetAtt AmplifyApp.AppId
+  BucketName:
+    Description: S3 bucket name for frontend artifacts
+    Value: !Ref FrontendBucket
     Export:
-      Name: !Sub '${AWS::StackName}-AmplifyAppId'
+      Name: !Sub '${AWS::StackName}-BucketName'
 
-  AmplifyAppUrl:
-    Description: Amplify App URL
-    Value: !Sub 'https://${Branch}.${AmplifyApp.DefaultDomain}'
+  DistributionId:
+    Description: CloudFront distribution ID
+    Value: !Ref CloudFrontDistribution
     Export:
-      Name: !Sub '${AWS::StackName}-AmplifyAppUrl'
+      Name: !Sub '${AWS::StackName}-DistributionId'
 
-  AmplifyBranchName:
-    Description: Deployed branch name
-    Value: !Ref Branch
+  DistributionDomainName:
+    Description: CloudFront distribution domain name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionDomainName'
+
+  CloudFrontUrl:
+    Description: CloudFront URL for the frontend
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontUrl'

@@ -7,8 +7,5 @@ dev:
       region: us-east-1
       capabilities: CAPABILITY_IAM
       parameter_overrides:
-        BackendStackName=${BACKEND_STACK_NAME}
-        Repository=${REPOSITORY}
-        Branch=${BRANCH},
-        GitHubPAT=${GH_PAT}
+        EnvironmentHash=${ENV_HASH}
       confirm_changeset: false
