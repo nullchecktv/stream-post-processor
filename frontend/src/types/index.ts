@@ -1,6 +1,6 @@
 export type Platform = 'linkedin live' | 'X' | 'twitch' | 'youtube'
 
-export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived' | 'Ready for Clip Gen'
+export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived' | 'Ready for Clip Gen' | 'plan_added' | 'plan_updated' | 'recommendations_generated' | 'recommendations_failed'
 
 export interface EpisodeListView {
   id: string

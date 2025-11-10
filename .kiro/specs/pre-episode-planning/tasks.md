@@ -133,14 +133,14 @@
     - Display status history with plan-related statuses
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 8. Create API client functions
+- [x] 8. Create API client functions
   - Add createPlan function to episodes API client
   - Add updatePlan function to episodes API client
   - Add getPlan function to episodes API client
   - Handle API errors and return user-friendly messages
   - _Requirements: 1.1, 4.1, 5.1_
 
-- [ ] 9. Update status history utility
+- [x] 9. Update status history utility
   - Add "plan_added" status to status constants
   - Add "plan_updated" status to status constants
   - Add "recommendations_generated" status to status constants
@@ -148,7 +148,7 @@
   - Update status display logic to show plan-related statuses
   - _Requirements: 1.3, 2.4, 2.5, 5.3_
 
-- [ ] 10. Deploy and verify
+- [-] 10. Deploy and verify
   - Run sam build to compile all functions
   - Deploy to development environment
   - Test plan creation via API
