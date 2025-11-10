@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { PlanForm, type PlanFormData } from '../components/episodes/PlanForm'
 import { PlanRecommendations } from '../components/episodes/PlanRecommendations'
+import { DetailedOutline } from '../components/episodes/DetailedOutline'
 import { MermaidDiagram } from '../components/episodes/MermaidDiagram'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import type { EpisodePlan } from '../types'
@@ -162,6 +163,10 @@ function EpisodePlanPage() {
             recommendations={episodePlan.recommendations}
             isLoading={false}
           />
+
+          {episodePlan.recommendations?.detailedOutline && (
+            <DetailedOutline outline={episodePlan.recommendations.detailedOutline} />
+          )}
 
           {episodePlan.recommendations?.suggestedFlow && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

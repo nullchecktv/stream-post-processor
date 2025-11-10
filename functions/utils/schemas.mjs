@@ -349,7 +349,7 @@ export const RecommendationsSchemas = {
       suggestedFlow: {
         type: 'string',
         minLength: 1,
-        pattern: '^sequenceDiagram'
+        pattern: '^flowchart'
       },
       proposedTitle: { type: 'string', minLength: 10, maxLength: 200 },
       proposedDescription: { type: 'string', minLength: 50, maxLength: 1000 },
@@ -357,9 +357,31 @@ export const RecommendationsSchemas = {
         type: 'array',
         items: { type: 'string', minLength: 1 },
         minItems: 1
+      },
+      detailedOutline: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            section: { type: 'string', minLength: 1 },
+            duration: { type: 'string', minLength: 1 },
+            talkingPoints: {
+              type: 'array',
+              items: { type: 'string', minLength: 1 },
+              minItems: 1
+            },
+            demoArtifacts: {
+              type: 'array',
+              items: { type: 'string', minLength: 1 }
+            }
+          },
+          required: ['section', 'duration', 'talkingPoints'],
+          additionalProperties: false
+        },
+        minItems: 3
       }
     },
-    required: ['episodeId', 'suggestedFlow', 'proposedTitle', 'proposedDescription', 'keyLearningMoments'],
+    required: ['episodeId', 'suggestedFlow', 'proposedTitle', 'proposedDescription', 'keyLearningMoments', 'detailedOutline'],
     additionalProperties: false
   }
 };

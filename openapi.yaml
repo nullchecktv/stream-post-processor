@@ -2911,8 +2911,8 @@ components:
           properties:
             suggestedFlow:
               type: string
-              description: Mermaid sequence diagram showing proposed episode flow
-              example: "sequenceDiagram\n    participant Host\n    participant Audience\n    Host->>Audience: Introduction\n    Host->>Audience: Concept 1: Lambda\n    ..."
+              description: Mermaid flowchart showing proposed episode structure and progression
+              example: "flowchart TD\n    Start[Introduction & Hook] --> Concept1[Concept 1: Lambda]\n    Concept1 --> Example[Real-world Example]\n    Example --> Takeaways[Key Takeaways]\n    Takeaways --> End[Outro]"
             proposedTitle:
               type: string
               minLength: 10
@@ -2935,6 +2935,42 @@ components:
                 - "Understanding Lambda cold starts and optimization"
                 - "DynamoDB single-table design patterns"
                 - "Cost optimization strategies for serverless"
+            detailedOutline:
+              type: array
+              items:
+                type: object
+                properties:
+                  section:
+                    type: string
+                    description: Section name/title
+                    example: "Lambda Function Basics"
+                  duration:
+                    type: string
+                    description: Estimated duration
+                    example: "8-10 minutes"
+                  talkingPoints:
+                    type: array
+                    items:
+                      type: string
+                    description: Specific topics to discuss
+                    example:
+                      - "What is a Lambda function and when to use it"
+                      - "Event-driven architecture patterns"
+                      - "Cold starts vs warm starts"
+                  demoArtifacts:
+                    type: array
+                    items:
+                      type: string
+                    description: Code examples, diagrams, or demos to show
+                    example:
+                      - "Simple Lambda function code example"
+                      - "AWS Console walkthrough"
+                required:
+                  - section
+                  - duration
+                  - talkingPoints
+              minItems: 3
+              description: Detailed section-by-section breakdown
             generatedAt:
               type: string
               format: date-time
@@ -2945,6 +2981,7 @@ components:
             - proposedTitle
             - proposedDescription
             - keyLearningMoments
+            - detailedOutline
             - generatedAt
       required:
         - episodeId

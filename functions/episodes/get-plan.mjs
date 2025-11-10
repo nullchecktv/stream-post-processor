@@ -65,6 +65,7 @@ export const handler = async (event) => {
         proposedTitle: recommendations.proposedTitle,
         proposedDescription: recommendations.proposedDescription,
         keyLearningMoments: recommendations.keyLearningMoments,
+        detailedOutline: recommendations.detailedOutline,
         generatedAt: recommendations.generatedAt
       };
     }

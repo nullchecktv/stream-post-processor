@@ -10,12 +10,12 @@ const ddb = new DynamoDBClient();
 export const setPlanRecommendationsTool = {
   isMultiTenant: true,
   name: 'setPlanRecommendations',
-  description: 'Store AI-generated recommendations for an episode plan including suggested flow, title, description, and key learning moments',
+  description: 'Store AI-generated recommendations for an episode plan including a flowchart showing episode structure, title, description, and key learning moments',
   schema: z.object({
     episodeId: z.string().describe('The unique identifier of the episode'),
     suggestedFlow: z.string()
-      .regex(/^sequenceDiagram/)
-      .describe('A Mermaid sequence diagram showing the proposed episode flow (must start with "sequenceDiagram")'),
+      .regex(/^flowchart/)
+      .describe('A Mermaid flowchart showing the proposed episode structure and progression (must start with "flowchart TD" or "flowchart LR")'),
     proposedTitle: z.string()
       .min(10)
       .max(200)
@@ -26,9 +26,17 @@ export const setPlanRecommendationsTool = {
       .describe('A promotional description for the episode (50-1000 characters)'),
     keyLearningMoments: z.array(z.string().min(1))
       .min(1)
-      .describe('Array of key learning moments or takeaways from the episode')
+      .describe('Array of key learning moments or takeaways from the episode'),
+    detailedOutline: z.array(z.object({
+      section: z.string().describe('The name/title of this section'),
+      duration: z.string().describe('Estimated duration (e.g., "5-7 minutes")'),
+      talkingPoints: z.array(z.string()).describe('Specific topics to discuss in this section'),
+      demoArtifacts: z.array(z.string()).optional().describe('Code examples, diagrams, or other artifacts to show')
+    }))
+      .min(3)
+      .describe('Detailed section-by-section breakdown of the episode with talking points and demo artifacts')
   }),
-  handler: async (tenantId, { episodeId, suggestedFlow, proposedTitle, proposedDescription, keyLearningMoments }) => {
+  handler: async (tenantId, { episodeId, suggestedFlow, proposedTitle, proposedDescription, keyLearningMoments, detailedOutline }) => {
     try {
       if (!tenantId) {
         logger.error('Missing tenantId in tool handler', { episodeId });
@@ -58,6 +66,7 @@ export const setPlanRecommendationsTool = {
         proposedTitle,
         proposedDescription,
         keyLearningMoments,
+        detailedOutline,
         generatedAt: now
       };
 
@@ -87,7 +96,8 @@ export const setPlanRecommendationsTool = {
         tenantId,
         titleLength: proposedTitle.length,
         descriptionLength: proposedDescription.length,
-        learningMomentsCount: keyLearningMoments.length
+        learningMomentsCount: keyLearningMoments.length,
+        sectionsCount: detailedOutline.length
       });
 
       return `Successfully stored recommendations for episode ${episodeId}`;

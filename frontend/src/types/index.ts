@@ -119,11 +119,19 @@ export interface Activity {
   metadata?: Record<string, unknown>
 }
 
+export interface OutlineSection {
+  section: string
+  duration: string
+  talkingPoints: string[]
+  demoArtifacts?: string[]
+}
+
 export interface Recommendations {
   suggestedFlow: string
   proposedTitle: string
   proposedDescription: string
   keyLearningMoments: string[]
+  detailedOutline: OutlineSection[]
   generatedAt: string
 }
 
