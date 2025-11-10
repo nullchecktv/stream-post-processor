@@ -2,20 +2,21 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useToast } from '../contexts/ToastContext'
+import { Breadcrumb } from '../components/common/Breadcrumb'
 import { EpisodeForm } from '../components/episodes/EpisodeForm'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import type { Episode } from '../types'
 import type { EpisodeFormData } from '../utils/validation'
 
-function EpisodeDetailPage() {
+function EpisodeDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [episode, setEpisode] = useState<Episode | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   usePageTitle(episode ? `Edit ${episode.title}` : 'Edit Episode')
 
@@ -42,71 +43,37 @@ function EpisodeDetailPage() {
     fetchEpisode()
   }, [id])
 
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
-
   const handleSubmit = async (data: EpisodeFormData) => {
     if (!id) return
 
     setIsSubmitting(true)
     setError(null)
-    setSuccessMessage(null)
 
     try {
-      const updatedEpisode = await episodesApi.update(id, data)
+      const payload: EpisodeFormData = {
+        ...data,
+        // Convert local datetime string to ISO when provided; otherwise omit
+        airDate: data.airDate ? new Date(data.airDate).toISOString() : undefined,
+      }
+      const updatedEpisode = await episodesApi.update(id, payload)
       setEpisode(updatedEpisode)
-      setHasUnsavedChanges(false)
-      setSuccessMessage('Episode updated successfully!')
-
-      setTimeout(() => {
-        setSuccessMessage(null)
-      }, 3000)
+      showToast('Episode updated successfully', 'success')
+      navigate(`/episodes/${id}/overview`)
     } catch (err) {
       console.error('Failed to update episode:', err)
       setError('Failed to save changes. Please try again.')
+      showToast('Failed to update episode', 'error')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleCancel = () => {
-    if (hasUnsavedChanges) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Are you sure you want to leave?'
-      )
-      if (!confirmed) return
-    }
-    navigate('/')
+    navigate(`/episodes/${id}/overview`)
   }
 
-  useEffect(() => {
-    if (episode) {
-      const formElement = document.querySelector('form')
-      if (formElement) {
-        const handleFormChange = () => {
-          setHasUnsavedChanges(true)
-        }
-        formElement.addEventListener('input', handleFormChange)
-        return () => formElement.removeEventListener('input', handleFormChange)
-      }
-    }
-  }, [episode])
-
   if (loading) {
-    return (
-      <div className="relative min-h-full">
-        <LoadingSpinner variant="page" />
-      </div>
-    )
+    return <LoadingSpinner variant="page" />
   }
 
   if (error && !episode) {
@@ -115,10 +82,10 @@ function EpisodeDetailPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/episodes')}
             className="mt-4 text-red-600 hover:text-red-800 underline"
           >
-            Return to Dashboard
+            Return to Episodes
           </button>
         </div>
       </div>
@@ -130,29 +97,25 @@ function EpisodeDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Edit Episode
-        </h1>
-        <p className="text-gray-600">
-          Update episode details and metadata
-        </p>
-      </div>
-
-      {successMessage && (
-        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-800">{successMessage}</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+    <div className="space-y-6">
+      <Breadcrumb />
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Edit Episode Details
+          </h1>
+          <p className="text-gray-600">
+            Update episode metadata and information
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
         <EpisodeForm
           episode={episode}
           onSubmit={handleSubmit}
@@ -164,4 +127,4 @@ function EpisodeDetailPage() {
   )
 }
 
-export default EpisodeDetailPage
+export default EpisodeDetailsPage

@@ -2,10 +2,25 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, PutItemCommand, QueryCommand, DeleteItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
+import { TopicClient, CredentialProvider, Configurations } from '@gomomento/sdk';
 
 const logger = new Logger({ serviceName: 'utils' });
 
 const ddb = new DynamoDBClient();
+
+let topicClient;
+
+const getTopicClient = () => {
+  if (!topicClient) {
+    topicClient = new TopicClient({
+      configuration: Configurations.Lambda.latest(),
+      credentialProvider: CredentialProvider.fromEnvironmentVariable({
+        environmentVariableName: 'MOMENTO_API_KEY'
+      })
+    });
+  }
+  return topicClient;
+};
 
 export const createNotification = async (userId, type, title, message, data = {}) => {
   const notificationId = randomUUID();
@@ -210,5 +225,32 @@ export const removeNotificationsByInvitation = async (userId, invitationId) => {
       invitationId
     });
     throw new Error('Failed to remove invitation notifications');
+  }
+};
+
+export const publishNotification = async (tenantId, notification) => {
+  if (!process.env.MOMENTO_API_KEY || !process.env.MOMENTO_CACHE_NAME) {
+    logger.info('Momento configuration missing, skipping notification publish');
+    return;
+  }
+
+  try {
+    const client = getTopicClient();
+    const message = {
+      ...notification,
+      timestamp: new Date().toISOString()
+    };
+
+    await client.publish(
+      process.env.MOMENTO_CACHE_NAME,
+      tenantId,
+      JSON.stringify(message)
+    );
+  } catch (error) {
+    logger.error('Failed to publish notification to Momento Topics', {
+      error: error.message,
+      tenantId,
+      notificationType: notification.type
+    });
   }
 };

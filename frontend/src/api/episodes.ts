@@ -1,6 +1,6 @@
 import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
-import type { Episode, EpisodeListView } from '../types'
+import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView } from '../types'
 
 interface ListEpisodesParams {
   nextToken?: string
@@ -36,6 +36,60 @@ interface UpdateEpisodeData {
   seriesName?: string
 }
 
+interface EpisodeStatusResponse {
+  episodeId: string
+  currentStatus: string
+  statusHistory: StatusHistoryEntry[]
+  updatedAt: string
+}
+
+interface UploadTranscriptResponse {
+  key: string
+  uploadUrl: string
+  expiresAt: string
+  requiredHeaders?: Record<string, string>
+}
+
+interface InitiateTrackUploadResponse {
+  uploadId: string
+  key: string
+  uploadUrl: string
+  expiresAt: string
+}
+
+interface SignTrackPartsRequest {
+  uploadId: string
+  partNumbers: number[]
+}
+
+interface SignTrackPartsResponse {
+  parts: Array<{
+    partNumber: number
+    uploadUrl: string
+  }>
+}
+
+interface CompleteTrackUploadRequest {
+  uploadId: string
+  parts: Array<{
+    partNumber: number
+    etag: string
+  }>
+}
+
+interface ListClipsResponse {
+  items: ClipListView[]
+}
+
+interface UpdateClipStatusRequest {
+  status: 'approved' | 'rejected'
+}
+
+interface PlayClipResponse {
+  url: string
+  expiresAt: string
+}
+
 export const episodesApi = {
   list: (params?: ListEpisodesParams) => {
     const query = new URLSearchParams()
@@ -46,6 +100,10 @@ export const episodesApi = {
   },
 
   get: (id: string) => apiRequest<Episode>(`/episodes/${id}`),
+
+  getDetail: (id: string) => apiRequest<EpisodeDetail>(`/episodes/${id}`),
+
+  getStatus: (id: string) => apiRequest<EpisodeStatusResponse>(`/episodes/${id}/statuses`),
 
   create: async (data: CreateEpisodeData) => {
     const result = await apiRequest<CreateEpisodeResponse>('/episodes', {
@@ -64,5 +122,57 @@ export const episodesApi = {
     apiCache.invalidate(`GET:/episodes/${id}`)
     apiCache.invalidatePattern('/episodes?')
     return result
+  },
+
+  uploadTranscript: async (id: string, filename: string) => {
+    return apiRequest<UploadTranscriptResponse>(`/episodes/${id}/transcripts`, {
+      method: 'POST',
+      body: JSON.stringify({ filename }),
+    })
+  },
+
+  initiateTrackUpload: async (id: string, trackName: string, filename: string, speakers?: string[]) => {
+    return apiRequest<InitiateTrackUploadResponse>(`/episodes/${id}/tracks`, {
+      method: 'POST',
+      body: JSON.stringify({ trackName, filename, speakers }),
+    })
+  },
+
+  signTrackParts: async (id: string, trackName: string, data: SignTrackPartsRequest) => {
+    return apiRequest<SignTrackPartsResponse>(`/episodes/${id}/tracks/${trackName}/parts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  completeTrackUpload: async (id: string, trackName: string, data: CompleteTrackUploadRequest) => {
+    return apiRequest<void>(`/episodes/${id}/tracks/${trackName}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  listClips: (id: string) => apiRequest<ListClipsResponse>(`/episodes/${id}/clips`),
+
+  getClip: (episodeId: string, clipId: string) => apiRequest<ClipListView>(`/episodes/${episodeId}/clips/${clipId}`),
+
+  updateClipStatus: async (episodeId: string, clipId: string, data: UpdateClipStatusRequest) => {
+    return apiRequest<ClipListView>(`/episodes/${episodeId}/clips/${clipId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  playClip: (episodeId: string, clipId: string) => {
+    return apiRequest<PlayClipResponse>(`/episodes/${episodeId}/clips/${clipId}/play`)
+  },
+
+  updateStatus: async (id: string, status: string) => {
+    await apiRequest<void>(`/episodes/${id}/statuses`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    })
+    apiCache.invalidate(`GET:/episodes/${id}`)
+    apiCache.invalidatePattern('/episodes?')
   },
 }

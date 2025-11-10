@@ -50,9 +50,10 @@
     "@aws-lambda-powertools/logger": "^2.28.1",
     "@aws-lambda-powertools/validation": "^2.28.1",
     "@aws-sdk/s3-request-presigner": "^3.917.0",
+    "@gomomento/sdk": "^1.116.0",
     "aws-jwt-verify": "^5.1.1",
     "crypto": "^1.0.1",
     "handlebars": "^4.7.8",
-    "zod": "^3.22.4"
+    "zod": "^4.1.12"
   }
 }

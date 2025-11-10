@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { ChevronRight, ChevronsLeft, ChevronsRight, Activity } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useSidebar } from '../../hooks/useSidebar'
 import { useUser } from '../../hooks/useUser'
-import { useSidebarLabels } from '../../hooks/useSidebarLabels'
 import { SidebarItem } from './SidebarItem'
 import { SidebarSection } from './SidebarSection'
-import { SidebarLabel } from './SidebarLabel'
-import { Home, Video, Users, Settings } from 'lucide-react'
+import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film } from 'lucide-react'
 import { useActivity } from '../../hooks/useActivity'
 
 export function Sidebar() {
@@ -15,10 +13,13 @@ export function Sidebar() {
   const { profile } = useUser()
   const { unreadCount } = useActivity()
   const navigate = useNavigate()
-  const labels = useSidebarLabels()
+  const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showExpandButton, setShowExpandButton] = useState(false)
+
+  const isEpisodePage = location.pathname.startsWith('/episodes/')
+  const episodeId = location.pathname.match(/\/episodes\/([^/]+)/)?.[1]
 
   useEffect(() => {
     const checkMobile = () => {
@@ -187,7 +188,7 @@ export function Sidebar() {
           {isCollapsed ? (
             <button
               onClick={() => navigate('/activity')}
-              className="w-full flex items-center justify-center py-3 text-gray-700 relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg"
+              className="w-full flex items-center justify-center py-3 text-gray-700 relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Activity"
             >
               <Activity className="w-7 h-7" />
@@ -235,18 +236,32 @@ export function Sidebar() {
             />
           </SidebarSection>
 
-          {labels.length > 0 && (
-            <SidebarSection title="FILTERS" isCollapsed={isCollapsed}>
-              {labels.map((label) => (
-                <SidebarLabel
-                  key={label.id}
-                  label={label.label}
-                  color={label.color}
-                  count={label.count}
-                  isCollapsed={isCollapsed}
-                  onClick={() => console.log('Filter by:', label.id)}
-                />
-              ))}
+          {isEpisodePage && episodeId && (
+            <SidebarSection title="EPISODE" isCollapsed={isCollapsed}>
+              <SidebarItem
+                to={`/episodes/${episodeId}/overview`}
+                icon={BarChart3}
+                label="Overview"
+                isCollapsed={isCollapsed}
+              />
+              <SidebarItem
+                to={`/episodes/${episodeId}/details`}
+                icon={FileText}
+                label="Details"
+                isCollapsed={isCollapsed}
+              />
+              <SidebarItem
+                to={`/episodes/${episodeId}/uploads`}
+                icon={Upload}
+                label="Uploads"
+                isCollapsed={isCollapsed}
+              />
+              <SidebarItem
+                to={`/episodes/${episodeId}/clips`}
+                icon={Film}
+                label="Clips"
+                isCollapsed={isCollapsed}
+              />
             </SidebarSection>
           )}
         </nav>

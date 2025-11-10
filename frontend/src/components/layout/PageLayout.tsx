@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { TopHeader } from './TopHeader'
 import { useSidebar } from '../../hooks/useSidebar'
+import { UploadManager } from '../episodes/UploadManager'
 
 export function PageLayout() {
   const { isCollapsed } = useSidebar()
@@ -19,6 +20,7 @@ export function PageLayout() {
           <Outlet />
         </main>
       </div>
+      <UploadManager position="bottom-right" collapsible={true} />
     </div>
   )
 }

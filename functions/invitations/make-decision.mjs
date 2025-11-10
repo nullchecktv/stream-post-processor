@@ -147,7 +147,7 @@ export const handler = async (event) => {
       try {
         await ddb.send(new PutItemCommand({
           TableName: process.env.TABLE_NAME,
-          Item: marshall(membership),
+          Item: marshall(membership, { removeUndefinedValues: true }),
           ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)'
         }));
       } catch (error) {

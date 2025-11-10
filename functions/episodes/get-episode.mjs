@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
@@ -24,10 +24,12 @@ export const handler = async (event) => {
 
     const { episodeId } = pathValidation.data;
 
+    const pk = `${tenantId}#${episodeId}`;
+
     const result = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
-        pk: `${tenantId}#${episodeId}`,
+        pk,
         sk: 'metadata'
       })
     }));
@@ -38,15 +40,35 @@ export const handler = async (event) => {
 
     const episode = unmarshall(result.Item);
 
+    const relatedDataResult = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk',
+      ExpressionAttributeValues: marshall({
+        ':pk': pk
+      })
+    }));
+
+    const relatedItems = relatedDataResult.Items?.map(item => unmarshall(item)) || [];
+
+    const tracksCount = relatedItems.filter(item => item.sk.startsWith('track#')).length;
+    const hasTranscript = episode.transcriptKey ? true : false;
+    const clipsCount = relatedItems.filter(item => item.sk.startsWith('clip#')).length;
+
     const response = {
       id: episodeId,
       title: episode.title,
       status: episode.status,
       episodeNumber: episode.episodeNumber,
       createdAt: episode.createdAt,
-      updatedAt: episode.updatedAt
+      updatedAt: episode.updatedAt,
+      metrics: {
+        tracksCount,
+        hasTranscript,
+        clipsCount
+      }
     };
 
+    if (episode.description) response.description = episode.description;
     if (episode.summary) response.summary = episode.summary;
     if (episode.airDate) response.airDate = episode.airDate;
     if (episode.platforms) response.platforms = episode.platforms;

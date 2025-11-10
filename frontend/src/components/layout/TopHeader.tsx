@@ -1,14 +1,33 @@
+import { useState, useEffect, useRef } from 'react'
 import { useUser } from '../../hooks/useUser'
 import { useNavigate } from 'react-router-dom'
 import { useActivity } from '../../hooks/useActivity'
 import { Video, Menu } from 'lucide-react'
 import { TeamSelector } from '../teams/TeamSelector'
 import { ActivityBadge } from '../activity/ActivityBadge'
+import { ActivityDropdown } from '../activity/ActivityDropdown'
 
 export function TopHeader() {
   const { profile } = useUser()
   const { unreadCount } = useActivity()
   const navigate = useNavigate()
+  const [showActivityDropdown, setShowActivityDropdown] = useState(false)
+  const activityButtonRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showActivityDropdown &&
+        activityButtonRef.current &&
+        !activityButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowActivityDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showActivityDropdown])
 
   return (
     <header
@@ -30,11 +49,14 @@ export function TopHeader() {
             <TeamSelector />
           </div>
 
-          <div className="text-white">
+          <div className="text-white relative" ref={activityButtonRef}>
             <ActivityBadge
               count={unreadCount}
-              onClick={() => navigate('/activity')}
+              onClick={() => setShowActivityDropdown(!showActivityDropdown)}
             />
+            {showActivityDropdown && (
+              <ActivityDropdown onClose={() => setShowActivityDropdown(false)} />
+            )}
           </div>
 
           <button

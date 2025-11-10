@@ -10,6 +10,7 @@ export function useActivity(): ActivityContextType {
     }
     return {
       notifications: [],
+      activities: [],
       unreadCount: 0,
       loading: false,
       error: 'Activity is unavailable in this view',
@@ -18,6 +19,9 @@ export function useActivity(): ActivityContextType {
       deleteActivity: async () => {},
       acceptInvitation: async () => {},
       rejectInvitation: async () => {},
+      addActivity: () => {},
+      markAllAsRead: () => {},
+      clearActivity: () => {},
     }
   }
 

@@ -492,6 +492,82 @@ paths:
   /episodes/{episodeId}/statuses:
     parameters:
       - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: Get episode status
+      description: Retrieves the current status and status history for an episode without full episode data
+      tags: [Episodes]
+      responses:
+        200:
+          description: Episode status details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  episodeId:
+                    type: string
+                    description: Episode identifier
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+                  currentStatus:
+                    type: string
+                    description: Current episode status
+                    example: "processing"
+                  statusHistory:
+                    type: array
+                    description: Chronological history of status changes
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          type: string
+                          example: "draft"
+                        timestamp:
+                          type: string
+                          format: date-time
+                          example: "2025-01-15T10:30:00Z"
+                      required:
+                        - status
+                        - timestamp
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    description: Last update timestamp
+                    example: "2025-01-15T14:30:00Z"
+                required:
+                  - episodeId
+                  - currentStatus
+                  - statusHistory
+                  - updatedAt
+        404:
+          description: Episode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "InternalError"
+                  message:
+                    type: string
+                    example: "Something went wrong"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEpisodeStatusHistoryFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
     post:
       summary: Update episode status
       description: Updates episode status with prerequisite validation and triggers appropriate events
@@ -1888,12 +1964,16 @@ components:
           example: "Tech Talk Episode 42"
         status:
           type: string
-          description: Current episode status computed from the most recent entry in the status history array. This field is maintained for backward compatibility while the complete status history is stored internally.
+          description: Current episode status
           example: "Ready for Clip Gen"
         episodeNumber:
           type: integer
           description: Episode number in the series
           example: 42
+        description:
+          type: string
+          description: Episode description (optional)
+          example: "Discussion about AI and machine learning"
         summary:
           type: string
           description: Episode summary or description (optional)
@@ -1920,6 +2000,26 @@ components:
           type: string
           description: Name of the series this episode belongs to (optional)
           example: "Tech Talk Series"
+        metrics:
+          type: object
+          description: Episode metrics and counts
+          properties:
+            tracksCount:
+              type: integer
+              description: Number of video tracks uploaded
+              example: 2
+            hasTranscript:
+              type: boolean
+              description: Whether a transcript has been uploaded
+              example: true
+            clipsCount:
+              type: integer
+              description: Number of clips detected or generated
+              example: 5
+          required:
+            - tracksCount
+            - hasTranscript
+            - clipsCount
         createdAt:
           type: string
           format: date-time
@@ -1935,6 +2035,7 @@ components:
         - title
         - status
         - episodeNumber
+        - metrics
         - createdAt
         - updatedAt
 

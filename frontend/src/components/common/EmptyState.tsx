@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { Button } from './Button'
 
 interface EmptyStateProps {
-  variant?: 'no-teams' | 'no-members' | 'no-notifications' | 'default'
+  variant?: 'no-teams' | 'no-members' | 'no-notifications' | 'no-episodes' | 'no-clips' | 'no-uploads' | 'no-activities' | 'default'
   title?: string
   message?: string
   actionLabel?: string
@@ -17,6 +17,43 @@ export const EmptyState = memo(function EmptyState({
   onAction,
 }: EmptyStateProps) {
   const variants = {
+    'no-episodes': {
+      icon: (
+        <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      defaultTitle: 'No episodes yet',
+      defaultMessage: 'Create your first episode to start managing your livestream content.',
+    },
+    'no-clips': {
+      icon: (
+        <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+        </svg>
+      ),
+      defaultTitle: 'No clips detected',
+      defaultMessage: 'Upload a transcript and video tracks to automatically detect engaging clips.',
+    },
+    'no-uploads': {
+      icon: (
+        <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      ),
+      defaultTitle: 'No active uploads',
+      defaultMessage: 'Upload transcript and video files to get started with clip detection.',
+    },
+    'no-activities': {
+      icon: (
+        <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      ),
+      defaultTitle: 'No activities',
+      defaultMessage: "You're all caught up! Activities will appear here when clips are processed or status changes occur.",
+    },
     'no-teams': {
       icon: (
         <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
