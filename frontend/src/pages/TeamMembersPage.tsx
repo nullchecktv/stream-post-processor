@@ -199,15 +199,12 @@ function TeamMembersPage() {
     }
   }
 
-  if (teamsLoading || loading || !team) {
-    return <LoadingSpinner variant="page" />
-  }
-
   const canManage = canManageMembers()
   const canUpdateRole = canUpdateRoles()
 
   return (
-    <>
+    <div className="relative min-h-full">
+      {(teamsLoading || loading || !team) && <LoadingSpinner variant="page" />}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <Breadcrumb />
         <div className="mb-6 sm:mb-8">
@@ -215,7 +212,7 @@ function TeamMembersPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Team Members</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">{team.name}</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">{team?.name}</p>
             </div>
             {canManage && (
               <Button onClick={handleInviteMember} variant="primary" className="w-full sm:w-auto">
@@ -412,7 +409,7 @@ function TeamMembersPage() {
           </div>
         </form>
       </Modal>
-    </>
+    </div>
   )
 }
 

@@ -4,9 +4,9 @@ import { useUser } from '../hooks/useUser'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
+import ProfileSkeleton from '../components/common/ProfileSkeleton'
 import { z } from 'zod'
 
 const updateProfileSchema = z.object({
@@ -30,7 +30,7 @@ const TIMEZONE_OPTIONS = [
 
 function ProfilePage() {
   const navigate = useNavigate()
-  const { profile, loading: profileLoading, updateProfile } = useUser()
+  const { profile, updateProfile } = useUser()
   const { signOut } = useAuth()
   const { showToast } = useToast()
   const [formData, setFormData] = useState<UpdateProfileFormData>({
@@ -41,18 +41,20 @@ function ProfilePage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   usePageTitle('Profile Settings')
 
   useEffect(() => {
-    if (profile) {
+    if (profile && !isInitialized) {
       setFormData({
         name: profile.name,
         timezone: profile.preferences?.timezone || '',
         notifications: profile.preferences?.notifications ?? true,
       })
+      setIsInitialized(true)
     }
-  }, [profile])
+  }, [profile, isInitialized])
 
   const handleChange = (field: keyof UpdateProfileFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -80,8 +82,6 @@ function ProfilePage() {
           notifications: validated.notifications,
         },
       })
-
-      showToast('Profile updated successfully', 'success')
     } catch (err) {
       if (err instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {}
@@ -93,7 +93,6 @@ function ProfilePage() {
         setErrors(fieldErrors)
       } else {
         console.error('Failed to update profile:', err)
-        showToast('Failed to update profile. Please try again.', 'error')
       }
     } finally {
       setSubmitting(false)
@@ -113,8 +112,8 @@ function ProfilePage() {
     }
   }
 
-  if (profileLoading || !profile) {
-    return <LoadingSpinner variant="page" />
+  if (!isInitialized || !profile) {
+    return <ProfileSkeleton />
   }
 
   const formatDate = (dateString: string) => {
@@ -192,11 +191,11 @@ function ProfilePage() {
                 className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
               />
               <span className="text-sm font-medium text-gray-700">
-                Enable email notifications
+                Enable email activity notifications
               </span>
             </label>
             <p className="mt-1 text-sm text-gray-500 ml-6">
-              Receive notifications about team invitations and clip processing
+              Receive email notifications about team invitations and clip processing
             </p>
           </div>
 

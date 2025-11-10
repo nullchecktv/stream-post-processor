@@ -63,21 +63,20 @@ function TeamDetailPage() {
     }
   }
 
-  if (loading || !team) {
-    return <LoadingSpinner variant="page" />
-  }
-
   const role = getUserRole()
   const memberCount = getMemberCount()
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-      <Breadcrumb />
-      <div className="mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-          <div className="flex-1">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{team.name}</h1>
+    <div className="relative min-h-full">
+      {(loading || !team) && <LoadingSpinner variant="page" />}
+      {team && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <Breadcrumb />
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{team.name}</h1>
               <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium self-start ${
                 role === 'owner' ? 'bg-primary text-white' :
                 role === 'administrator' ? 'bg-blue-100 text-blue-800' :
@@ -143,7 +142,7 @@ function TeamDetailPage() {
           <div className="space-y-3">
             <Button
               onClick={() => navigate(`/teams/${team.id}/members`)}
-              variant="secondary"
+              variant="text"
               className="w-full justify-start text-sm sm:text-base"
             >
               <svg className="w-5 h-5 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,7 +154,7 @@ function TeamDetailPage() {
             {isOwner && (
               <Button
                 onClick={() => navigate(`/teams/${team.id}/settings`)}
-                variant="secondary"
+                variant="text"
                 className="w-full justify-start text-sm sm:text-base"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,6 +218,8 @@ function TeamDetailPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
         </div>
       )}
     </div>

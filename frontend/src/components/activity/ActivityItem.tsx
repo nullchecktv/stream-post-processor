@@ -1,7 +1,7 @@
 import { useState, memo } from 'react'
 import type { Notification } from '../../types'
 
-interface NotificationItemProps {
+interface ActivityItemProps {
   notification: Notification
   onMarkAsRead: (notificationId: string) => Promise<void>
   onDelete: (notificationId: string) => Promise<void>
@@ -10,14 +10,14 @@ interface NotificationItemProps {
   isProcessing?: boolean
 }
 
-export const NotificationItem = memo(function NotificationItem({
+export const ActivityItem = memo(function ActivityItem({
   notification,
   onMarkAsRead,
   onDelete,
   onAcceptInvitation,
   onRejectInvitation,
   isProcessing = false,
-}: NotificationItemProps) {
+}: ActivityItemProps) {
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null)
 
   const getNotificationIcon = () => {
@@ -216,7 +216,7 @@ export const NotificationItem = memo(function NotificationItem({
                 }}
                 disabled={isProcessing}
                 className="text-sm text-primary hover:text-primary-dark focus:outline-none focus:underline transition-colors disabled:opacity-50"
-                aria-label="Mark notification as read"
+                aria-label="Mark activity as read"
               >
                 Mark as read
               </button>
@@ -231,7 +231,7 @@ export const NotificationItem = memo(function NotificationItem({
               }}
               disabled={isProcessing}
               className="text-sm text-red-600 hover:text-red-700 focus:outline-none focus:underline transition-colors disabled:opacity-50"
-              aria-label="Delete notification"
+              aria-label="Delete activity"
             >
               Delete
             </button>

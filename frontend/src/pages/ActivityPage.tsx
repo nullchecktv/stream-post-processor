@@ -1,20 +1,21 @@
 import { useState } from 'react'
-import { useNotifications } from '../hooks/useNotifications'
+import { Activity as ActivityIcon } from 'lucide-react'
+import { useActivity } from '../hooks/useActivity'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
-import { NotificationItem } from '../components/notifications/NotificationItem'
+import { ActivityItem } from '../components/activity/ActivityItem'
 
 type FilterTab = 'all' | 'unread'
 
-export function NotificationsPage() {
+export function ActivityPage() {
   const {
     notifications,
     loading,
     error,
     markAsRead,
-    deleteNotification,
+    deleteActivity,
     acceptInvitation,
     rejectInvitation,
-  } = useNotifications()
+  } = useActivity()
 
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all')
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
@@ -41,7 +42,7 @@ export function NotificationsPage() {
   const handleDelete = async (notificationId: string) => {
     setProcessingIds(prev => new Set(prev).add(notificationId))
     try {
-      await deleteNotification(notificationId)
+      await deleteActivity(notificationId)
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev)
@@ -72,14 +73,12 @@ export function NotificationsPage() {
     await Promise.allSettled(promises)
   }
 
-  if (loading) {
-    return <LoadingSpinner variant="page" />
-  }
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="relative min-h-full">
+      {loading && <LoadingSpinner variant="page" />}
+      <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Activity</h1>
         <p className="mt-2 text-gray-600">Stay updated with your team activities and invitations</p>
       </div>
 
@@ -125,34 +124,22 @@ export function NotificationsPage() {
 
       {filteredNotifications.length === 0 ? (
         <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-            <svg
-              className="w-8 h-8 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-              />
-            </svg>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4 text-gray-400">
+            <ActivityIcon className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {activeFilter === 'unread' ? 'No unread notifications' : 'No notifications'}
+            {activeFilter === 'unread' ? 'No unread activity' : 'No activity'}
           </h3>
           <p className="text-gray-600">
             {activeFilter === 'unread'
               ? "You're all caught up!"
-              : "You'll see notifications here when you receive team invitations or updates"}
+              : "You'll see activity here when you receive team invitations or updates"}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
           {filteredNotifications.map(notification => (
-            <NotificationItem
+            <ActivityItem
               key={notification.id}
               notification={notification}
               onMarkAsRead={handleMarkAsRead}
@@ -164,6 +151,7 @@ export function NotificationsPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

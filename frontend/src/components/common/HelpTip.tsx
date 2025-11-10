@@ -50,10 +50,10 @@ export function HelpTip({ id, content, position = 'bottom', children }: HelpTipP
           className={`absolute z-50 ${positionClasses[position]} animate-fadeIn`}
           role="tooltip"
         >
-          <div className="bg-primary text-white text-sm rounded-lg shadow-lg p-3 max-w-xs relative animate-scaleIn">
+          <div className="bg-white text-gray-800 text-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-64 relative animate-scaleIn">
             <button
               onClick={handleDismiss}
-              className="absolute top-1 right-1 text-white hover:text-gray-200 transition-colors focus:outline-none"
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
               aria-label="Dismiss help tip"
             >
               <svg
@@ -68,9 +68,9 @@ export function HelpTip({ id, content, position = 'bottom', children }: HelpTipP
                 <path d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div className="pr-4">{content}</div>
+            <div className="pr-6">{content}</div>
             <div
-              className={`absolute w-0 h-0 border-8 ${arrowClasses[position]}`}
+              className={`absolute w-0 h-0 border-8 ${arrowClasses[position].replace('border-t-primary', 'border-t-white').replace('border-b-primary', 'border-b-white').replace('border-l-primary', 'border-l-white').replace('border-r-primary', 'border-r-white')}`}
             />
           </div>
         </div>

@@ -1,24 +1,24 @@
 import { useUser } from '../../hooks/useUser'
 import { useNavigate } from 'react-router-dom'
-import { useNotifications } from '../../hooks/useNotifications'
+import { useActivity } from '../../hooks/useActivity'
 import { Video, Menu } from 'lucide-react'
 import { TeamSelector } from '../teams/TeamSelector'
-import { NotificationBadge } from '../notifications/NotificationBadge'
+import { ActivityBadge } from '../activity/ActivityBadge'
 
 export function TopHeader() {
   const { profile } = useUser()
-  const { unreadCount } = useNotifications()
+  const { unreadCount } = useActivity()
   const navigate = useNavigate()
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 bg-primary text-white shadow-md z-50 h-16 flex items-center px-4 sm:px-6"
+      className="fixed top-0 left-0 right-0 bg-primary text-white shadow-sm z-50 h-16 flex items-center px-4 sm:px-6 backdrop-blur-sm border-b border-white/10"
       style={{ backgroundColor: '#5B8C5A' }}
     >
       <div className="flex-1 flex items-center justify-between gap-2 sm:gap-4">
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-[44px]"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity min-h-[44px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md"
           aria-label="Go to dashboard"
         >
           <Video className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -31,15 +31,15 @@ export function TopHeader() {
           </div>
 
           <div className="text-white">
-            <NotificationBadge
+            <ActivityBadge
               count={unreadCount}
-              onClick={() => navigate('/notifications')}
+              onClick={() => navigate('/activity')}
             />
           </div>
 
           <button
             onClick={() => navigate('/profile')}
-            className="hidden sm:flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 border-l border-white/20 hover:bg-white/10 rounded-lg transition-colors p-2 min-h-[44px]"
+            className="hidden sm:flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 border-l border-white/20 hover:bg-white/10 rounded-lg transition-colors p-2 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="User profile"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm">
@@ -53,7 +53,7 @@ export function TopHeader() {
 
           <button
             onClick={() => navigate('/profile')}
-            className="sm:hidden p-2 hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
+            className="sm:hidden p-2 hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Menu"
           >
             <Menu className="w-5 h-5" />

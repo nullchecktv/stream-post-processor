@@ -57,8 +57,12 @@ export function UserProvider({ children }: UserProviderProps) {
   const updateProfile = async (data: Partial<UserProfile>) => {
     try {
       setError(null)
-      const updatedProfile = await usersApi.updateProfile(data)
-      setProfile(updatedProfile)
+      await usersApi.updateProfile(data)
+      setProfile(prev => prev ? {
+        ...prev,
+        ...data,
+        updatedAt: new Date().toISOString()
+      } : null)
       showSuccess('Profile updated successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile'

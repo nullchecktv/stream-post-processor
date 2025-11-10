@@ -2,25 +2,25 @@ import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
 import type { Notification } from '../types'
 
-interface ListNotificationsParams {
+interface ListActivityParams {
   limit?: number
   nextToken?: string
   isRead?: boolean
 }
 
-interface ListNotificationsResponse {
+interface ListActivityResponse {
   items: Notification[]
   nextToken?: string
 }
 
-export const notificationsApi = {
-  listNotifications: (params?: ListNotificationsParams) => {
+export const activityApi = {
+  listActivity: (params?: ListActivityParams) => {
     const query = new URLSearchParams()
     if (params?.limit) query.append('limit', params.limit.toString())
     if (params?.nextToken) query.append('nextToken', params.nextToken)
     if (params?.isRead !== undefined) query.append('isRead', params.isRead.toString())
     const queryString = query.toString()
-    return apiRequest<ListNotificationsResponse>(
+    return apiRequest<ListActivityResponse>(
       `/notifications${queryString ? `?${queryString}` : ''}`
     )
   },
@@ -32,7 +32,7 @@ export const notificationsApi = {
     apiCache.invalidate('GET:/notifications')
   },
 
-  deleteNotification: async (notificationId: string) => {
+  deleteActivity: async (notificationId: string) => {
     await apiRequest<void>(`/notifications/${notificationId}`, {
       method: 'DELETE',
     })

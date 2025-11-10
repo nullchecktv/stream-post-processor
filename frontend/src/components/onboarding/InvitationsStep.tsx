@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNotifications } from '../../hooks/useNotifications'
+import { useActivity } from '../../hooks/useActivity'
 import { useTeams } from '../../hooks/useTeams'
 import { useToast } from '../../hooks/useToast'
 import type { Notification } from '../../types'
@@ -10,7 +10,7 @@ interface InvitationsStepProps {
 }
 
 export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
-  const { notifications, loading, acceptInvitation, rejectInvitation } = useNotifications()
+  const { notifications, loading, acceptInvitation, rejectInvitation } = useActivity()
   const { fetchTeams } = useTeams()
   const { showToast } = useToast()
   const [processingInvitations, setProcessingInvitations] = useState<Set<string>>(new Set())

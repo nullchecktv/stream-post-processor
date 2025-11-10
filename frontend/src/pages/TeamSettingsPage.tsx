@@ -149,12 +149,10 @@ function TeamSettingsPage() {
     }
   }
 
-  if (loading || !team) {
-    return <LoadingSpinner variant="page" />
-  }
-
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+    <div className="relative min-h-full">
+      {(loading || !team) && <LoadingSpinner variant="page" />}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
       <Breadcrumb />
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Team Settings</h1>
@@ -298,6 +296,7 @@ function TeamSettingsPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

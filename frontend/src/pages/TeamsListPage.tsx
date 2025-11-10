@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTeams } from '../hooks/useTeams'
 import { useUser } from '../hooks/useUser'
@@ -124,12 +124,9 @@ function TeamsListPage() {
     return membership?.role || 'member'
   }
 
-  if (loading) {
-    return <LoadingSpinner variant="page" />
-  }
-
   return (
-    <>
+    <div className="relative min-h-full">
+      {loading && <LoadingSpinner variant="page" />}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -286,7 +283,7 @@ function TeamsListPage() {
           </div>
         </form>
       </Modal>
-    </>
+    </div>
   )
 }
 

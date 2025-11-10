@@ -6,12 +6,11 @@ export const usersApi = {
   getProfile: () => apiRequest<UserProfile>('/me'),
 
   updateProfile: async (data: Partial<UserProfile>) => {
-    const result = await apiRequest<UserProfile>('/me', {
+    await apiRequest<void>('/me', {
       method: 'PUT',
       body: JSON.stringify(data),
     })
     apiCache.invalidate('GET:/me')
-    return result
   },
 
   setActiveTeam: async (teamId: string | null) => {

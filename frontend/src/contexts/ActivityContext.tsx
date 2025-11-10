@@ -1,31 +1,31 @@
 import { createContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
-import { notificationsApi } from '../api/notifications'
+import { activityApi } from '../api/activity'
 import { invitationsApi } from '../api/invitations'
 import type { Notification } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from './ToastContext'
 
-interface NotificationContextType {
+export interface ActivityContextType {
   notifications: Notification[]
   unreadCount: number
   loading: boolean
   error: string | null
-  fetchNotifications: () => Promise<void>
+  fetchActivity: () => Promise<void>
   markAsRead: (notificationId: string) => Promise<void>
-  deleteNotification: (notificationId: string) => Promise<void>
+  deleteActivity: (notificationId: string) => Promise<void>
   acceptInvitation: (invitationId: string) => Promise<void>
   rejectInvitation: (invitationId: string) => Promise<void>
 }
 
-export const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
+export const ActivityContext = createContext<ActivityContextType | undefined>(undefined)
 
-interface NotificationProviderProps {
+interface ActivityProviderProps {
   children: ReactNode
 }
 
 const POLL_INTERVAL = 30000
 
-export function NotificationProvider({ children }: NotificationProviderProps) {
+export function ActivityProvider({ children }: ActivityProviderProps) {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { showSuccess, showError } = useToast()
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -34,7 +34,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [error, setError] = useState<string | null>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchActivity = useCallback(async () => {
     if (!isAuthenticated) {
       setNotifications([])
       setUnreadCount(0)
@@ -44,12 +44,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
     try {
       setError(null)
-      const data = await notificationsApi.listNotifications()
+      const data = await activityApi.listActivity()
       setNotifications(data.items)
       const unread = data.items.filter(n => !n.isRead).length
       setUnreadCount(unread)
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications'
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load activity'
       setError(errorMessage)
       setNotifications([])
       setUnreadCount(0)
@@ -61,30 +61,30 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const markAsRead = async (notificationId: string): Promise<void> => {
     try {
       setError(null)
-      await notificationsApi.markAsRead(notificationId)
+      await activityApi.markAsRead(notificationId)
       setNotifications(prev => prev.filter(n => n.id !== notificationId))
       setUnreadCount(prev => Math.max(0, prev - 1))
-      showSuccess('Notification marked as read')
+      showSuccess('Activity marked as read')
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to mark notification as read'
+      const errorMessage = err instanceof Error ? err.message : 'Failed to mark activity as read'
       setError(errorMessage)
       showError(errorMessage)
       throw err
     }
   }
 
-  const deleteNotification = async (notificationId: string): Promise<void> => {
+  const deleteActivity = async (notificationId: string): Promise<void> => {
     try {
       setError(null)
       const notification = notifications.find(n => n.id === notificationId)
-      await notificationsApi.deleteNotification(notificationId)
+      await activityApi.deleteActivity(notificationId)
       setNotifications(prev => prev.filter(n => n.id !== notificationId))
       if (notification && !notification.isRead) {
         setUnreadCount(prev => Math.max(0, prev - 1))
       }
-      showSuccess('Notification deleted')
+      showSuccess('Activity deleted')
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete notification'
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete activity'
       setError(errorMessage)
       showError(errorMessage)
       throw err
@@ -95,7 +95,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     try {
       setError(null)
       const result = await invitationsApi.makeDecision(invitationId, 'accept')
-      await fetchNotifications()
+      await fetchActivity()
       showSuccess(result.message || 'Invitation accepted successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to accept invitation'
@@ -109,7 +109,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     try {
       setError(null)
       const result = await invitationsApi.makeDecision(invitationId, 'reject')
-      await fetchNotifications()
+      await fetchActivity()
       showSuccess(result.message || 'Invitation rejected')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to reject invitation'
@@ -121,10 +121,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      fetchNotifications()
+      fetchActivity()
 
       pollIntervalRef.current = setInterval(() => {
-        fetchNotifications()
+        fetchActivity()
       }, POLL_INTERVAL)
 
       return () => {
@@ -138,23 +138,23 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         pollIntervalRef.current = null
       }
     }
-  }, [authLoading, isAuthenticated, fetchNotifications])
+  }, [authLoading, isAuthenticated, fetchActivity])
 
   return (
-    <NotificationContext.Provider
+    <ActivityContext.Provider
       value={{
         notifications,
         unreadCount,
         loading,
         error,
-        fetchNotifications,
+        fetchActivity,
         markAsRead,
-        deleteNotification,
+        deleteActivity,
         acceptInvitation,
         rejectInvitation,
       }}
     >
       {children}
-    </NotificationContext.Provider>
+    </ActivityContext.Provider>
   )
 }

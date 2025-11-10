@@ -24,7 +24,7 @@ export function LoadingSpinner({ variant = 'section', size = 'md' }: LoadingSpin
 
   if (variant === 'page') {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 animate-fadeIn">
+      <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 animate-fadeIn">
         <div className="text-center animate-slideUp">
           {spinner}
           <p className="mt-4 text-gray-600">Loading...</p>

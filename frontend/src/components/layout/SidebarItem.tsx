@@ -18,11 +18,11 @@ export function SidebarItem({ to, icon: Icon, label, isCollapsed }: SidebarItemP
         to={to}
         className={({ isActive }) =>
           `
-          flex items-center h-12 transition-all duration-150 relative
+          flex items-center h-12 transition-all duration-150 relative cursor-pointer
           ${isCollapsed ? 'justify-center' : 'px-4 gap-3 rounded-lg'}
           ${
             isActive && !isCollapsed
-              ? 'bg-gradient-to-r from-accent to-accent/50 text-primary font-semibold shadow-sm'
+              ? 'bg-primary/10 text-primary font-semibold shadow-sm'
               : isActive && isCollapsed
               ? 'text-primary'
               : isCollapsed
@@ -36,8 +36,8 @@ export function SidebarItem({ to, icon: Icon, label, isCollapsed }: SidebarItemP
       >
         {({ isActive }) => (
           <>
-            {isActive && !isCollapsed && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>}
-            {isActive && isCollapsed && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary rounded-r-full"></div>}
+            {isActive && !isCollapsed && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary/70 rounded-r-full"></div>}
+            {isActive && isCollapsed && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary/70 rounded-r-full"></div>}
             <Icon className={isCollapsed ? 'w-7 h-7' : 'w-6 h-6'} />
             {!isCollapsed && (
               <span className="font-medium text-sm">{label}</span>

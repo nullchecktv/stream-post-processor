@@ -5,7 +5,7 @@ import { ProfileStep } from '../components/onboarding/ProfileStep'
 import { InvitationsStep } from '../components/onboarding/InvitationsStep'
 import { TeamStep } from '../components/onboarding/TeamStep'
 import { useUser } from '../hooks/useUser'
-import { useNotifications } from '../hooks/useNotifications'
+import { useActivity } from '../hooks/useActivity'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 type OnboardingStep = 'welcome' | 'profile' | 'invitations' | 'team' | 'complete'
@@ -14,7 +14,7 @@ function OnboardingPage() {
   usePageTitle('Get Started')
   const navigate = useNavigate()
   const { refreshProfile } = useUser()
-  const { notifications, loading: notificationsLoading } = useNotifications()
+  const { notifications, loading: activityLoading } = useActivity()
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome')
 
   const invitationNotifications = notifications.filter(
@@ -34,7 +34,7 @@ function OnboardingPage() {
 
   const handleProfileComplete = async () => {
     await refreshProfile()
-    if (!notificationsLoading && hasInvitations) {
+    if (!activityLoading && hasInvitations) {
       setCurrentStep('invitations')
     } else {
       setCurrentStep('team')

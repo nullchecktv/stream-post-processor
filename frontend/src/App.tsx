@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { UserProvider } from './contexts/UserContext'
 import { TeamProvider } from './contexts/TeamContext'
-import { NotificationProvider } from './contexts/NotificationContext'
+import { ActivityProvider } from './contexts/ActivityContext'
 import { SidebarProvider } from './contexts/SidebarContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthGuard } from './components/auth/AuthGuard'
@@ -19,12 +19,13 @@ const EmailVerificationPage = lazy(() => import('./pages/EmailVerificationPage')
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const EpisodesListPage = lazy(() => import('./pages/EpisodesListPage'))
 const EpisodeDetailPage = lazy(() => import('./pages/EpisodeDetailPage'))
 const TeamsListPage = lazy(() => import('./pages/TeamsListPage'))
 const TeamDetailPage = lazy(() => import('./pages/TeamDetailPage'))
 const TeamSettingsPage = lazy(() => import('./pages/TeamSettingsPage'))
 const TeamMembersPage = lazy(() => import('./pages/TeamMembersPage'))
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })))
+const ActivityPage = lazy(() => import('./pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
@@ -36,7 +37,7 @@ function App() {
           <ToastProvider>
             <UserProvider>
               <TeamProvider>
-                <NotificationProvider>
+                <ActivityProvider>
                   <SidebarProvider>
                     <Suspense fallback={<LoadingSpinner variant="page" />}>
                       <Routes>
@@ -50,9 +51,10 @@ function App() {
                             <Route element={<PageLayout />}>
                               <Route path="/" element={<Dashboard />} />
                               <Route path="/teams" element={<TeamsListPage />} />
-                              <Route path="/notifications" element={<NotificationsPage />} />
+                              <Route path="/activity" element={<ActivityPage />} />
                               <Route path="/profile" element={<ProfilePage />} />
                               <Route element={<TeamGuard />}>
+                                <Route path="/episodes" element={<EpisodesListPage />} />
                                 <Route path="/episodes/:id" element={<EpisodeDetailPage />} />
                                 <Route path="/teams/:teamId" element={<TeamDetailPage />} />
                                 <Route path="/teams/:teamId/settings" element={<TeamSettingsPage />} />
@@ -65,7 +67,7 @@ function App() {
                       </Routes>
                     </Suspense>
                   </SidebarProvider>
-                </NotificationProvider>
+                </ActivityProvider>
               </TeamProvider>
             </UserProvider>
           </ToastProvider>
