@@ -162,7 +162,7 @@ function LoginPage() {
                 aria-describedby={passwordError ? 'password-error' : undefined}
               />
               {passwordError && (
-                <p id="password-error" className="mt-2 text-sm text-error" role="alert">
+                <p id="password-error" className="mt-2 text-sm text-error text-black" role="alert">
                   {passwordError}
                 </p>
               )}
@@ -182,7 +182,7 @@ function LoginPage() {
 
             {error && (
               <div className="p-4 bg-error bg-opacity-10 border border-error rounded-lg animate-slideDown">
-                <p className="text-sm text-error" role="alert">
+                <p className="text-sm text-white" role="alert">
                   {error}
                 </p>
               </div>
@@ -211,7 +211,7 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => navigate('/signup')}
-                className="text-primary hover:text-primary-dark font-medium transition-colors"
+                className="text-primary hover:text-primary-dark font-medium transition-colors cursor-pointer"
               >
                 Sign up
               </button>

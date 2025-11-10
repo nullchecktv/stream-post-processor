@@ -28,15 +28,8 @@ function EpisodeOverviewPage() {
       }
 
       try {
-        const [episodeData, statusData] = await Promise.all([
-          episodesApi.get(id),
-          episodesApi.getStatus(id)
-        ])
-
-        setEpisode({
-          ...episodeData,
-          statusHistory: statusData.statusHistory
-        } as EpisodeDetail)
+        const episodeData = await episodesApi.getDetail(id)
+        setEpisode(episodeData)
         setError(null)
       } catch (err) {
         console.error('Failed to fetch episode:', err)
@@ -75,9 +68,9 @@ function EpisodeOverviewPage() {
     )
   }
 
-  const tracksCount = episode.metrics?.tracksCount || 0
-  const hasTranscript = episode.metrics?.hasTranscript || false
-  const clipsCount = episode.metrics?.clipsCount || 0
+  const tracksCount = episode.tracks?.length || 0
+  const hasTranscript = !!episode.transcript
+  const clipsCount = episode.clips?.length || 0
 
   return (
     <div className="space-y-6">

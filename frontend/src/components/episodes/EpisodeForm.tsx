@@ -1,4 +1,4 @@
-import { useForm, type SubmitHandler } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { EpisodeSchema, type EpisodeFormData } from '../../utils/validation'
 import { Input } from '../common/Input'
@@ -37,7 +37,7 @@ export function EpisodeForm({ episode, onSubmit, onCancel, isSubmitting = false 
     } : undefined,
   })
 
-  const handleFormSubmit: SubmitHandler<EpisodeFormData> = async (data) => {
+  const handleFormSubmit = async (data: EpisodeFormData) => {
     await onSubmit(data)
   }
 

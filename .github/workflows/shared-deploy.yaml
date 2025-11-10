@@ -15,6 +15,9 @@ on:
       ENV_NAME:
         type: string
         required: true
+      CACHE_NAME:
+        type: string
+        required: true
 
 jobs:
   deploy:

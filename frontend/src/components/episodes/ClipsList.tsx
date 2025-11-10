@@ -38,7 +38,7 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
       if (onClipsLoaded) {
         const counts = {
           total: response.items.length,
-          proposed: response.items.filter(c => c.status === 'proposed' || c.status === 'detected').length,
+          proposed: response.items.filter(c => c.status === 'detected').length,
           processing: response.items.filter(c => c.status === 'processing').length,
           processed: response.items.filter(c => c.status === 'processed').length
         }
@@ -89,13 +89,13 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
 
   const filteredClips = clips.filter(clip => {
     if (statusFilter === 'all') return true
-    if (statusFilter === 'proposed') return clip.status === 'proposed' || clip.status === 'detected'
+    if (statusFilter === 'proposed') return clip.status === 'detected'
     return clip.status === statusFilter
   })
 
   const statusCounts = {
     all: clips.length,
-    proposed: clips.filter(c => c.status === 'proposed' || c.status === 'detected').length,
+    proposed: clips.filter(c => c.status === 'detected').length,
     processing: clips.filter(c => c.status === 'processing').length,
     processed: clips.filter(c => c.status === 'processed').length
   }

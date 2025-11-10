@@ -17,26 +17,26 @@ function EpisodeClipsPage() {
 
   usePageTitle(episode ? `${episode.title} - Clips` : 'Episode Clips')
 
-  useEffect(() => {
-    const fetchEpisode = async () => {
-      if (!id) {
-        setError('Episode ID is required')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const data = await episodesApi.getDetail(id)
-        setEpisode(data)
-        setError(null)
-      } catch (err) {
-        console.error('Failed to fetch episode:', err)
-        setError('Failed to load episode. Please try again.')
-      } finally {
-        setLoading(false)
-      }
+  const fetchEpisode = async () => {
+    if (!id) {
+      setError('Episode ID is required')
+      setLoading(false)
+      return
     }
 
+    try {
+      const data = await episodesApi.getDetail(id)
+      setEpisode(data)
+      setError(null)
+    } catch (err) {
+      console.error('Failed to fetch episode:', err)
+      setError('Failed to load episode. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchEpisode()
   }, [id])
 

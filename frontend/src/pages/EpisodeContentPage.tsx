@@ -93,7 +93,7 @@ function EpisodeContentPage() {
 
         <TranscriptUploader
           episodeId={id}
-          hasExistingTranscript={episode.metrics?.hasTranscript || false}
+          hasExistingTranscript={!!episode.transcript}
           onUploadComplete={handleUploadComplete}
         />
       </div>
