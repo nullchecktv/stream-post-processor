@@ -6,20 +6,6 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'frontend/**'
-  workflow_dispatch:
-    inputs:
-      action:
-        description: 'Action to perform'
-        required: true
-        type: choice
-        options:
-          - deploy
-          - cleanup
-      pr_number:
-        description: 'PR number for cleanup'
-        required: false
-        type: string
-  push:
 
 permissions:
   id-token: write
@@ -31,7 +17,6 @@ jobs:
     name: Prepare Deployment
     runs-on: ubuntu-latest
     outputs:
-      env_hash: ${{ steps.prepare-parameters.outputs.env_hash }}
       backend_stack_name: ${{ steps.prepare-parameters.outputs.backend_stack_name }}
       frontend_stack_name: ${{ steps.prepare-parameters.outputs.frontend_stack_name }}
     steps:
@@ -39,22 +24,18 @@ jobs:
         id: prepare-parameters
         run: |
           ENV_DESCRIPTOR="pr-${{ github.actor }}"
-          ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
           BACKEND_STACK_NAME="babbling-brook-dev"
-          FRONTEND_STACK_NAME="babbling-brook-frontend-pr-$ENV_HASH"
+          FRONTEND_STACK_NAME="babbling-brook-frontend-pr-$ENV_DESCRIPTOR"
 
-          echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
           echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
           echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
 
-          echo "Environment Hash: $ENV_HASH"
           echo "Backend Stack: $BACKEND_STACK_NAME"
           echo "Frontend Stack: $FRONTEND_STACK_NAME"
 
   deploy-infrastructure:
     name: Deploy Infrastructure
     needs: [prepare-deployment]
-    # if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -70,7 +51,6 @@ jobs:
         working-directory: frontend
         env:
           STACK_NAME: ${{ needs.prepare-deployment.outputs.frontend_stack_name }}
-          ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml
           echo "Generated samconfig.yaml:"
@@ -91,7 +71,6 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     needs: [prepare-deployment, deploy-infrastructure]
-    # if: always() && needs.prepare-deployment.result == 'success' && needs.deploy-infrastructure.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -209,7 +188,6 @@ jobs:
           script: |
             const previewUrl = '${{ steps.preview-url.outputs.cloudfront_url }}';
             const stackName = '${{ needs.prepare-deployment.outputs.frontend_stack_name }}';
-            const envHash = '${{ needs.prepare-deployment.outputs.env_hash }}';
 
             const commentBody = `## 🚀 PR Preview Deployed
 
@@ -218,19 +196,11 @@ jobs:
             **Preview URL:** ${previewUrl}
 
             **Stack Name:** \`${stackName}\`
-            **Environment Hash:** \`${envHash}\`
 
             ### 📝 Notes
             - This preview connects to the **dev backend** environment
             - Changes to this PR will automatically update the preview
-            - The preview will remain active until manually cleaned up
-
-            ### 🧹 Cleanup Instructions
-            To delete this preview environment, run the cleanup workflow:
-            1. Go to [Actions → Deploy Frontend PR Preview](https://github.com/${{ github.repository }}/actions/workflows/deploy-frontend-pr.yaml)
-            2. Click "Run workflow"
-            3. Select \`cleanup\` action
-            4. Enter PR number: \`${{ github.event.pull_request.number }}\`
+            - Each GitHub user gets one preview environment (shared across all their PRs)
 
             ---
             *Last updated: ${new Date().toISOString()}*`;
@@ -261,80 +231,3 @@ jobs:
                 body: commentBody
               });
             }
-
-  cleanup:
-    name: Cleanup Preview
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'cleanup'
-    steps:
-      - name: Calculate environment hash
-        id: calc-hash
-        run: |
-          ENV_DESCRIPTOR="pr-${{ github.actor }}"
-          ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
-          FRONTEND_STACK_NAME="babbling-brook-frontend-pr-$ENV_HASH"
-
-          echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
-          echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
-
-      - name: Configure AWS
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          aws-region: us-east-1
-          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
-
-      - name: Empty S3 bucket
-        run: |
-          BUCKET_NAME=$(aws cloudformation describe-stacks \
-            --stack-name ${{ steps.calc-hash.outputs.frontend_stack_name }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`BucketName`].OutputValue' \
-            --output text 2>/dev/null || echo "")
-
-          if [ -n "$BUCKET_NAME" ]; then
-            echo "Emptying bucket: $BUCKET_NAME"
-            aws s3 rm s3://$BUCKET_NAME --recursive
-          else
-            echo "Stack not found or bucket already deleted"
-          fi
-
-      - name: Delete CloudFormation stack
-        run: |
-          STACK_NAME="${{ steps.calc-hash.outputs.frontend_stack_name }}"
-
-          if aws cloudformation describe-stacks --stack-name $STACK_NAME 2>/dev/null; then
-            echo "Deleting stack: $STACK_NAME"
-            aws cloudformation delete-stack --stack-name $STACK_NAME
-
-            echo "Waiting for stack deletion to complete..."
-            aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
-
-            echo "Stack deleted successfully"
-          else
-            echo "Stack not found: $STACK_NAME"
-          fi
-
-      - name: Post cleanup confirmation
-        if: github.event.inputs.pr_number != ''
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const stackName = '${{ steps.calc-hash.outputs.frontend_stack_name }}';
-            const prNumber = '${{ github.event.inputs.pr_number }}';
-
-            const commentBody = `## 🧹 PR Preview Cleaned Up
-
-            The preview environment has been deleted.
-
-            **Stack Name:** \`${stackName}\`
-
-            All resources including S3 bucket and CloudFront distribution have been removed.
-
-            ---
-            *Cleaned up: ${new Date().toISOString()}*`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: parseInt(prNumber),
-              body: commentBody
-            });

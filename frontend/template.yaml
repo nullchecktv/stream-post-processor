@@ -2,11 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Frontend CloudFront and S3 deployment
 
-Parameters:
-  EnvironmentHash:
-    Type: String
-    Description: Environment identifier for unique naming
-
 Resources:
   FrontendBucket:
     Type: AWS::S3::Bucket

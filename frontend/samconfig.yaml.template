@@ -6,6 +6,4 @@ dev:
       stack_name: ${STACK_NAME}
       region: us-east-1
       capabilities: CAPABILITY_IAM
-      parameter_overrides:
-        EnvironmentHash=${ENV_HASH}
       confirm_changeset: false
