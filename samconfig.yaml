@@ -4,7 +4,7 @@ dev:
       stack_name: stream-post-processor
       s3_prefix: stream-post-processor
       region: us-east-1
-      capabilities: CAPABILITY_IAM
+      capabilities: CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
       image_repositories: []
       parameter_overrides:
         - MaxTracksPerEpisode=50

@@ -1,5 +1,5 @@
-name: Deploy Sandbox
-run-name: Deploy ${{ github.actor }} Sandbox
+name: Deploy Backend (Sandbox)
+run-name: Deploy ${{ github.actor }} Sandbox - Backend
 
 on:
   workflow_dispatch:

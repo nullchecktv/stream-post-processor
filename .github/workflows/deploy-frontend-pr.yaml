@@ -1,0 +1,200 @@
+name: Deploy Frontend Preview
+run-name: Preview - ${{ github.actor }}
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  prepare-deployment:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      backend_stack_name: ${{ steps.prepare-parameters.outputs.backend_stack_name }}
+      frontend_stack_name: ${{ steps.prepare-parameters.outputs.frontend_stack_name }}
+    steps:
+      - name: Prepare parameters
+        id: prepare-parameters
+        run: |
+          ENV_DESCRIPTOR="pr-${{ github.actor }}"
+          BACKEND_STACK_NAME="babbling-brook-dev"
+          FRONTEND_STACK_NAME="babbling-brook-frontend-$ENV_DESCRIPTOR"
+
+          echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
+          echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
+
+          echo "Backend Stack: $BACKEND_STACK_NAME"
+          echo "Frontend Stack: $FRONTEND_STACK_NAME"
+
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    needs: [prepare-deployment]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
+
+      - name: Generate samconfig
+        working-directory: frontend
+        env:
+          STACK_NAME: ${{ needs.prepare-deployment.outputs.frontend_stack_name }}
+        run: |
+          envsubst < samconfig.yaml.template > samconfig.yaml
+          echo "Generated samconfig.yaml:"
+          cat samconfig.yaml
+
+      - name: Deploy frontend stack
+        working-directory: frontend
+        run: |
+          sam build --template-file template.yaml
+
+          sam deploy \
+            --config-file samconfig.yaml \
+            --config-env dev \
+            --s3-bucket "${{ secrets.ARTIFACTS_BUCKET_NAME }}" \
+            --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
+            --no-fail-on-empty-changeset
+
+  build-and-deploy:
+    name: Build and Deploy
+    needs: [prepare-deployment, deploy-infrastructure]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
+
+      - name: Retrieve backend outputs
+        id: backend-outputs
+        run: |
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
+            --output text)
+
+          USER_POOL_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+            --output text)
+
+          USER_POOL_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolClientId`].OutputValue' \
+            --output text)
+
+          USER_POOL_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolDomain`].OutputValue' \
+            --output text)
+
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "user_pool_id=$USER_POOL_ID" >> $GITHUB_OUTPUT
+          echo "user_pool_client_id=$USER_POOL_CLIENT_ID" >> $GITHUB_OUTPUT
+          echo "user_pool_domain=$USER_POOL_DOMAIN" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build React application
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ steps.backend-outputs.outputs.api_url }}
+          VITE_USER_POOL_ID: ${{ steps.backend-outputs.outputs.user_pool_id }}
+          VITE_USER_POOL_CLIENT_ID: ${{ steps.backend-outputs.outputs.user_pool_client_id }}
+          VITE_USER_POOL_DOMAIN: ${{ steps.backend-outputs.outputs.user_pool_domain }}
+          VITE_AWS_REGION: us-east-1
+        run: |
+          npm run build
+
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not found after build"
+            exit 1
+          fi
+
+      - name: Upload to S3
+        run: |
+          BUCKET_NAME=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.frontend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`BucketName`].OutputValue' \
+            --output text)
+
+          aws s3 sync frontend/dist s3://$BUCKET_NAME \
+            --delete \
+            --cache-control "public,max-age=31536000,immutable" \
+            --exclude "index.html" \
+            --exclude "*.txt"
+
+          aws s3 cp frontend/dist/index.html s3://$BUCKET_NAME/index.html \
+            --cache-control "public,max-age=0,must-revalidate"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.frontend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`DistributionId`].OutputValue' \
+            --output text)
+
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id $DISTRIBUTION_ID \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+
+          echo "Waiting for invalidation $INVALIDATION_ID to complete..."
+          aws cloudfront wait invalidation-completed \
+            --distribution-id $DISTRIBUTION_ID \
+            --id $INVALIDATION_ID
+
+      - name: Get preview URL
+        id: preview-url
+        run: |
+          CLOUDFRONT_URL=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.frontend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
+            --output text)
+
+          echo "cloudfront_url=$CLOUDFRONT_URL" >> $GITHUB_OUTPUT
+
+      - name: Add deployment summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🚀 PR Preview Deployed
+
+          Your preview environment is ready!
+
+          **Preview URL:** ${{ steps.preview-url.outputs.cloudfront_url }}
+
+          **Stack Name:** \`${{ needs.prepare-deployment.outputs.frontend_stack_name }}\`
+
+          ### 📝 Notes
+          - This preview connects to the **dev backend** environment
+          - Changes to this PR will automatically update the preview
+          - Each GitHub user gets one preview environment (shared across all their PRs)
+          EOF
