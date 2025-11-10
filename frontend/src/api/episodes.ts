@@ -1,6 +1,6 @@
 import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
-import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView } from '../types'
+import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView, EpisodePlan } from '../types'
 
 interface ListEpisodesParams {
   nextToken?: string
@@ -174,5 +174,25 @@ export const episodesApi = {
     })
     apiCache.invalidate(`GET:/episodes/${id}`)
     apiCache.invalidatePattern('/episodes?')
+  },
+
+  getPlan: (id: string) => apiRequest<EpisodePlan>(`/episodes/${id}/plan`),
+
+  createPlan: async (id: string, data: { objectives: string; concepts: string; notes?: string }) => {
+    const result = await apiRequest<EpisodePlan>(`/episodes/${id}/plan`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+    apiCache.invalidate(`GET:/episodes/${id}/plan`)
+    return result
+  },
+
+  updatePlan: async (id: string, data: { objectives: string; concepts: string; notes?: string }) => {
+    const result = await apiRequest<EpisodePlan>(`/episodes/${id}/plan`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+    apiCache.invalidate(`GET:/episodes/${id}/plan`)
+    return result
   },
 }

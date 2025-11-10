@@ -78,6 +78,18 @@ export interface Episode {
     hasTranscript: boolean
     clipsCount: number
   }
+  statusHistory?: Array<{
+    status: string
+    timestamp: string
+  }>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Plan {
+  objectives: string
+  concepts: string
+  notes?: string
   createdAt: string
   updatedAt: string
 }
@@ -105,6 +117,20 @@ export interface Activity {
   isRead: boolean
   createdAt: string
   metadata?: Record<string, unknown>
+}
+
+export interface Recommendations {
+  suggestedFlow: string
+  proposedTitle: string
+  proposedDescription: string
+  keyLearningMoments: string[]
+  generatedAt: string
+}
+
+export interface EpisodePlan {
+  episodeId: string
+  plan: Plan
+  recommendations: Recommendations | null
 }
 
 export interface Team {

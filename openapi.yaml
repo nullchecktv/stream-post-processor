@@ -851,6 +851,153 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/plan:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: Get episode plan
+      description: Retrieves the plan and AI-generated recommendations for an episode
+      tags: [Episodes]
+      responses:
+        200:
+          description: Episode plan with recommendations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EpisodePlan"
+        404:
+          description: Episode or plan not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                episode_not_found:
+                  summary: Episode not found
+                  value:
+                    error: "NotFound"
+                    message: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+                plan_not_found:
+                  summary: Plan not found
+                  value:
+                    error: "NotFound"
+                    message: "Plan not found for episode"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlanFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      summary: Create episode plan
+      description: Creates a new plan for an episode with objectives, concepts, and notes. Triggers AI agent to generate recommendations.
+      tags: [Episodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRequest"
+            examples:
+              basic_plan:
+                summary: Basic episode plan
+                value:
+                  objectives: "Discuss serverless architecture patterns and best practices"
+                  concepts: "Lambda, DynamoDB, EventBridge, Step Functions"
+                  notes: "Focus on real-world examples, include cost optimization tips"
+              minimal_plan:
+                summary: Minimal plan without notes
+                value:
+                  objectives: "Introduction to AWS services"
+                  concepts: "EC2, S3, RDS"
+      responses:
+        201:
+          description: Plan created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanResponse"
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data - missing required fields or validation errors
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode not found
+        409:
+          description: Plan already exists for this episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "Conflict"
+                message: "Plan already exists for this episode. Use PUT to update."
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AddPlanFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    put:
+      summary: Update episode plan
+      description: Updates an existing plan for an episode. Triggers AI agent to regenerate recommendations.
+      tags: [Episodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRequest"
+            examples:
+              update_plan:
+                summary: Update existing plan
+                value:
+                  objectives: "Deep dive into serverless architecture patterns"
+                  concepts: "Lambda, DynamoDB, EventBridge, Step Functions, API Gateway"
+                  notes: "Focus on real-world examples, include cost optimization and security best practices"
+      responses:
+        200:
+          description: Plan updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanResponse"
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data - missing required fields or validation errors
+        404:
+          description: Episode or plan not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                episode_not_found:
+                  summary: Episode not found
+                  value:
+                    error: "NotFound"
+                    message: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+                plan_not_found:
+                  summary: Plan not found
+                  value:
+                    error: "NotFound"
+                    message: "Plan not found for episode"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdatePlanFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
   /teams:
     get:
       summary: List user's teams
@@ -2651,6 +2798,157 @@ components:
         - message
         - isRead
         - createdAt
+
+    PlanRequest:
+      type: object
+      properties:
+        objectives:
+          type: string
+          minLength: 1
+          description: Episode objectives and goals (required, non-empty)
+          example: "Discuss serverless architecture patterns and best practices"
+        concepts:
+          type: string
+          minLength: 1
+          description: Key concepts to cover in the episode (required, non-empty)
+          example: "Lambda, DynamoDB, EventBridge, Step Functions"
+        notes:
+          type: string
+          description: Additional notes and context for the episode (optional)
+          example: "Focus on real-world examples, include cost optimization tips"
+      required:
+        - objectives
+        - concepts
+
+    PlanResponse:
+      type: object
+      properties:
+        episodeId:
+          type: string
+          description: Episode identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        plan:
+          type: object
+          properties:
+            objectives:
+              type: string
+              description: Episode objectives
+              example: "Discuss serverless architecture patterns and best practices"
+            concepts:
+              type: string
+              description: Key concepts
+              example: "Lambda, DynamoDB, EventBridge, Step Functions"
+            notes:
+              type: string
+              description: Additional notes
+              example: "Focus on real-world examples, include cost optimization tips"
+            createdAt:
+              type: string
+              format: date-time
+              description: When the plan was created
+              example: "2025-01-15T10:30:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              description: When the plan was last updated
+              example: "2025-01-15T10:35:00Z"
+          required:
+            - objectives
+            - concepts
+            - createdAt
+            - updatedAt
+        status:
+          type: string
+          description: Status of the plan operation
+          enum: ["plan_added", "plan_updated"]
+          example: "plan_added"
+      required:
+        - episodeId
+        - plan
+        - status
+
+    EpisodePlan:
+      type: object
+      properties:
+        episodeId:
+          type: string
+          description: Episode identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        plan:
+          type: object
+          properties:
+            objectives:
+              type: string
+              description: Episode objectives
+              example: "Discuss serverless architecture patterns and best practices"
+            concepts:
+              type: string
+              description: Key concepts
+              example: "Lambda, DynamoDB, EventBridge, Step Functions"
+            notes:
+              type: string
+              description: Additional notes
+              example: "Focus on real-world examples, include cost optimization tips"
+            createdAt:
+              type: string
+              format: date-time
+              description: When the plan was created
+              example: "2025-01-15T10:30:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              description: When the plan was last updated
+              example: "2025-01-15T10:35:00Z"
+          required:
+            - objectives
+            - concepts
+            - createdAt
+            - updatedAt
+        recommendations:
+          type: object
+          nullable: true
+          description: AI-generated recommendations (null if not yet generated)
+          properties:
+            suggestedFlow:
+              type: string
+              description: Mermaid sequence diagram showing proposed episode flow
+              example: "sequenceDiagram\n    participant Host\n    participant Audience\n    Host->>Audience: Introduction\n    Host->>Audience: Concept 1: Lambda\n    ..."
+            proposedTitle:
+              type: string
+              minLength: 10
+              maxLength: 200
+              description: AI-generated episode title
+              example: "Mastering Serverless Architecture: A Deep Dive into AWS Patterns"
+            proposedDescription:
+              type: string
+              minLength: 50
+              maxLength: 1000
+              description: AI-generated promotional description
+              example: "Join us for an in-depth exploration of serverless architecture patterns..."
+            keyLearningMoments:
+              type: array
+              items:
+                type: string
+              minItems: 1
+              description: Key learning moments or takeaways
+              example:
+                - "Understanding Lambda cold starts and optimization"
+                - "DynamoDB single-table design patterns"
+                - "Cost optimization strategies for serverless"
+            generatedAt:
+              type: string
+              format: date-time
+              description: When recommendations were generated
+              example: "2025-01-15T10:35:00Z"
+          required:
+            - suggestedFlow
+            - proposedTitle
+            - proposedDescription
+            - keyLearningMoments
+            - generatedAt
+      required:
+        - episodeId
+        - plan
 
   responses:
     BadRequest:
