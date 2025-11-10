@@ -1,12 +1,12 @@
-name: Deploy Frontend Preview
-run-name: Frontend Preview - ${{ github.actor }}
+name: Deploy Preview
+run-name: Preview - ${{ github.actor }}
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'frontend/**'
+  push:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 permissions:
   id-token: write
@@ -18,6 +18,9 @@ jobs:
     name: Prepare Deployment
     runs-on: ubuntu-latest
     outputs:
+      env_descriptor: ${{ steps.prepare-parameters.outputs.env_descriptor }}
+      env_hash: ${{ steps.prepare-parameters.outputs.env_hash }}
+      env_name: ${{ steps.prepare-parameters.outputs.env_name }}
       backend_stack_name: ${{ steps.prepare-parameters.outputs.backend_stack_name }}
       frontend_stack_name: ${{ steps.prepare-parameters.outputs.frontend_stack_name }}
     steps:
@@ -25,18 +28,108 @@ jobs:
         id: prepare-parameters
         run: |
           ENV_DESCRIPTOR="env-${{ github.actor }}"
-          BACKEND_STACK_NAME="babbling-brook-dev"
+          ENV_HASH=$(echo -n "$ENV_DESCRIPTOR" | sha1sum | cut -c1-6)
+          ENV_NAME="${{ github.actor }}"
+          BACKEND_STACK_NAME="babbling-brook-$ENV_DESCRIPTOR"
           FRONTEND_STACK_NAME="babbling-brook-frontend-$ENV_DESCRIPTOR"
 
+          echo "env_descriptor=$ENV_DESCRIPTOR" >> $GITHUB_OUTPUT
+          echo "env_hash=$ENV_HASH" >> $GITHUB_OUTPUT
+          echo "env_name=$ENV_NAME" >> $GITHUB_OUTPUT
           echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
           echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
 
-          echo "Backend Stack: $BACKEND_STACK_NAME"
-          echo "Frontend Stack: $FRONTEND_STACK_NAME"
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # Preview Deployment
+          * Environment Descriptor: \`$ENV_DESCRIPTOR\`
+          * Environment Hash: \`$ENV_HASH\`
+          * Backend Stack: \`$BACKEND_STACK_NAME\`
+          * Frontend Stack: \`$FRONTEND_STACK_NAME\`
+          EOF
 
-  deploy-infrastructure:
-    name: Deploy Infrastructure
+  deploy-backend:
+    name: Deploy Backend
     needs: [prepare-deployment]
+    runs-on: ubuntu-latest
+    outputs:
+      api_url: ${{ steps.backend-outputs.outputs.api_url }}
+      user_pool_id: ${{ steps.backend-outputs.outputs.user_pool_id }}
+      user_pool_client_id: ${{ steps.backend-outputs.outputs.user_pool_client_id }}
+      user_pool_domain: ${{ steps.backend-outputs.outputs.user_pool_domain }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
+
+      - name: Replace Variables in samconfig
+        env:
+          STACK_NAME: ${{ needs.prepare-deployment.outputs.backend_stack_name }}
+          ENV_HASH: ${{ needs.prepare-deployment.outputs.env_hash }}
+          ENV_NAME: ${{ needs.prepare-deployment.outputs.env_name }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          MOMENTO_API_KEY: ${{ secrets.MOMENTO_API_KEY }}
+          CACHE_NAME: nullcheck
+        run: |
+          envsubst < samconfig.yaml.template > samconfig.yaml
+          echo "Generated samconfig.yaml:"
+          cat samconfig.yaml
+
+      - name: Deploy backend stack
+        run: |
+          npm install -g esbuild
+          npm ci
+
+          sam build --template-file template.yaml
+
+          sam deploy \
+            --config-file samconfig.yaml \
+            --config-env dev \
+            --s3-bucket "${{ secrets.ARTIFACTS_BUCKET_NAME }}" \
+            --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
+            --no-fail-on-empty-changeset
+
+      - name: Retrieve backend outputs
+        id: backend-outputs
+        run: |
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
+            --output text)
+
+          USER_POOL_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
+            --output text)
+
+          USER_POOL_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolClientId`].OutputValue' \
+            --output text)
+
+          USER_POOL_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolDomain`].OutputValue' \
+            --output text)
+
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "user_pool_id=$USER_POOL_ID" >> $GITHUB_OUTPUT
+          echo "user_pool_client_id=$USER_POOL_CLIENT_ID" >> $GITHUB_OUTPUT
+          echo "user_pool_domain=$USER_POOL_DOMAIN" >> $GITHUB_OUTPUT
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## Backend Deployed
+          * API URL: \`$API_URL\`
+          * User Pool ID: \`$USER_POOL_ID\`
+          EOF
+
+  deploy-frontend-infrastructure:
+    name: Deploy Frontend Infrastructure
+    needs: [prepare-deployment, deploy-backend]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -69,9 +162,9 @@ jobs:
             --role-arn "${{ secrets.CLOUDFORMATION_EXECUTION_ROLE }}" \
             --no-fail-on-empty-changeset
 
-  build-and-deploy:
-    name: Build and Deploy
-    needs: [prepare-deployment, deploy-infrastructure]
+  build-and-deploy-frontend:
+    name: Build and Deploy Frontend
+    needs: [prepare-deployment, deploy-backend, deploy-frontend-infrastructure]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -82,34 +175,6 @@ jobs:
         with:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.PIPELINE_EXECUTION_ROLE }}
-
-      - name: Retrieve backend outputs
-        id: backend-outputs
-        run: |
-          API_URL=$(aws cloudformation describe-stacks \
-            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
-            --output text)
-
-          USER_POOL_ID=$(aws cloudformation describe-stacks \
-            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' \
-            --output text)
-
-          USER_POOL_CLIENT_ID=$(aws cloudformation describe-stacks \
-            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolClientId`].OutputValue' \
-            --output text)
-
-          USER_POOL_DOMAIN=$(aws cloudformation describe-stacks \
-            --stack-name ${{ needs.prepare-deployment.outputs.backend_stack_name }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`UserPoolDomain`].OutputValue' \
-            --output text)
-
-          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
-          echo "user_pool_id=$USER_POOL_ID" >> $GITHUB_OUTPUT
-          echo "user_pool_client_id=$USER_POOL_CLIENT_ID" >> $GITHUB_OUTPUT
-          echo "user_pool_domain=$USER_POOL_DOMAIN" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -125,10 +190,10 @@ jobs:
       - name: Build React application
         working-directory: frontend
         env:
-          VITE_API_URL: ${{ steps.backend-outputs.outputs.api_url }}
-          VITE_USER_POOL_ID: ${{ steps.backend-outputs.outputs.user_pool_id }}
-          VITE_USER_POOL_CLIENT_ID: ${{ steps.backend-outputs.outputs.user_pool_client_id }}
-          VITE_USER_POOL_DOMAIN: ${{ steps.backend-outputs.outputs.user_pool_domain }}
+          VITE_API_URL: ${{ needs.deploy-backend.outputs.api_url }}
+          VITE_USER_POOL_ID: ${{ needs.deploy-backend.outputs.user_pool_id }}
+          VITE_USER_POOL_CLIENT_ID: ${{ needs.deploy-backend.outputs.user_pool_client_id }}
+          VITE_USER_POOL_DOMAIN: ${{ needs.deploy-backend.outputs.user_pool_domain }}
           VITE_AWS_REGION: us-east-1
         run: |
           npm run build
@@ -185,16 +250,19 @@ jobs:
       - name: Add deployment summary
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## 🚀 PR Preview Deployed
+          ## 🚀 Preview Environment Deployed
 
-          Your preview environment is ready!
+          Your complete preview environment is ready!
 
           **Preview URL:** ${{ steps.preview-url.outputs.cloudfront_url }}
 
-          **Stack Name:** \`${{ needs.prepare-deployment.outputs.frontend_stack_name }}\`
+          **Backend Stack:** \`${{ needs.prepare-deployment.outputs.backend_stack_name }}\`
+          **Frontend Stack:** \`${{ needs.prepare-deployment.outputs.frontend_stack_name }}\`
+
+          **API URL:** \`${{ needs.deploy-backend.outputs.api_url }}\`
 
           ### 📝 Notes
-          - This preview connects to the **dev backend** environment
-          - Changes to this PR will automatically update the preview
+          - This preview includes both backend and frontend
           - Each GitHub user gets one preview environment (shared across all their PRs)
+          - Changes to this PR will automatically update the preview
           EOF
