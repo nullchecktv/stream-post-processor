@@ -1,5 +1,4 @@
 name: Deploy Frontend (Dev)
-run-name: Deploy Frontend - ${{ github.actor }}
 
 on:
   workflow_dispatch:
