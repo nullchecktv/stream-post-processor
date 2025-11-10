@@ -56,7 +56,7 @@ jobs:
           STACK_NAME: ${{ needs.prepare-deployment.outputs.frontend_stack_name }}
           BACKEND_STACK_NAME: ${{ needs.prepare-deployment.outputs.backend_stack_name }}
           REPOSITORY: ${{ github.repository }}
-          GITHUB_PAT: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ secrets.GH_PAT }}
           BRANCH: main
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml
