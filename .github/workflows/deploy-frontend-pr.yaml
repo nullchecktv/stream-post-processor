@@ -26,7 +26,7 @@ jobs:
         run: |
           ENV_DESCRIPTOR="pr-${{ github.actor }}"
           BACKEND_STACK_NAME="babbling-brook-dev"
-          FRONTEND_STACK_NAME="babbling-brook-frontend-pr-$ENV_DESCRIPTOR"
+          FRONTEND_STACK_NAME="babbling-brook-frontend-$ENV_DESCRIPTOR"
 
           echo "backend_stack_name=$BACKEND_STACK_NAME" >> $GITHUB_OUTPUT
           echo "frontend_stack_name=$FRONTEND_STACK_NAME" >> $GITHUB_OUTPUT
