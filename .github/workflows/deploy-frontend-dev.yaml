@@ -1,4 +1,5 @@
 name: Deploy Frontend (Dev)
+run-name: Deploy Frontend - ${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -20,23 +21,11 @@ jobs:
     outputs:
       backend_stack_name: ${{ steps.prepare-parameters.outputs.backend_stack_name }}
       frontend_stack_name: ${{ steps.prepare-parameters.outputs.frontend_stack_name }}
-      infra_changed: ${{ steps.detect-changes.outputs.infra_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
-
-      - name: Detect infrastructure changes
-        id: detect-changes
-        run: |
-          if git diff --name-only HEAD^ HEAD | grep -E '^frontend/(template\.yaml|samconfig\.yaml\.template)$'; then
-            echo "infra_changed=true" >> $GITHUB_OUTPUT
-            echo "Infrastructure files changed"
-          else
-            echo "infra_changed=false" >> $GITHUB_OUTPUT
-            echo "No infrastructure changes detected"
-          fi
 
       - name: Prepare parameters
         id: prepare-parameters
@@ -51,7 +40,6 @@ jobs:
   deploy-infrastructure:
     name: Deploy Infrastructure
     needs: [prepare-deployment]
-    if: needs.prepare-deployment.outputs.infra_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -87,7 +75,6 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     needs: [prepare-deployment, deploy-infrastructure]
-    if: always() && needs.prepare-deployment.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -213,4 +200,3 @@ jobs:
           - This is the **dev** environment
           - Connected to the **dev backend** environment
           - Infrastructure changes: ${{ needs.prepare-deployment.outputs.infra_changed }}
-          EOF
