@@ -32,7 +32,7 @@ export function EpisodeForm({ episode, onSubmit, onCancel, isSubmitting = false 
       description: episode.description || '',
       airDate: episode.airDate || '',
       platforms: episode.platforms || [],
-      themes: Array.isArray(episode.themes) ? episode.themes.join(', ') : episode.themes || '',
+      themes: episode.themes || [],
       seriesName: episode.seriesName || '',
     } : undefined,
   })

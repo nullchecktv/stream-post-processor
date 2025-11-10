@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronRight, ChevronsLeft, ChevronsRight, Activity, User as UserIcon } from 'lucide-react'
+import { ChevronRight, ChevronsLeft, ChevronsRight, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useSidebar } from '../../hooks/useSidebar'
 import { useUser } from '../../hooks/useUser'
