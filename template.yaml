@@ -991,7 +991,7 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
-                - dynamodb:UpdateItem
+                - dynamodb:PutItem
               Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
