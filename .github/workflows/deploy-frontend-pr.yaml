@@ -19,6 +19,7 @@ on:
         description: 'PR number for cleanup'
         required: false
         type: string
+  push:
 
 permissions:
   id-token: write
