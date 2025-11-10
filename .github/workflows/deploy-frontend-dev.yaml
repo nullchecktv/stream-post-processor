@@ -189,12 +189,29 @@ jobs:
             --distribution-id $DISTRIBUTION_ID \
             --id $INVALIDATION_ID
 
-      - name: Output deployment URL
+      - name: Get deployment URL
+        id: deployment-url
         run: |
           CLOUDFRONT_URL=$(aws cloudformation describe-stacks \
             --stack-name ${{ needs.prepare-deployment.outputs.frontend_stack_name }} \
             --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
             --output text)
 
-          echo "# Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "* Frontend URL: $CLOUDFRONT_URL" >> $GITHUB_STEP_SUMMARY
+          echo "cloudfront_url=$CLOUDFRONT_URL" >> $GITHUB_OUTPUT
+
+      - name: Add deployment summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🚀 Dev Environment Deployed
+
+          Your dev environment has been updated!
+
+          **Frontend URL:** ${{ steps.deployment-url.outputs.cloudfront_url }}
+
+          **Stack Name:** \`${{ needs.prepare-deployment.outputs.frontend_stack_name }}\`
+
+          ### 📝 Notes
+          - This is the **dev** environment
+          - Connected to the **dev backend** environment
+          - Infrastructure changes: ${{ needs.prepare-deployment.outputs.infra_changed }}
+          EOF
