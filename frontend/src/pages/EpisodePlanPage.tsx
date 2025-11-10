@@ -4,7 +4,6 @@ import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../contexts/ToastContext'
 import { Breadcrumb } from '../components/common/Breadcrumb'
-import { EpisodeNavigation } from '../components/episodes/EpisodeNavigation'
 import { PlanForm, type PlanFormData } from '../components/episodes/PlanForm'
 import { PlanRecommendations } from '../components/episodes/PlanRecommendations'
 import { MermaidDiagram } from '../components/episodes/MermaidDiagram'
@@ -74,7 +73,6 @@ function EpisodePlanPage() {
   return (
     <div className="space-y-6">
       <Breadcrumb />
-      <EpisodeNavigation />
 
       {!episodePlan?.plan && !showPlanForm && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

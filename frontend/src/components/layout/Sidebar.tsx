@@ -251,6 +251,12 @@ export function Sidebar() {
                 isCollapsed={isCollapsed}
               />
               <SidebarItem
+                to={`/episodes/${episodeId}/plan`}
+                icon={FileText}
+                label="Plan"
+                isCollapsed={isCollapsed}
+              />
+              <SidebarItem
                 to={`/episodes/${episodeId}/uploads`}
                 icon={Upload}
                 label="Uploads"
