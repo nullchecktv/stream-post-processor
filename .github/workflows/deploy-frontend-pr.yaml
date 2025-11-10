@@ -182,52 +182,19 @@ jobs:
 
           echo "cloudfront_url=$CLOUDFRONT_URL" >> $GITHUB_OUTPUT
 
-      - name: Post PR comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const previewUrl = '${{ steps.preview-url.outputs.cloudfront_url }}';
-            const stackName = '${{ needs.prepare-deployment.outputs.frontend_stack_name }}';
+      - name: Add deployment summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🚀 PR Preview Deployed
 
-            const commentBody = `## 🚀 PR Preview Deployed
+          Your preview environment is ready!
 
-            Your preview environment is ready!
+          **Preview URL:** ${{ steps.preview-url.outputs.cloudfront_url }}
 
-            **Preview URL:** ${previewUrl}
+          **Stack Name:** \`${{ needs.prepare-deployment.outputs.frontend_stack_name }}\`
 
-            **Stack Name:** \`${stackName}\`
-
-            ### 📝 Notes
-            - This preview connects to the **dev backend** environment
-            - Changes to this PR will automatically update the preview
-            - Each GitHub user gets one preview environment (shared across all their PRs)
-
-            ---
-            *Last updated: ${new Date().toISOString()}*`;
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const botComment = comments.find(comment =>
-              comment.user.type === 'Bot' &&
-              comment.body.includes('PR Preview Deployed')
-            );
-
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: commentBody
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: commentBody
-              });
-            }
+          ### 📝 Notes
+          - This preview connects to the **dev backend** environment
+          - Changes to this PR will automatically update the preview
+          - Each GitHub user gets one preview environment (shared across all their PRs)
+          EOF
