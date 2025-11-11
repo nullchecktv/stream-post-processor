@@ -15,6 +15,21 @@ jest.mock('../../../functions/utils/agents.mjs', () => ({
   converse: jest.fn()
 }));
 
+jest.mock('../../../functions/tools/web-search.mjs', () => {
+  const { z } = require('zod');
+  return {
+    webSearchTool: {
+      name: 'webSearch',
+      description: 'Mock web search tool',
+      schema: z.object({
+        searchQuery: z.string(),
+        numResults: z.number().optional()
+      }),
+      handler: jest.fn()
+    }
+  };
+});
+
 const ddbMock = mockClient(DynamoDBClient);
 
 const { handler } = require('../../../functions/agents/blog-generator.mjs');

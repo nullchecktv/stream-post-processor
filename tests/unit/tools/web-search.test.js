@@ -3,6 +3,23 @@ jest.mock('@aws-lambda-powertools/logger', () => {
   return { Logger };
 });
 
+jest.mock('serpapi', () => ({
+  getJson: jest.fn()
+}));
+
+jest.mock('got', () => jest.fn());
+
+jest.mock('@extractus/article-extractor', () => ({
+  extractFromHtml: jest.fn()
+}));
+
+jest.mock('turndown', () => {
+  return jest.fn().mockImplementation(() => ({
+    turndown: jest.fn((html) => html),
+    remove: jest.fn()
+  }));
+});
+
 describe('Web Search Tool', () => {
   beforeEach(() => {
     jest.clearAllMocks();
