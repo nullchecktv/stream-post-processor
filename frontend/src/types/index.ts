@@ -1,6 +1,6 @@
 export type Platform = 'linkedin live' | 'X' | 'twitch' | 'youtube'
 
-export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived' | 'Ready for Clip Gen'
+export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived' | 'Ready for Clip Gen' | 'plan_added' | 'plan_updated' | 'recommendations_generated' | 'recommendations_failed'
 
 export type ClipOrientation = 'landscape' | 'portrait'
 
@@ -75,6 +75,18 @@ export interface Episode {
     hasTranscript: boolean
     clipsCount: number
   }
+  statusHistory?: Array<{
+    status: string
+    timestamp: string
+  }>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Plan {
+  objectives: string
+  concepts: string
+  notes?: string
   createdAt: string
   updatedAt: string
 }
@@ -102,6 +114,28 @@ export interface Activity {
   isRead: boolean
   createdAt: string
   metadata?: Record<string, unknown>
+}
+
+export interface OutlineSection {
+  section: string
+  duration: string
+  talkingPoints: string[]
+  demoArtifacts?: string[]
+}
+
+export interface Recommendations {
+  suggestedFlow: string
+  proposedTitle: string
+  proposedDescription: string
+  keyLearningMoments: string[]
+  detailedOutline: OutlineSection[]
+  generatedAt: string
+}
+
+export interface EpisodePlan {
+  episodeId: string
+  plan: Plan
+  recommendations: Recommendations | null
 }
 
 export interface Team {

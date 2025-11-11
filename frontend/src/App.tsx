@@ -24,6 +24,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const EpisodesListPage = lazy(() => import('./pages/EpisodesListPage'))
 const EpisodeOverviewPage = lazy(() => import('./pages/EpisodeOverviewPage'))
 const EpisodeDetailsPage = lazy(() => import('./pages/EpisodeDetailsPage'))
+const EpisodePlanPage = lazy(() => import('./pages/EpisodePlanPage'))
 const EpisodeContentPage = lazy(() => import('./pages/EpisodeContentPage'))
 const EpisodeClipsPage = lazy(() => import('./pages/EpisodeClipsPage'))
 const ClipDetailPage = lazy(() => import('./pages/ClipDetailPage'))
@@ -65,6 +66,7 @@ function App() {
                                 <Route path="/episodes/:id" element={<EpisodeLayout />}>
                                   <Route path="overview" element={<EpisodeOverviewPage />} />
                                   <Route path="details" element={<EpisodeDetailsPage />} />
+                                  <Route path="plan" element={<EpisodePlanPage />} />
                                   <Route path="uploads" element={<EpisodeContentPage />} />
                                   <Route path="clips" element={<EpisodeClipsPage />} />
                                 </Route>

@@ -973,6 +973,179 @@ Resources:
             Path: /episodes/{episodeId}/tracks/{trackName}
             Method: PUT
 
+  AddPlanFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/add-plan.mjs
+    Properties:
+      Handler: episodes/add-plan.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        AddPlan:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/plan
+            Method: POST
+
+  UpdatePlanFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/update-plan.mjs
+    Properties:
+      Handler: episodes/update-plan.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        UpdatePlan:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/plan
+            Method: PUT
+
+  GetPlanFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/get-plan.mjs
+    Properties:
+      Handler: episodes/get-plan.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        GetPlan:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/plan
+            Method: GET
+
+  SetPlanRecommendationsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - tools/set-plan-recommendations.mjs
+    Properties:
+      Handler: tools/set-plan-recommendations.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+
+  PlanningAgentFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - agents/planning-agent.mjs
+    Properties:
+      Handler: agents/planning-agent.handler
+      Timeout: 300
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+            - Effect: Allow
+              Action:
+                - bedrock:ListInferenceProfiles
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt SetPlanRecommendationsFunction.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          MODEL_ID: us.amazon.nova-pro-v1:0
+          TOOL_FUNCTION_ARN: !GetAtt SetPlanRecommendationsFunction.Arn
+      Events:
+        PlanUpdated:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - nullcheck
+              detail-type:
+                - Episode Plan Updated
+
   CreateTeamFunction:
     Type: AWS::Serverless::Function
     Metadata:
