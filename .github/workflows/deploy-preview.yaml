@@ -56,7 +56,7 @@ jobs:
 
   deploy-backend:
     name: Deploy Backend
-    needs: [prepare-deployment]
+    needs: [prepare-deployment, pre-deployment-validations]
     runs-on: ubuntu-latest
     outputs:
       api_url: ${{ steps.backend-outputs.outputs.api_url }}
