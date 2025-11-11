@@ -851,6 +851,94 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/clips/{clipId}/generate:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+      - $ref: "#/components/parameters/ClipId"
+    post:
+      summary: Generate clip video
+      description: Triggers Step Functions workflow to process a single clip with specified orientation. The clip must be in detected or failed status to be generated.
+      tags: [Clips]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orientation:
+                  type: string
+                  enum: [landscape, portrait]
+                  description: Video orientation (placeholder for future use)
+              required:
+                - orientation
+      responses:
+        202:
+          description: Clip generation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executionArn:
+                    type: string
+                    description: Step Functions execution ARN
+                  status:
+                    type: string
+                    enum: [started]
+                    description: Execution status
+                  clipId:
+                    type: string
+                    description: Clip identifier
+                  episodeId:
+                    type: string
+                    description: Episode identifier
+                  orientation:
+                    type: string
+                    enum: [landscape, portrait]
+                    description: Video orientation
+                required:
+                  - executionArn
+                  - status
+                  - clipId
+                  - episodeId
+                  - orientation
+        400:
+          description: Invalid request or clip not in valid state for generation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "ValidationError"
+                  message:
+                    type: string
+                    example: "Orientation must be landscape or portrait"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        404:
+          description: Episode or clip not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "NotFound"
+                  message:
+                    type: string
+                    example: "Clip with ID 'clip-123' was not found in episode '123e4567-e89b-12d3-a456-426614174000'"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GenerateClipFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
   /teams:
     get:
       summary: List user's teams
@@ -1922,7 +2010,7 @@ components:
           description: Unique clip identifier
         title:
           type: string
-          description: Clip title (uses hook if available, otherwise title)
+          description: Clip title
         status:
           type: string
           description: Current clip status computed from status history
@@ -2087,7 +2175,7 @@ components:
           example: "123e4567-e89b-12d3-a456-426614174000"
         title:
           type: string
-          description: Clip title (uses hook if available, otherwise title)
+          description: Clip title
           example: "Interesting Discussion Point"
         description:
           type: string
@@ -2169,36 +2257,13 @@ components:
         - $ref: "#/components/schemas/Clip"
         - type: object
           properties:
-            segments:
-              type: array
-              description: Detailed segments that make up this clip
-              items:
-                type: object
-                properties:
-                  startTime:
-                    type: string
-                    description: Segment start time (HH:MM:SS format)
-                    example: "00:15:30"
-                  endTime:
-                    type: string
-                    description: Segment end time (HH:MM:SS format)
-                    example: "00:16:15"
-                  text:
-                    type: string
-                    description: Transcript text for this segment
-                    example: "This is the transcript text for this segment..."
-                required:
-                  - startTime
-                  - endTime
-                  - text
-              example:
-                - startTime: "00:15:30"
-                  endTime: "00:16:15"
-                  text: "This is the transcript text for this segment..."
-            transcriptSegment:
+            transcript:
               type: string
-              description: Complete transcript text for the entire clip
-              example: "This is the complete transcript text for this clip..."
+              description: Full transcript from all segments with speaker labels. Each segment is formatted as '[speaker] transcript text' and joined with double newlines.
+            segmentCount:
+              type: integer
+              description: Number of segments in the clip
+              example: 2
             processingDuration:
               type: number
               format: float

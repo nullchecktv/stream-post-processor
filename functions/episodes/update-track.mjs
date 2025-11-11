@@ -36,7 +36,7 @@ export const handler = async (event) => {
       speakers = [];
     }
 
-    const trackKey = marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` });
+    const trackKey = marshall({ pk: `${tenantId}#${episodeId}`, sk: `data#track#${trackName}` });
     const getTrackResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: trackKey

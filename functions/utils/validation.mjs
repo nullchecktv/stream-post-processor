@@ -103,6 +103,43 @@ export const validateQueryParameters = async (event, schema) => {
   }
 };
 
+export const validateBody = async (event, schema) => {
+  if (!event.body) {
+    return {
+      success: false,
+      error: formatResponse(400, { message: 'Missing request body' })
+    };
+  }
+
+  try {
+    const body = parseBody(event);
+    if (body === null) {
+      return {
+        success: false,
+        error: formatResponse(400, { message: 'Invalid JSON format' })
+      };
+    }
+
+    await validate({
+      payload: body,
+      schema
+    });
+
+    return {
+      success: true,
+      data: body
+    };
+  } catch (error) {
+    if (error instanceof SchemaValidationError) {
+      return {
+        success: false,
+        error: formatResponse(400, { message: error.message })
+      };
+    }
+    throw error;
+  }
+};
+
 export const checkExists = async (pk, sk) => {
   try {
     const response = await ddb.send(new GetItemCommand({

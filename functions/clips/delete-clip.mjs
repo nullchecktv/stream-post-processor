@@ -1,5 +1,5 @@
 import { Logger } from '@aws-lambda-powertools/logger';
-import { DynamoDBClient, GetItemCommand, DeleteCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, DeleteItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { S3Client, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
@@ -22,7 +22,7 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `clip#${clipId}`
+        sk: `data#clip#${clipId}`
       })
     }));
 
@@ -36,11 +36,11 @@ export const handler = async (event) => {
       await deleteClipFiles(clip, episodeId, clipId);
     }
 
-    await ddb.send(new DeleteCommand({
+    await ddb.send(new DeleteItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `clip#${clipId}`
+        sk: `data#clip#${clipId}`
       })
     }));
 
@@ -113,7 +113,7 @@ const incrementClipsDeleted = async (tenantId) => {
   const now = new Date().toISOString();
 
   try {
-    await ddb.send(new UpdateCommand({
+    await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: tenantId,
@@ -129,7 +129,7 @@ const incrementClipsDeleted = async (tenantId) => {
   } catch (error) {
     if (error.name === 'ValidationException') {
       try {
-        await ddb.send(new UpdateCommand({
+        await ddb.send(new UpdateItemCommand({
           TableName: process.env.TABLE_NAME,
           Key: marshall({
             pk: tenantId,

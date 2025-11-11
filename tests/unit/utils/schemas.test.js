@@ -230,7 +230,7 @@ describe('Schema Definitions', () => {
       test('should validate clip status values', () => {
         const schema = ClipSchemas.statusUpdate;
         const expectedStatuses = [
-          'detected', 'processing', 'processed', 'failed',
+          'detected', 'processing', 'created', 'failed',
           'reviewed', 'approved', 'rejected', 'published'
         ];
 

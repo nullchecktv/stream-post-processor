@@ -2,26 +2,25 @@ import { useState, useEffect } from 'react'
 import type { ClipListView } from '../../types'
 import { episodesApi } from '../../api/episodes'
 import { ClipCard } from './ClipCard'
-import { ClipPlayer } from './ClipPlayer'
+import { ClipModal } from './ClipModal'
 import { LoadingSpinner } from '../common/LoadingSpinner'
 import { EmptyState } from '../common/EmptyState'
-import { Modal } from '../common/Modal'
 import { useToast } from '../../contexts/ToastContext'
 
 interface ClipsListProps {
   episodeId: string
-  onClipsLoaded?: (counts: { total: number; proposed: number; processing: number; processed: number }) => void
+  onClipsLoaded?: (counts: { total: number; proposed: number; processing: number; processed: number }, clips: ClipListView[]) => void
 }
 
-type ClipStatusFilter = 'all' | 'proposed' | 'processing' | 'processed'
+type ClipStatusFilter = 'all' | 'proposed' | 'processing' | 'created'
 
 export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
   const [clips, setClips] = useState<ClipListView[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<ClipStatusFilter>('all')
-  const [selectedClip, setSelectedClip] = useState<ClipListView | null>(null)
-  const [showPlayer, setShowPlayer] = useState(false)
+  const [selectedClipId, setSelectedClipId] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -40,9 +39,9 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
           total: response.items.length,
           proposed: response.items.filter(c => c.status === 'detected').length,
           processing: response.items.filter(c => c.status === 'processing').length,
-          processed: response.items.filter(c => c.status === 'processed').length
+          processed: response.items.filter(c => c.status === 'created').length
         }
-        onClipsLoaded(counts)
+        onClipsLoaded(counts, response.items)
       }
     } catch (err) {
       console.error('Failed to fetch clips:', err)
@@ -53,11 +52,8 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
   }
 
   const handlePlay = (clipId: string) => {
-    const clip = clips.find(c => c.id === clipId)
-    if (clip) {
-      setSelectedClip(clip)
-      setShowPlayer(true)
-    }
+    setSelectedClipId(clipId)
+    setShowModal(true)
   }
 
   const handleApprove = async (clipId: string) => {
@@ -82,9 +78,9 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     }
   }
 
-  const handleClosePlayer = () => {
-    setShowPlayer(false)
-    setSelectedClip(null)
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setSelectedClipId(null)
   }
 
   const filteredClips = clips.filter(clip => {
@@ -97,7 +93,7 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     all: clips.length,
     proposed: clips.filter(c => c.status === 'detected').length,
     processing: clips.filter(c => c.status === 'processing').length,
-    processed: clips.filter(c => c.status === 'processed').length
+    processed: clips.filter(c => c.status === 'created').length
   }
 
   if (loading) {
@@ -145,48 +141,48 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
           Clips ({filteredClips.length})
         </h2>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'all'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All ({statusCounts.all})
-          </button>
-          <button
-            onClick={() => setStatusFilter('proposed')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'proposed'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Proposed ({statusCounts.proposed})
-          </button>
-          <button
-            onClick={() => setStatusFilter('processing')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'processing'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Processing ({statusCounts.processing})
-          </button>
-          <button
-            onClick={() => setStatusFilter('processed')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === 'processed'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Processed ({statusCounts.processed})
-          </button>
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All ({statusCounts.all})
+            </button>
+            <button
+              onClick={() => setStatusFilter('proposed')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'proposed'
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Proposed ({statusCounts.proposed})
+            </button>
+            <button
+              onClick={() => setStatusFilter('processing')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'processing'
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Processing ({statusCounts.processing})
+            </button>
+            <button
+              onClick={() => setStatusFilter('created')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === 'created'
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Created ({statusCounts.processed})
+            </button>
+          </div>
         </div>
-      </div>
 
       {filteredClips.length === 0 ? (
         <EmptyState
@@ -200,6 +196,7 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
             <ClipCard
               key={clip.id}
               clip={clip}
+              episodeId={episodeId}
               onPlay={handlePlay}
               onApprove={handleApprove}
               onReject={handleReject}
@@ -208,21 +205,13 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
         </div>
       )}
 
-      {showPlayer && selectedClip && (
-        <Modal
-          isOpen={showPlayer}
-          onClose={handleClosePlayer}
-          title={selectedClip.title}
-          size="xl"
-        >
-          <ClipPlayer
-            clipId={selectedClip.id}
-            episodeId={episodeId}
-            title={selectedClip.title}
-            autoplay={true}
-            onClose={handleClosePlayer}
-          />
-        </Modal>
+      {showModal && selectedClipId && (
+        <ClipModal
+          clipId={selectedClipId}
+          episodeId={episodeId}
+          isOpen={showModal}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   )

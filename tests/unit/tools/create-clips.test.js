@@ -11,6 +11,7 @@ describe('Create Clips Tool - Segment Validation', () => {
     if (!segment.endTime) throw new Error('endTime is required');
     if (segment.speaker === undefined) throw new Error('speaker is required');
     if (segment.order === undefined) throw new Error('order is required');
+    if (segment.transcript === undefined) throw new Error('transcript is required');
 
     // Validate startTime format
     if (typeof segment.startTime !== 'string' || !timeRegex.test(segment.startTime)) {
@@ -30,6 +31,11 @@ describe('Create Clips Tool - Segment Validation', () => {
     // Validate order
     if (typeof segment.order !== 'number' || segment.order < 1 || !Number.isInteger(segment.order)) {
       throw new Error('order must be a positive integer starting from 1');
+    }
+
+    // Validate transcript
+    if (typeof segment.transcript !== 'string' || segment.transcript.length === 0) {
+      throw new Error('transcript must be a non-empty string');
     }
 
     // Additional time format validation (check ranges)
@@ -56,6 +62,7 @@ describe('Create Clips Tool - Segment Validation', () => {
         endTime: '00:17:45',
         speaker: 'host',
         order: 1,
+        transcript: 'This is the transcript text for this segment',
         notes: 'Optional notes'
       };
 
@@ -67,7 +74,8 @@ describe('Create Clips Tool - Segment Validation', () => {
         startTime: '00:15:30',
         endTime: '00:17:45',
         speaker: 'guest1',
-        order: 2
+        order: 2,
+        transcript: 'Another transcript segment'
       };
 
       expect(() => validateSegment(validSegment)).not.toThrow();
@@ -108,7 +116,8 @@ describe('Create Clips Tool - Segment Validation', () => {
         startTime: '00:15:30',
         endTime: '00:17:45',
         speaker: '',
-        order: 1
+        order: 1,
+        transcript: 'Some transcript text'
       };
 
       expect(() => validateSegment(invalidSegment)).toThrow('speaker must be a non-empty string');
@@ -118,10 +127,34 @@ describe('Create Clips Tool - Segment Validation', () => {
       const invalidSegment = {
         startTime: '00:15:30',
         endTime: '00:17:45',
-        speaker: 'host'
+        speaker: 'host',
+        transcript: 'Some transcript text'
       };
 
       expect(() => validateSegment(invalidSegment)).toThrow('order is required');
+    });
+
+    test('should reject segment missing transcript', () => {
+      const invalidSegment = {
+        startTime: '00:15:30',
+        endTime: '00:17:45',
+        speaker: 'host',
+        order: 1
+      };
+
+      expect(() => validateSegment(invalidSegment)).toThrow('transcript is required');
+    });
+
+    test('should reject segment with empty transcript', () => {
+      const invalidSegment = {
+        startTime: '00:15:30',
+        endTime: '00:17:45',
+        speaker: 'host',
+        order: 1,
+        transcript: ''
+      };
+
+      expect(() => validateSegment(invalidSegment)).toThrow('transcript must be a non-empty string');
     });
   });
 
@@ -139,7 +172,8 @@ describe('Create Clips Tool - Segment Validation', () => {
           startTime: time,
           endTime: '00:17:45',
           speaker: 'host',
-          order: 1
+          order: 1,
+          transcript: 'Transcript text'
         };
         expect(() => validateSegment(segment)).not.toThrow();
       });
@@ -159,7 +193,8 @@ describe('Create Clips Tool - Segment Validation', () => {
           startTime: time,
           endTime: '00:17:45',
           speaker: 'host',
-          order: 1
+          order: 1,
+          transcript: 'Transcript text'
         };
         expect(() => validateSegment(segment)).toThrow('startTime must be in HH:MM:SS format');
       });
@@ -177,7 +212,8 @@ describe('Create Clips Tool - Segment Validation', () => {
           startTime: time,
           endTime: '00:17:45',
           speaker: 'host',
-          order: 1
+          order: 1,
+          transcript: 'Transcript text'
         };
         expect(() => validateSegment(segment)).toThrow();
       });
@@ -190,7 +226,8 @@ describe('Create Clips Tool - Segment Validation', () => {
         startTime: '00:15:30',
         endTime: '00:17:45',
         speaker: 'host',
-        order: 0
+        order: 0,
+        transcript: 'Transcript text'
       };
 
       expect(() => validateSegment(invalidSegment)).toThrow('order must be a positive integer starting from 1');
@@ -201,7 +238,8 @@ describe('Create Clips Tool - Segment Validation', () => {
         startTime: '00:15:30',
         endTime: '00:17:45',
         speaker: 'host',
-        order: -1
+        order: -1,
+        transcript: 'Transcript text'
       };
 
       expect(() => validateSegment(invalidSegment)).toThrow('order must be a positive integer starting from 1');
@@ -212,7 +250,8 @@ describe('Create Clips Tool - Segment Validation', () => {
         startTime: '00:15:30',
         endTime: '00:17:45',
         speaker: 'host',
-        order: 1.5
+        order: 1.5,
+        transcript: 'Transcript text'
       };
 
       expect(() => validateSegment(invalidSegment)).toThrow('order must be a positive integer starting from 1');
@@ -237,25 +276,21 @@ describe('Create Clips Tool - Segment Validation', () => {
       const segmentWithoutTimes = {
         speaker: 'host',
         order: 1,
-        text: 'Some transcript text' // Should not be used as fallback for missing times
+        transcript: 'Some transcript text'
       };
 
       expect(() => validateSegment(segmentWithoutTimes)).toThrow('startTime is required');
     });
 
-    test('should not accept text property as valid field', () => {
-      // The schema should not process or validate a 'text' property
-      // This test verifies that text is not part of the expected schema
-      const segmentWithText = {
+    test('should require transcript field', () => {
+      const segmentWithoutTranscript = {
         startTime: '00:15:30',
         endTime: '00:17:45',
         speaker: 'host',
-        order: 1,
-        text: 'This should be ignored'
+        order: 1
       };
 
-      // Should validate successfully (text is ignored, not processed)
-      expect(() => validateSegment(segmentWithText)).not.toThrow();
+      expect(() => validateSegment(segmentWithoutTranscript)).toThrow('transcript is required');
     });
   });
 
@@ -265,7 +300,7 @@ describe('Create Clips Tool - Segment Validation', () => {
       const crypto = require('crypto');
 
       const segmentSignature = segments
-        .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}`)
+        .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}-${s.transcript}`)
         .join('|');
 
       return crypto
@@ -281,13 +316,15 @@ describe('Create Clips Tool - Segment Validation', () => {
           order: 1,
           startTime: '00:15:30',
           endTime: '00:17:45',
-          speaker: 'host'
+          speaker: 'host',
+          transcript: 'This is what the host said'
         },
         {
           order: 2,
           startTime: '00:20:00',
           endTime: '00:21:30',
-          speaker: 'guest1'
+          speaker: 'guest1',
+          transcript: 'This is what the guest said'
         }
       ];
 
@@ -302,13 +339,15 @@ describe('Create Clips Tool - Segment Validation', () => {
           order: 1,
           startTime: '00:15:30',
           endTime: '00:17:45',
-          speaker: 'guest2' // Changed speaker
+          speaker: 'guest2',
+          transcript: 'This is what the host said'
         },
         {
           order: 2,
           startTime: '00:20:00',
           endTime: '00:21:30',
-          speaker: 'guest1'
+          speaker: 'guest1',
+          transcript: 'This is what the guest said'
         }
       ];
 
@@ -324,7 +363,8 @@ describe('Create Clips Tool - Segment Validation', () => {
           order: 1,
           startTime: '00:15:30',
           endTime: '00:17:45',
-          speaker: 'host'
+          speaker: 'host',
+          transcript: 'Important point here'
         }
       ];
 
@@ -344,13 +384,15 @@ describe('Create Clips Tool - Segment Validation', () => {
           order: 1,
           startTime: '00:15:30',
           endTime: '00:17:45',
-          speaker: 'host'
+          speaker: 'host',
+          transcript: 'Host speaking here'
         },
         {
           order: 2,
           startTime: '00:20:00',
           endTime: '00:21:30',
-          speaker: 'guest1'
+          speaker: 'guest1',
+          transcript: 'Guest speaking here'
         }
       ];
 
@@ -365,13 +407,15 @@ describe('Create Clips Tool - Segment Validation', () => {
           order: 1,
           startTime: '00:15:30',
           endTime: '00:17:45',
-          speaker: 'guest1' // Swapped
+          speaker: 'guest1',
+          transcript: 'Host speaking here'
         },
         {
           order: 2,
           startTime: '00:20:00',
           endTime: '00:21:30',
-          speaker: 'host' // Swapped
+          speaker: 'host',
+          transcript: 'Guest speaking here'
         }
       ];
 
