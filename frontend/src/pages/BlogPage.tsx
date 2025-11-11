@@ -398,7 +398,7 @@ function BlogPage() {
           <FormatToggle
             value={formatMode}
             onChange={setFormatMode}
-            disabled={!hasContent || (viewMode === 'outline' && formatMode === 'markdown')}
+            disabled={!hasContent}
           />
         </div>
 
