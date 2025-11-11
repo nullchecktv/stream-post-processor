@@ -31,7 +31,7 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `clip#${clipId}`
+        sk: `data#clip#${clipId}`
       })
     }));
 
@@ -51,7 +51,7 @@ export const handler = async (event) => {
       });
     }
 
-    if (clip.status !== 'processed' && clip.status !== 'approved' && clip.status !== 'published') {
+    if (clip.status !== 'created' && clip.status !== 'approved' && clip.status !== 'published') {
       return formatResponse(400, {
         error: 'BadRequest',
         message: 'Clip is not ready for playback'
@@ -69,7 +69,7 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `clip#${clipId}`
+        sk: `data#clip#${clipId}`
       }),
       UpdateExpression: 'ADD viewCount :increment SET updatedAt = :updatedAt',
       ExpressionAttributeValues: marshall({

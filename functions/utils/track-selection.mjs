@@ -139,7 +139,7 @@ const getTracksForEpisode = async (episodeId, tenantId) => {
       KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
       ExpressionAttributeValues: {
         ':pk': { S: `${tenantId}#${episodeId}` },
-        ':sk': { S: 'track#' }
+        ':sk': { S: 'data#track#' }
       },
       Limit: maxTracks
     }));

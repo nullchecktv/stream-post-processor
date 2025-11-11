@@ -2,17 +2,21 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useToast } from '../contexts/ToastContext'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { ClipsList } from '../components/episodes/ClipsList'
-import type { EpisodeDetail } from '../types'
+import type { EpisodeDetail, ClipListView } from '../types'
 
 function EpisodeClipsPage() {
   const { id } = useParams<{ id: string }>()
+  const { showToast } = useToast()
   const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [generatingAll, setGeneratingAll] = useState(false)
+  const [clips, setClips] = useState<ClipListView[]>([])
   const [clipCounts, setClipCounts] = useState({ total: 0, proposed: 0, processing: 0, processed: 0 })
 
   usePageTitle(episode ? `${episode.title} - Clips` : 'Episode Clips')
@@ -52,14 +56,60 @@ function EpisodeClipsPage() {
     try {
       setGenerating(true)
       await episodesApi.updateStatus(id, 'Ready for Clip Gen')
-      alert('Clip generation started! Clips will appear as they are detected.')
+      showToast('Clip generation started! Clips will appear as they are detected.', 'success')
       await fetchEpisode()
     } catch (err) {
       console.error('Failed to start clip generation:', err)
-      alert('Failed to start clip generation. Please try again.')
+      showToast('Failed to start clip generation. Please try again.', 'error')
     } finally {
       setGenerating(false)
     }
+  }
+
+  const handleGenerateAll = async () => {
+    if (!id) return
+
+    const proposedClips = clips.filter(c => c.status === 'detected')
+
+    if (proposedClips.length === 0) {
+      showToast('No proposed clips to generate', 'info')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Generate ${proposedClips.length} proposed clip${proposedClips.length !== 1 ? 's' : ''}? This will start processing all proposed clips.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setGeneratingAll(true)
+
+      const results = await Promise.allSettled(
+        proposedClips.map(clip =>
+          episodesApi.generateClip(id, clip.id, { orientation: 'landscape' })
+        )
+      )
+
+      const succeeded = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      if (failed === 0) {
+        showToast(`Started generating ${succeeded} clip${succeeded !== 1 ? 's' : ''}`, 'success')
+      } else {
+        showToast(`Started ${succeeded} clip${succeeded !== 1 ? 's' : ''}, ${failed} failed`, 'warning')
+      }
+    } catch (err) {
+      console.error('Failed to generate clips:', err)
+      showToast('Failed to start clip generation', 'error')
+    } finally {
+      setGeneratingAll(false)
+    }
+  }
+
+  const handleClipsLoaded = (counts: { total: number; proposed: number; processing: number; processed: number }, allClips: ClipListView[]) => {
+    setClipCounts(counts)
+    setClips(allClips)
   }
 
   if (loading) {
@@ -76,6 +126,9 @@ function EpisodeClipsPage() {
     )
   }
 
+  const hasTracksUploaded = episode.tracks && episode.tracks.length > 0
+  const canGenerate = hasTracksUploaded
+
   return (
     <div className="space-y-6">
       <Breadcrumb />
@@ -90,30 +143,67 @@ function EpisodeClipsPage() {
               {clipCounts.total} clip{clipCounts.total !== 1 ? 's' : ''} for this episode
             </p>
           </div>
-          {clipCounts.total === 0 && (
-            <button
-              onClick={handleGenerateClips}
-              disabled={generating}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {generating ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generate Clips
-                </>
-              )}
-            </button>
-          )}
+          <div>
+            {clipCounts.total === 0 ? (
+              <div className="flex flex-col items-end gap-2">
+                <button
+                  onClick={handleGenerateClips}
+                  disabled={generating || !canGenerate}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!canGenerate ? 'Upload at least one track to generate clips' : ''}
+                >
+                  {generating ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Generate Clips
+                    </>
+                  )}
+                </button>
+                {!canGenerate && (
+                  <p className="text-xs text-gray-500">Upload tracks first</p>
+                )}
+              </div>
+            ) : clipCounts.proposed > 0 ? (
+              <div className="flex flex-col items-end gap-2">
+                <button
+                  onClick={handleGenerateAll}
+                  disabled={generatingAll || !canGenerate}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!canGenerate ? 'Upload at least one track to generate clips' : ''}
+                >
+                  {generatingAll ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Generate All ({clipCounts.proposed})
+                    </>
+                  )}
+                </button>
+                {!canGenerate && (
+                  <p className="text-xs text-gray-500">Upload tracks first</p>
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -150,14 +240,14 @@ function EpisodeClipsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{clipCounts.processed}</p>
-              <p className="text-sm text-gray-600">Processed</p>
+              <p className="text-sm text-gray-600">Created</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <ClipsList episodeId={id} onClipsLoaded={setClipCounts} />
+        <ClipsList episodeId={id} onClipsLoaded={handleClipsLoaded} />
       </div>
     </div>
   )

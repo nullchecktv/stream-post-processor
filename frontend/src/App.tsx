@@ -26,6 +26,7 @@ const EpisodeOverviewPage = lazy(() => import('./pages/EpisodeOverviewPage'))
 const EpisodeDetailsPage = lazy(() => import('./pages/EpisodeDetailsPage'))
 const EpisodeContentPage = lazy(() => import('./pages/EpisodeContentPage'))
 const EpisodeClipsPage = lazy(() => import('./pages/EpisodeClipsPage'))
+const ClipDetailPage = lazy(() => import('./pages/ClipDetailPage'))
 const TeamsListPage = lazy(() => import('./pages/TeamsListPage'))
 const TeamDetailPage = lazy(() => import('./pages/TeamDetailPage'))
 const TeamSettingsPage = lazy(() => import('./pages/TeamSettingsPage'))
@@ -67,6 +68,7 @@ function App() {
                                   <Route path="uploads" element={<EpisodeContentPage />} />
                                   <Route path="clips" element={<EpisodeClipsPage />} />
                                 </Route>
+                                <Route path="/episodes/:episodeId/clips/:clipId" element={<ClipDetailPage />} />
                                 <Route path="/teams/:teamId" element={<TeamDetailPage />} />
                                 <Route path="/teams/:teamId/settings" element={<TeamSettingsPage />} />
                                 <Route path="/teams/:teamId/members" element={<TeamMembersPage />} />

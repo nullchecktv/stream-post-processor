@@ -27,7 +27,7 @@ export const handler = async (event) => {
       KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
       ExpressionAttributeValues: marshall({
         ':pk': `${tenantId}#${episodeId}`,
-        ':sk': 'clip#'
+        ':sk': 'data#clip#'
       })
     }));
 
@@ -40,12 +40,30 @@ export const handler = async (event) => {
 
       const currentStatus = getCurrentClipStatus(clip);
 
+      const segments = clip.segments || [];
+      const segmentCount = segments.length;
+
+      const transcript = segments
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+        .map(segment => {
+          const speaker = segment.speaker || 'unknown';
+          const text = segment.transcript || '';
+          return `[${speaker}]: ${text}`;
+        })
+        .join('\n\n');
+
       return {
         id: clip.clipId,
-        title: clip.hook || clip.title, // Use hook as title if available
+        episodeId: episodeId,
+        title: clip.title,
         status: currentStatus,
-        duration: clip.duration,
-        type: clip.clipType,
+        duration: clip.totalDurationSeconds || clip.duration || 0,
+        transcript: transcript,
+        segmentCount: segmentCount,
+        summary: clip.summary,
+        clipType: clip.clipType,
+        createdAt: clip.createdAt,
+        updatedAt: clip.updatedAt
       };
     });
 

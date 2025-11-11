@@ -27,7 +27,7 @@ export const handler = async (event) => {
       },
       ExpressionAttributeValues: marshall({
         ':pk': `${tenantId}#${episodeId}`,
-        ':sk': 'clip#',
+        ':sk': 'data#clip#',
         ':status': 'detected'
       })
     }));

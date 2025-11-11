@@ -225,10 +225,18 @@ export const ClipSchemas = {
     properties: {
       status: {
         type: 'string',
-        enum: ['detected', 'processing', 'processed', 'failed', 'reviewed', 'approved', 'rejected', 'published']
+        enum: ['detected', 'processing', 'created', 'failed', 'reviewed', 'approved', 'rejected', 'published']
       }
     },
     required: ['status'],
+    additionalProperties: false
+  },
+  generate: {
+    type: 'object',
+    properties: {
+      orientation: { type: 'string', enum: ['landscape', 'portrait'] }
+    },
+    required: ['orientation'],
     additionalProperties: false
   }
 };

@@ -21,6 +21,7 @@ const segmentSchema = z.object({
     .describe('End time in hh:mm:ss format (required)'),
   speaker: z.string().min(1).describe('Speaker name (required)'),
   order: z.number().int().min(1).describe('Order of segment for reassembly (required, starting from 1)'),
+  transcript: z.string().min(1).describe('Transcript text for this segment (required)'),
   notes: z.string().optional().describe('Optional contextual notes for this segment')
 });
 
@@ -28,7 +29,7 @@ export const createClipTool = {
   isMultiTenant: true,
   name: 'createClip',
   description:
-    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps and speaker information',
+    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps, speaker information, and transcript text',
   schema: z.object({
     episodeId: z.string().describe('The ID of the episode for which to create clips'),
     clips: z.array(
@@ -37,7 +38,7 @@ export const createClipTool = {
           .min(1)
           .max(MAX_SEGMENTS_PER_CLIP)
           .describe('Array of segments that form a clip'),
-        hook: z.string().min(5).describe('Short, catchy phrase to grab attention'),
+        title: z.string().min(5).describe('Short, catchy title to grab attention'),
         summary: z.string().min(10).describe('Brief description of what happens in the clip'),
         bRollSuggestions: z.array(z.string()).min(1).describe('List of suggested visuals or overlays'),
         clipType: z.enum(['educational', 'funny', 'demo', 'hot_take', 'insight']).describe('Type of clip')
@@ -61,12 +62,12 @@ export const createClipTool = {
           const paddedSegments = addPaddingToSegments(clip.segments);
 
           const segmentSignature = clip.segments
-            .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}`)
+            .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}-${s.transcript}`)
             .join('|');
 
           const clipHash = crypto
             .createHash('sha256')
-            .update(`${segmentSignature}|${clip.hook}|${clip.summary}`)
+            .update(`${segmentSignature}|${clip.title}|${clip.summary}`)
             .digest('hex')
             .slice(0, 16);
 
@@ -79,7 +80,7 @@ export const createClipTool = {
               ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
               Item: marshall({
                 pk: `${tenantId}#${episodeId}`,
-                sk: `clip#${id}`,
+                sk: `data#clip#${id}`,
                 GSI1PK: `${tenantId}#clips`,
                 GSI1SK: `${now}#${episodeId}#${id}`,
                 clipId: id,
@@ -87,7 +88,7 @@ export const createClipTool = {
                 segments: paddedSegments,
                 segmentCount: paddedSegments.length,
                 totalDurationSeconds: calcTotalDuration(paddedSegments),
-                hook: clip.hook,
+                title: clip.title,
                 summary: clip.summary,
                 bRollSuggestions: clip.bRollSuggestions,
                 clipType: clip.clipType,

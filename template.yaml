@@ -764,6 +764,40 @@ Resources:
             Path: /episodes/{episodeId}/clips/{clipId}/play
             Method: GET
 
+  GenerateClipFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - clips/generate-clip.mjs
+    Properties:
+      Handler: clips/generate-clip.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - states:StartExecution
+              Resource: !GetAtt VideoClipProcessingStateMachine.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          STATE_MACHINE_ARN: !GetAtt VideoClipProcessingStateMachine.Arn
+      Events:
+        Generate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/clips/{clipId}/generate
+            Method: POST
+
   CreateTranscriptUploadFunction:
     Type: AWS::Serverless::Function
     Metadata:
