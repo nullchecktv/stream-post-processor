@@ -76,18 +76,18 @@ export const handler = async (event) => {
       });
     }
 
-    const urls = await Promise.all(partNumbers.map(async (partNumber) => {
+    const parts = await Promise.all(partNumbers.map(async (partNumber) => {
       const cmd = new UploadPartCommand({
         Bucket: process.env.BUCKET_NAME,
         Key: track.key,
         UploadId: uploadId,
         PartNumber: partNumber
       });
-      const url = await getSignedUrl(s3, cmd, { expiresIn: 15 * 60 });
-      return { partNumber, url };
+      const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 15 * 60 });
+      return { partNumber, uploadUrl };
     }));
 
-    return formatResponse(200, { urls });
+    return formatResponse(200, { parts });
   } catch (err) {
     logger.error('Error signing track upload parts', {
       error: err.message,
