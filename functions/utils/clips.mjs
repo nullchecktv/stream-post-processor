@@ -26,7 +26,7 @@ export const parseTenantIdFromKey = (key) => {
 export const CLIP_STATUS = {
   DETECTED: 'detected',
   PROCESSING: 'processing',
-  PROCESSED: 'processed',
+  CREATED: 'created',
   FAILED: 'failed',
   REVIEWED: 'reviewed',
   APPROVED: 'approved',
@@ -36,8 +36,8 @@ export const CLIP_STATUS = {
 
 const CLIP_STATUS_TRANSITIONS = {
   [CLIP_STATUS.DETECTED]: [CLIP_STATUS.PROCESSING],
-  [CLIP_STATUS.PROCESSING]: [CLIP_STATUS.PROCESSED, CLIP_STATUS.FAILED],
-  [CLIP_STATUS.PROCESSED]: [CLIP_STATUS.REVIEWED, CLIP_STATUS.APPROVED, CLIP_STATUS.REJECTED],
+  [CLIP_STATUS.PROCESSING]: [CLIP_STATUS.CREATED, CLIP_STATUS.FAILED],
+  [CLIP_STATUS.CREATED]: [CLIP_STATUS.REVIEWED, CLIP_STATUS.APPROVED, CLIP_STATUS.REJECTED],
   [CLIP_STATUS.FAILED]: [CLIP_STATUS.PROCESSING], // Allow retry
   [CLIP_STATUS.REVIEWED]: [CLIP_STATUS.APPROVED, CLIP_STATUS.REJECTED],
   [CLIP_STATUS.APPROVED]: [CLIP_STATUS.PUBLISHED],
@@ -47,7 +47,7 @@ const CLIP_STATUS_TRANSITIONS = {
 
 export const createClipKey = (episodeId, clipId) => ({
   pk: episodeId,
-  sk: `clip#${clipId}`
+  sk: `data#clip#${clipId}`
 });
 
 export const createClipGSIKey = (createdAt, episodeId, clipId) => ({
@@ -142,7 +142,7 @@ export const createStatusUpdateParams = (newStatus, timestamp = null, metadata =
     }
   };
 
-  if (newStatus === CLIP_STATUS.PROCESSED) {
+  if (newStatus === CLIP_STATUS.CREATED) {
     if (metadata.s3Key) {
       params.UpdateExpression += ', #s3Key = :s3Key';
       params.ExpressionAttributeNames['#s3Key'] = 's3Key';
@@ -182,16 +182,23 @@ export const createStatusUpdateParams = (newStatus, timestamp = null, metadata =
 };
 
 export const updateClipStatus = async (docClient, tableName, episodeId, clipId, newStatus, metadata = {}) => {
+  const { marshall } = await import('@aws-sdk/util-dynamodb');
+  const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+
   const params = createStatusUpdateParams(newStatus, null, metadata);
 
-  params.TableName = tableName;
-  params.Key = {
-    pk: episodeId,
-    sk: `clip#${clipId}`
+  const updateParams = {
+    TableName: tableName,
+    Key: marshall({
+      pk: episodeId,
+      sk: `data#clip#${clipId}`
+    }),
+    UpdateExpression: params.UpdateExpression,
+    ExpressionAttributeNames: params.ExpressionAttributeNames,
+    ExpressionAttributeValues: marshall(params.ExpressionAttributeValues)
   };
 
-  const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-  await docClient.send(new UpdateCommand(params));
+  await docClient.send(new UpdateItemCommand(updateParams));
 };
 
 export const createProcessingMetadata = ({

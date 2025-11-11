@@ -1,6 +1,6 @@
 import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
-import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView, EpisodePlan } from '../types'
+import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView, EpisodePlan, ClipOrientation } from '../types'
 
 interface ListEpisodesParams {
   nextToken?: string
@@ -167,6 +167,17 @@ export const episodesApi = {
     return apiRequest<PlayClipResponse>(`/episodes/${episodeId}/clips/${clipId}/play`)
   },
 
+  getPlaybackUrl: (episodeId: string, clipId: string) => {
+    return apiRequest<PlayClipResponse>(`/episodes/${episodeId}/clips/${clipId}/play`)
+  },
+
+  generateClip: async (episodeId: string, clipId: string, data: { orientation: ClipOrientation }) => {
+    return apiRequest<{ executionArn: string; status: string }>(`/episodes/${episodeId}/clips/${clipId}/generate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
   updateStatus: async (id: string, status: string) => {
     await apiRequest<void>(`/episodes/${id}/statuses`, {
       method: 'POST',
@@ -194,5 +205,13 @@ export const episodesApi = {
     })
     apiCache.invalidate(`GET:/episodes/${id}/plan`)
     return result
+  },
+
+  deleteClip: async (episodeId: string, clipId: string) => {
+    await apiRequest<void>(`/episodes/${episodeId}/clips/${clipId}`, {
+      method: 'DELETE',
+    })
+    apiCache.invalidate(`GET:/episodes/${episodeId}/clips`)
+    apiCache.invalidatePattern('/episodes?')
   },
 }

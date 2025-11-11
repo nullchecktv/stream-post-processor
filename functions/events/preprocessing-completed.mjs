@@ -74,7 +74,7 @@ export const handler = async (event) => {
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track#${trackName}` }),
+      Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `data#track#${trackName}` }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       UpdateExpression: 'SET #status = :processed, #manifestKey = :manifestKey, #segmentIndex = :segmentIndex, #segmentCount = :segmentCount, #totalDurationSeconds = :total, #updatedAt = :now, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
       ExpressionAttributeNames: {

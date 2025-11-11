@@ -30,7 +30,7 @@ export const handler = async (event) => {
       KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
       ExpressionAttributeValues: marshall({
         ':pk': `${tenantId}#${episodeId}`,
-        ':sk': 'track#'
+        ':sk': 'data#track#'
       })
     }));
 

@@ -28,7 +28,7 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `clip#${clipId}`
+        sk: `data#clip#${clipId}`
       })
     }));
 
@@ -43,15 +43,30 @@ export const handler = async (event) => {
 
     const currentStatus = getCurrentClipStatus(clip);
 
+    const segments = clip.segments || [];
+    const segmentCount = segments.length;
+
+    const transcript = segments
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(segment => {
+        const speaker = segment.speaker || 'unknown';
+        const text = segment.transcript || '';
+        return `[${speaker}]: ${text}`;
+      })
+      .join('\n\n');
+
     const response = {
       id: clip.clipId,
       episodeId: episodeId,
-      title: clip.hook || clip.title,
+      title: clip.title,
+      summary: clip.summary,
       description: clip.summary || clip.description,
       status: currentStatus,
-      duration: clip.duration,
+      duration: clip.totalDurationSeconds || clip.duration || 0,
+      segmentCount: segmentCount,
+      transcript: transcript,
+      clipType: clip.clipType,
       tags: clip.tags || [],
-      segments: clip.segments || [],
       createdAt: clip.createdAt,
       updatedAt: clip.updatedAt,
       ...clip.fileSize && { fileSize: clip.fileSize }

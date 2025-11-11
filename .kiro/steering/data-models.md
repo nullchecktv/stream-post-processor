@@ -218,7 +218,7 @@ This system uses **single-table design** in DynamoDB because it works well for o
 ```json
 {
   "pk": "tenant123#123e4567-e89b-12d3-a456-426614174000",
-  "sk": "track#main",
+  "sk": "data#track#main",
   "s3Key": "tenant123/123e4567-e89b-12d3-a456-426614174000/tracks/main.mp4",
   "trackName": "main",
   "filename": "main-camera-feed.mp4",
@@ -247,8 +247,8 @@ This system uses **single-table design** in DynamoDB because it works well for o
 ```
 
 #### Access Patterns
-- **Get track by name**: `pk = {tenantId}#{episodeId}` AND `sk = track#{trackName}`
-- **List all tracks for episode**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `track#`
+- **Get track by name**: `pk = {tenantId}#{episodeId}` AND `sk = data#track#{trackName}`
+- **List all tracks for episode**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `data#track#`
 
 ### Upload Session Entity
 
@@ -286,7 +286,7 @@ This system uses **single-table design** in DynamoDB because it works well for o
 ```json
 {
   "pk": "tenant123#123e4567-e89b-12d3-a456-426614174000",
-  "sk": "clip#clip-uuid",
+  "sk": "data#clip#clip-uuid",
   "GSI1PK": "tenant123#clips",
   "GSI1SK": "2025-01-15T10:30:00Z#123e4567-e89b-12d3-a456-426614174000#clip-uuid",
   "clipId": "clip-uuid",
@@ -333,8 +333,8 @@ This system uses **single-table design** in DynamoDB because it works well for o
 - **rejected**: User rejected clip
 
 #### Access Patterns
-- **Get clip by ID**: `pk = {tenantId}#{episodeId}` AND `sk = clip#{clipId}`
-- **List clips for episode**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `clip#`
+- **Get clip by ID**: `pk = {tenantId}#{episodeId}` AND `sk = data#clip#{clipId}`
+- **List clips for episode**: `pk = {tenantId}#{episodeId}` AND `sk` begins with `data#clip#`
 - **List tenant clips**: GSI1 query with `GSI1PK = {tenantId}#clips`
 
 ### Segment Entity

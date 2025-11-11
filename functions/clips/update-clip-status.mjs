@@ -1,5 +1,5 @@
 import { Logger } from '@aws-lambda-powertools/logger';
-import { DynamoDBClient, GetItemCommand, UpdateCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { validateStatusUpdate, createStatusUpdateParams } from '../utils/clips.mjs';
@@ -53,11 +53,11 @@ export const handler = async (event) => {
 
     const updateParams = createStatusUpdateParams(status);
 
-    await ddb.send(new UpdateCommand({
+    await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `clip#${clipId}`
+        sk: `data#clip#${clipId}`
       }),
       ...updateParams
     }));

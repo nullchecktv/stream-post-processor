@@ -11,7 +11,7 @@ describe('Clip Status Management', () => {
     it('should have correct status values matching data model', () => {
       expect(CLIP_STATUS.DETECTED).toBe('detected');
       expect(CLIP_STATUS.PROCESSING).toBe('processing');
-      expect(CLIP_STATUS.PROCESSED).toBe('processed');
+      expect(CLIP_STATUS.CREATED).toBe('created');
       expect(CLIP_STATUS.FAILED).toBe('failed');
       expect(CLIP_STATUS.REVIEWED).toBe('reviewed');
       expect(CLIP_STATUS.APPROVED).toBe('approved');
@@ -23,18 +23,18 @@ describe('Clip Status Management', () => {
   describe('validateStatusTransition', () => {
     it('should allow valid transitions', () => {
       expect(() => validateStatusTransition('detected', 'processing')).not.toThrow();
-      expect(() => validateStatusTransition('processing', 'processed')).not.toThrow();
+      expect(() => validateStatusTransition('processing', 'created')).not.toThrow();
       expect(() => validateStatusTransition('processing', 'failed')).not.toThrow();
-      expect(() => validateStatusTransition('processed', 'reviewed')).not.toThrow();
-      expect(() => validateStatusTransition('processed', 'approved')).not.toThrow();
+      expect(() => validateStatusTransition('created', 'reviewed')).not.toThrow();
+      expect(() => validateStatusTransition('created', 'approved')).not.toThrow();
       expect(() => validateStatusTransition('reviewed', 'approved')).not.toThrow();
       expect(() => validateStatusTransition('reviewed', 'rejected')).not.toThrow();
       expect(() => validateStatusTransition('approved', 'published')).not.toThrow();
     });
 
     it('should reject invalid transitions', () => {
-      expect(() => validateStatusTransition('detected', 'processed')).toThrow();
-      expect(() => validateStatusTransition('processed', 'processing')).toThrow();
+      expect(() => validateStatusTransition('detected', 'created')).toThrow();
+      expect(() => validateStatusTransition('created', 'processing')).toThrow();
       expect(() => validateStatusTransition('rejected', 'approved')).toThrow();
       expect(() => validateStatusTransition('published', 'reviewed')).toThrow();
     });
@@ -84,8 +84,8 @@ describe('Clip Status Management', () => {
       expect(params.ExpressionAttributeValues[':newStatus'][0].status).toBe('processed');
     });
 
-    it('should include s3Key when status is processed', () => {
-      const params = createStatusUpdateParams('processed', null, { s3Key: 'test-key' });
+    it('should include s3Key when status is created', () => {
+      const params = createStatusUpdateParams('created', null, { s3Key: 'test-key' });
 
       expect(params.UpdateExpression).toContain('#s3Key = :s3Key');
       expect(params.ExpressionAttributeValues[':s3Key']).toBe('test-key');

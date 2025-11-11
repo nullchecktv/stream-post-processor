@@ -11,7 +11,7 @@
             "S.$": "States.Format('{}#{}', $.tenantId, $.episodeId)"
           },
           "sk": {
-            "S.$": "States.Format('clip#{}', $.clipId)"
+            "S.$": "States.Format('data#clip#{}', $.clipId)"
           }
         },
         "UpdateExpression": "SET #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatus), #status = :status, #updatedAt = :updatedAt, #processingStartedAt = :processingStartedAt",
@@ -359,7 +359,7 @@
             "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
           },
           "sk": {
-            "S.$": "States.Format('clip#{}', $$.Execution.Input.clipId)"
+            "S.$": "States.Format('data#clip#{}', $$.Execution.Input.clipId)"
           }
         },
         "UpdateExpression": "SET #statusHistory = list_append(#statusHistory, :newStatus), #updatedAt = :updatedAt",
@@ -464,7 +464,7 @@
             "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
           },
           "sk": {
-            "S.$": "States.Format('clip#{}', $$.Execution.Input.clipId)"
+            "S.$": "States.Format('data#clip#{}', $$.Execution.Input.clipId)"
           }
         },
         "UpdateExpression": "SET #statusHistory = list_append(#statusHistory, :newStatus), #status = :status, #updatedAt = :updatedAt, #s3Key = :s3Key, #duration = :duration",
@@ -537,7 +537,7 @@
             "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
           },
           "sk": {
-            "S.$": "States.Format('clip#{}', $$.Execution.Input.clipId)"
+            "S.$": "States.Format('data#clip#{}', $$.Execution.Input.clipId)"
           }
         },
         "UpdateExpression": "SET #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :failureStatus), #status = :status, #updatedAt = :updatedAt",
@@ -611,3 +611,4 @@
     }
   }
 }
+

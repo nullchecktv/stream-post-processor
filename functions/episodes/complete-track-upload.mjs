@@ -93,7 +93,7 @@ export const handler = async (event) => {
         ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
         Item: marshall({
           pk: `${tenantId}#${episodeId}`,
-          sk: `track#${trackName}`,
+          sk: `data#track#${trackName}`,
           status: trackStatus,
           statusHistory: trackStatusHistory,
           trackName,
@@ -109,7 +109,7 @@ export const handler = async (event) => {
           TableName: process.env.TABLE_NAME,
           Key: marshall({
             pk: `${tenantId}#${episodeId}`,
-            sk: `track#${trackName}`
+            sk: `data#track#${trackName}`
           }),
           UpdateExpression: 'SET uploadKey = :key, updatedAt = :updatedAt, trackName = :name, speakers = :speakers, #status = :status, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
           ExpressionAttributeNames: {

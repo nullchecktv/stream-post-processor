@@ -2,6 +2,8 @@ export type Platform = 'linkedin live' | 'X' | 'twitch' | 'youtube'
 
 export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived' | 'Ready for Clip Gen' | 'plan_added' | 'plan_updated' | 'recommendations_generated' | 'recommendations_failed'
 
+export type ClipOrientation = 'landscape' | 'portrait'
+
 export interface EpisodeListView {
   id: string
   title: string
@@ -35,21 +37,16 @@ export interface TranscriptInfo {
   status: string
 }
 
-export interface ClipSegment {
-  startTime: string
-  endTime: string
-  speaker?: string
-  order: number
-}
-
 export interface ClipListView {
   id: string
   episodeId: string
   title: string
-  hook: string
-  status: 'detected' | 'processing' | 'processed' | 'approved' | 'rejected' | 'published'
+  status: 'detected' | 'processing' | 'created' | 'approved' | 'rejected' | 'published' | 'failed'
   duration: number
-  segments: ClipSegment[]
+  transcript: string
+  segmentCount: number
+  summary?: string
+  clipType?: string
   createdAt: string
   updatedAt: string
 }

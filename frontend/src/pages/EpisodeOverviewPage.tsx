@@ -28,11 +28,14 @@ function EpisodeOverviewPage() {
       }
 
       try {
-        const episodeData = await episodesApi.getDetail(id)
-        setEpisode(episodeData)
+        const [episodeData, statusData] = await Promise.all([
+          episodesApi.getDetail(id),
+          episodesApi.getStatus(id),
+        ])
+        setEpisode({ ...(episodeData as any), statusHistory: statusData.statusHistory } as EpisodeDetail)
         setError(null)
       } catch (err) {
-        console.error('Failed to fetch episode:', err)
+        console.error('Failed to fetch episode or status history:', err)
         setError('Failed to load episode. Please try again.')
       } finally {
         setLoading(false)
@@ -68,9 +71,12 @@ function EpisodeOverviewPage() {
     )
   }
 
-  const tracksCount = episode.tracks?.length || 0
-  const hasTranscript = !!episode.transcript
-  const clipsCount = episode.clips?.length || 0
+  const tracksCount =
+    (episode as any)?.metrics?.tracksCount ?? (episode.tracks?.length || 0)
+  const hasTranscript =
+    (episode as any)?.metrics?.hasTranscript ?? !!episode.transcript
+  const clipsCount =
+    (episode as any)?.metrics?.clipsCount ?? (episode.clips?.length || 0)
 
   return (
     <div className="space-y-6">
@@ -181,7 +187,21 @@ function EpisodeOverviewPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{hasTranscript ? '1' : '0'}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {hasTranscript ? (
+                      <span className="inline-flex items-center text-emerald-600" aria-label="Uploaded">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-gray-400" aria-label="Not uploaded">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
+                    )}
+                  </p>
                   <p className="text-sm text-gray-600">Transcript uploaded</p>
                 </div>
               </button>

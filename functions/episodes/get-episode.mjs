@@ -42,17 +42,18 @@ export const handler = async (event) => {
 
     const relatedDataResult = await ddb.send(new QueryCommand({
       TableName: process.env.TABLE_NAME,
-      KeyConditionExpression: 'pk = :pk',
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
       ExpressionAttributeValues: marshall({
-        ':pk': pk
+        ':pk': pk,
+        ':sk': 'data#'
       })
     }));
 
     const relatedItems = relatedDataResult.Items?.map(item => unmarshall(item)) || [];
 
-    const tracksCount = relatedItems.filter(item => item.sk.startsWith('track#')).length;
+    const tracksCount = relatedItems.filter(item => item.sk.startsWith('data#track#')).length;
     const hasTranscript = episode.transcriptKey ? true : false;
-    const clipsCount = relatedItems.filter(item => item.sk.startsWith('clip#')).length;
+    const clipsCount = relatedItems.filter(item => item.sk.startsWith('data#clip#')).length;
 
     const response = {
       id: episodeId,

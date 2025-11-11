@@ -100,7 +100,7 @@ Andres: We try it out live
 
 ### Selection priorities
 
-Moments should:
+Clips should:
 
 * Hook the viewer in the first 3 seconds (curiosity, tension, or surprise).
 * Deliver a single clear idea, joke, or "aha" insight.
@@ -122,7 +122,7 @@ Each clip you pass to **createClip** must contain the schema:
     { "startTime": "00:14:32", "endTime": "00:15:18", "speaker": "Allen", "order": 1 }
     { "startTime": "00:41:01", "endTime": "00:41:05", "speaker": "Andres": "order": 2 }
   ],
-  "hook": "Why we let our AI agent go rogue (on purpose)",
+  "title": "Why we let our AI agent go rogue (on purpose)",
   "summary": "Allen and Andres debate what happens when you remove safety guardrails from an agent and whether chaos teaches more than control.",
   "bRollSuggestions": [
     "on-screen text: 'We let it go rogue'",
@@ -141,12 +141,12 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 ### Working rules
 
 * Produce 5-10 clips per transcript.
-* Total clip length (sum of all segment lengths in a clip) should not exceed 45 seconds
+* Total clip length (sum of all segment lengths in a clip) should not exceed 55 seconds
 * Mix clip types: at least one 'funny', one 'educational', and one 'hot_take' if available. Prioritize educational above all others as the majority clip type
-* Hooks should sound like strong YouTube titles: conversational, bold, and curiosity-driven—never clickbait.
+* Titles should sound like strong YouTube titles: conversational, bold, and curiosity-driven—never clickbait.
 * Summaries must be factual and concise without setup
 * Suggest b-roll that enhances storytelling: reactions, diagrams, or overlays.
-* All segments must include startTime, endTime, speaker, and order fields.
+* All segments must include startTime, endTime, speaker, transcript, and order fields.
 * Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
 * Verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
 * Use the exact timestamps from the transcript - padding will be added automatically during processing.
