@@ -8,6 +8,28 @@ import { formatResponse, parseBody } from './api.mjs';
 const logger = new Logger({ serviceName: 'utils' });
 const ddb = new DynamoDBClient();
 
+const formatValidationErrors = (error) => {
+  const errors = [];
+
+  if (error.cause && Array.isArray(error.cause)) {
+    for (const issue of error.cause) {
+      errors.push({
+        field: issue.path?.join('.') || 'unknown',
+        message: issue.message,
+        code: issue.code
+      });
+    }
+  } else {
+    errors.push({
+      field: 'body',
+      message: error.message,
+      code: 'validation_error'
+    });
+  }
+
+  return errors;
+};
+
 export const validateRequest = (event, schema) => {
   const tenantId = event?.requestContext?.authorizer?.tenantId;
   const userId = event?.requestContext?.authorizer?.userId;
@@ -41,9 +63,13 @@ export const validateRequest = (event, schema) => {
     };
   } catch (error) {
     if (error instanceof SchemaValidationError) {
+      const validationErrors = formatValidationErrors(error);
       return {
         success: false,
-        error: formatResponse(400, { message: error.message })
+        error: formatResponse(400, {
+          message: 'Validation failed',
+          errors: validationErrors
+        })
       };
     }
     throw error;
@@ -70,9 +96,13 @@ export const validatePathParameters = async (event, schema) => {
     };
   } catch (error) {
     if (error instanceof SchemaValidationError) {
+      const validationErrors = formatValidationErrors(error);
       return {
         success: false,
-        error: formatResponse(400, { message: error.message })
+        error: formatResponse(400, {
+          message: 'Validation failed',
+          errors: validationErrors
+        })
       };
     }
     throw error;
@@ -94,9 +124,13 @@ export const validateQueryParameters = async (event, schema) => {
     };
   } catch (error) {
     if (error instanceof SchemaValidationError) {
+      const validationErrors = formatValidationErrors(error);
       return {
         success: false,
-        error: formatResponse(400, { message: error.message })
+        error: formatResponse(400, {
+          message: 'Validation failed',
+          errors: validationErrors
+        })
       };
     }
     throw error;
@@ -131,9 +165,13 @@ export const validateBody = async (event, schema) => {
     };
   } catch (error) {
     if (error instanceof SchemaValidationError) {
+      const validationErrors = formatValidationErrors(error);
       return {
         success: false,
-        error: formatResponse(400, { message: error.message })
+        error: formatResponse(400, {
+          message: 'Validation failed',
+          errors: validationErrors
+        })
       };
     }
     throw error;

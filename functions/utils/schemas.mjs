@@ -49,7 +49,7 @@ export const TrackSchemas = {
       trackName: {
         type: 'string',
         minLength: 1,
-        maxLength: 50,
+        maxLength: 150,
         pattern: '^[a-zA-Z0-9_-]+$'
       },
       speakers: {
