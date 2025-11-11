@@ -1,22 +1,49 @@
 // Unit tests for update plan function
 // These tests validate plan updates and validation
 
+const { mockClient } = require('aws-sdk-client-mock');
+const { DynamoDBClient, GetItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge');
+const { marshall } = require('@aws-sdk/util-dynamodb');
+
 // Mock Logger before any imports
 jest.mock('@aws-lambda-powertools/logger', () => {
   const { Logger } = require('../../helpers/logger-mock');
   return { Logger };
 });
 
-// Mock environment variables
-process.env.TABLE_NAME = 'test-table';
+const ddbMock = mockClient(DynamoDBClient);
+const eventBridgeMock = mockClient(EventBridgeClient);
 
+// Mock the utilities
+jest.mock('../../../functions/utils/api.mjs', () => ({
+  formatResponse: (statusCode, body) => ({ statusCode, body })
+}));
+
+jest.mock('../../../functions/utils/validation.mjs', () => ({
+  validateRequest: jest.fn(),
+  validatePathParameters: jest.fn()
+}));
+
+jest.mock('../../../functions/utils/status-history.mjs', () => ({
+  addStatusEntry: jest.fn((history, status, timestamp) => {
+    const h = history || [];
+    return [...h, { status, timestamp }];
+  })
+}));
+
+const { handler } = require('../../../functions/episodes/update-plan.mjs');
+const { validateRequest, validatePathParameters } = require('../../../functions/utils/validation.mjs');
 const { Logger } = require('@aws-lambda-powertools/logger');
 
 describe('Update Plan Function', () => {
   let mockLogger;
 
   beforeEach(() => {
+    ddbMock.reset();
+    eventBridgeMock.reset();
     jest.clearAllMocks();
+    process.env.TABLE_NAME = 'test-table';
     mockLogger = new Logger({ serviceName: 'episodes' });
   });
 
@@ -256,6 +283,63 @@ describe('Update Plan Function', () => {
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
       expect(body.message).toBe('Plan not found for episode');
+    });
+  });
+
+  describe('Handler Integration', () => {
+    test('should successfully update a plan', async () => {
+      validateRequest.mockReturnValueOnce({
+        success: true,
+        tenantId: 'tenant-123',
+        data: {
+          objectives: 'Updated objectives',
+          concepts: 'Updated concepts',
+          notes: 'Updated notes'
+        }
+      });
+
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'metadata',
+          title: 'Test Episode',
+          statusHistory: []
+        })
+      }).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'plan',
+          objectives: 'Old objectives',
+          concepts: 'Old concepts',
+          createdAt: '2025-01-15T09:00:00Z'
+        })
+      });
+
+      ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const event = {
+        body: JSON.stringify({
+          objectives: 'Updated objectives',
+          concepts: 'Updated concepts',
+          notes: 'Updated notes'
+        }),
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.body.plan.objectives).toBe('Updated objectives');
+      expect(result.body.status).toBe('plan_updated');
     });
   });
 });

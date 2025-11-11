@@ -1,22 +1,50 @@
 // Unit tests for add plan function
 // These tests validate plan creation and validation
 
+const { mockClient } = require('aws-sdk-client-mock');
+const { DynamoDBClient, GetItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge');
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
+
 // Mock Logger before any imports
 jest.mock('@aws-lambda-powertools/logger', () => {
   const { Logger } = require('../../helpers/logger-mock');
   return { Logger };
 });
 
-// Mock environment variables
-process.env.TABLE_NAME = 'test-table';
+const ddbMock = mockClient(DynamoDBClient);
+const eventBridgeMock = mockClient(EventBridgeClient);
 
+// Mock the utilities
+jest.mock('../../../functions/utils/api.mjs', () => ({
+  formatResponse: (statusCode, body) => ({ statusCode, body })
+}));
+
+jest.mock('../../../functions/utils/validation.mjs', () => ({
+  validateRequest: jest.fn(),
+  validatePathParameters: jest.fn()
+}));
+
+jest.mock('../../../functions/utils/status-history.mjs', () => ({
+  addStatusEntry: jest.fn((history, status, timestamp) => {
+    const h = history || [];
+    return [...h, { status, timestamp }];
+  })
+}));
+
+const { handler } = require('../../../functions/episodes/add-plan.mjs');
+const { validateRequest, validatePathParameters } = require('../../../functions/utils/validation.mjs');
+const { addStatusEntry } = require('../../../functions/utils/status-history.mjs');
 const { Logger } = require('@aws-lambda-powertools/logger');
 
 describe('Add Plan Function', () => {
   let mockLogger;
 
   beforeEach(() => {
+    ddbMock.reset();
+    eventBridgeMock.reset();
     jest.clearAllMocks();
+    process.env.TABLE_NAME = 'test-table';
     mockLogger = new Logger({ serviceName: 'episodes' });
   });
 
@@ -354,6 +382,111 @@ describe('Add Plan Function', () => {
       expect(response.statusCode).toBe(500);
       const body = JSON.parse(response.body);
       expect(body.message).toBe('Something went wrong');
+    });
+  });
+
+  describe('Handler Integration', () => {
+    test('should successfully create a plan', async () => {
+      validateRequest.mockReturnValueOnce({
+        success: true,
+        tenantId: 'tenant-123',
+        data: {
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway',
+          notes: 'Include demo'
+        }
+      });
+
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'metadata',
+          title: 'Test Episode',
+          episodeNumber: 1,
+          status: 'draft',
+          statusHistory: []
+        })
+      });
+
+      ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const event = {
+        body: JSON.stringify({
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway',
+          notes: 'Include demo'
+        }),
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(201);
+      expect(result.body.episodeId).toBe('episode-123');
+      expect(result.body.plan.objectives).toBe('Teach serverless');
+      expect(result.body.status).toBe('plan_added');
+    });
+
+    test('should return 404 when episode not found', async () => {
+      validateRequest.mockReturnValueOnce({
+        success: true,
+        tenantId: 'tenant-123',
+        data: {
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway'
+        }
+      });
+
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({});
+
+      const event = {
+        body: JSON.stringify({
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway'
+        }),
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(404);
+      expect(result.body.message).toContain('not found');
+    });
+
+    test('should handle validation errors', async () => {
+      validateRequest.mockReturnValueOnce({
+        success: false,
+        error: { statusCode: 400, body: { message: 'Objectives are required' } }
+      });
+
+      const event = {
+        body: JSON.stringify({ concepts: 'Lambda' }),
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(400);
     });
   });
 });

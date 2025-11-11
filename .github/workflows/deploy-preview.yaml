@@ -17,6 +17,10 @@ permissions:
   pull-requests: write
 
 jobs:
+  pre-deployment-validations:
+    name: Pre-deployment Validations
+    uses: ./workflows/shared-pre-deploy-validations.yaml
+
   prepare-deployment:
     name: Prepare Deployment
     runs-on: ubuntu-latest

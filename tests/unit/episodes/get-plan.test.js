@@ -1,22 +1,38 @@
 // Unit tests for get plan function
 // These tests validate plan retrieval and recommendations
 
+const { mockClient } = require('aws-sdk-client-mock');
+const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb');
+const { marshall } = require('@aws-sdk/util-dynamodb');
+
 // Mock Logger before any imports
 jest.mock('@aws-lambda-powertools/logger', () => {
   const { Logger } = require('../../helpers/logger-mock');
   return { Logger };
 });
 
-// Mock environment variables
-process.env.TABLE_NAME = 'test-table';
+const ddbMock = mockClient(DynamoDBClient);
 
+// Mock the utilities
+jest.mock('../../../functions/utils/api.mjs', () => ({
+  formatResponse: (statusCode, body) => ({ statusCode, body })
+}));
+
+jest.mock('../../../functions/utils/validation.mjs', () => ({
+  validatePathParameters: jest.fn()
+}));
+
+const { handler } = require('../../../functions/episodes/get-plan.mjs');
+const { validatePathParameters } = require('../../../functions/utils/validation.mjs');
 const { Logger } = require('@aws-lambda-powertools/logger');
 
 describe('Get Plan Function', () => {
   let mockLogger;
 
   beforeEach(() => {
+    ddbMock.reset();
     jest.clearAllMocks();
+    process.env.TABLE_NAME = 'test-table';
     mockLogger = new Logger({ serviceName: 'episodes' });
   });
 
@@ -328,6 +344,109 @@ describe('Get Plan Function', () => {
       expect(response.statusCode).toBe(401);
       const body = JSON.parse(response.body);
       expect(body.error).toBe('Unauthorized');
+    });
+  });
+
+  describe('Handler Integration', () => {
+    test('should successfully get plan without recommendations', async () => {
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'plan',
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway',
+          notes: 'Include demo',
+          createdAt: '2025-01-15T09:00:00Z',
+          updatedAt: '2025-01-15T10:00:00Z'
+        })
+      }).resolvesOnce({});
+
+      const event = {
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.body.episodeId).toBe('episode-123');
+      expect(result.body.plan.objectives).toBe('Teach serverless');
+      expect(result.body.recommendations).toBeNull();
+    });
+
+    test('should successfully get plan with recommendations', async () => {
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'plan',
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway',
+          createdAt: '2025-01-15T09:00:00Z',
+          updatedAt: '2025-01-15T10:00:00Z'
+        })
+      }).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'recommendations',
+          suggestedFlow: 'flowchart TD\n    Start --> End',
+          proposedTitle: 'Test Title',
+          proposedDescription: 'Test description',
+          keyLearningMoments: ['Learning 1'],
+          detailedOutline: [
+            { section: 'S1', duration: '5m', talkingPoints: ['P1'] },
+            { section: 'S2', duration: '5m', talkingPoints: ['P2'] },
+            { section: 'S3', duration: '5m', talkingPoints: ['P3'] }
+          ],
+          generatedAt: '2025-01-15T10:30:00Z'
+        })
+      });
+
+      const event = {
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.body.recommendations).not.toBeNull();
+      expect(result.body.recommendations.proposedTitle).toBe('Test Title');
+      expect(result.body.recommendations.detailedOutline).toHaveLength(3);
+    });
+
+    test('should return 404 when plan not found', async () => {
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({});
+
+      const event = {
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(404);
+      expect(result.body.message).toContain('not found');
     });
   });
 });
