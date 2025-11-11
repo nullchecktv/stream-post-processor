@@ -18,6 +18,11 @@ export const ProfileSchema = z.object({
   }).optional(),
 })
 
+export const BrandVoiceSchema = z.object({
+  tone: z.string().min(1, 'Tone is required').max(200, 'Tone must be less than 200 characters'),
+  writingStyle: z.string().min(1, 'Writing style is required').max(200, 'Writing style must be less than 200 characters'),
+})
+
 export const TeamSchema = z.object({
   name: z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
@@ -30,3 +35,4 @@ export const TeamSchema = z.object({
 export type EpisodeFormData = z.infer<typeof EpisodeSchema>
 export type ProfileFormData = z.infer<typeof ProfileSchema>
 export type TeamFormData = z.infer<typeof TeamSchema>
+export type BrandVoiceFormData = z.infer<typeof BrandVoiceSchema>

@@ -393,6 +393,10 @@ Resources:
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
                 - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
@@ -415,6 +419,60 @@ Resources:
                 object:
                   key:
                     - suffix: .srt
+
+  BlogGeneratorAgent:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - agents/blog-generator.mjs
+    Properties:
+      Handler: agents/blog-generator.handler
+      Timeout: 900
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+            - Effect: Allow
+              Action:
+                - bedrock:ListInferenceProfiles
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          MODEL_ID: us.amazon.nova-pro-v1:0
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        BlogOutlineCreated:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - nullcheck
+              detail-type:
+                - BlogOutlineCreated
 
   TranscriptIngestFunction:
     Type: AWS::Serverless::Function
@@ -1070,6 +1128,129 @@ Resources:
             RestApiId: !Ref Api
             Path: /episodes/{episodeId}/plan
             Method: GET
+
+  GetBlogFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/get-blog.mjs
+    Properties:
+      Handler: episodes/get-blog.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        GetBlog:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/blog
+            Method: GET
+
+  UpdateBlogFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/update-blog.mjs
+    Properties:
+      Handler: episodes/update-blog.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        UpdateBlog:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/blog
+            Method: PUT
+
+  DeleteBlogFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/delete-blog.mjs
+    Properties:
+      Handler: episodes/delete-blog.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:BatchWriteItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        DeleteBlog:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/blog
+            Method: DELETE
+
+  RegenerateBlogFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/regenerate-blog.mjs
+    Properties:
+      Handler: episodes/regenerate-blog.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        RegenerateBlog:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/blog
+            Method: POST
 
   SetPlanRecommendationsFunction:
     Type: AWS::Serverless::Function

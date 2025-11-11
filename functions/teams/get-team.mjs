@@ -82,6 +82,7 @@ export const handler = async (event) => {
       ownerId: team.ownerId,
       status: team.status,
       settings: team.settings,
+      brandVoice: team.brandVoice || null,
       userRole: membership.role,
       members,
       createdAt: team.createdAt,

@@ -148,6 +148,10 @@ export interface Team {
     defaultPlatforms?: Platform[]
     timezone?: string
   }
+  brandVoice?: {
+    tone: string
+    writingStyle: string
+  }
   createdAt: string
   updatedAt: string
 }
@@ -169,6 +173,10 @@ export interface UserProfile {
   preferences?: {
     timezone?: string
     notifications?: boolean
+  }
+  brandVoice?: {
+    tone: string
+    writingStyle: string
   }
   teams: TeamMembership[]
   ownedTeams: TeamMembership[]
@@ -217,4 +225,23 @@ export interface ApiError {
   error: string
   message: string
   details?: Record<string, unknown>
+}
+
+export type BlogStatus =
+  | 'outline_created'
+  | 'content_generating'
+  | 'content_generated'
+  | 'outline_edited'
+  | 'content_edited'
+  | 'regenerating'
+  | 'failed'
+
+export interface BlogData {
+  episodeId: string
+  outline: string | null
+  content: string | null
+  status: BlogStatus
+  wordCount: number | null
+  createdAt: string | null
+  updatedAt: string | null
 }

@@ -1,6 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
+import { buildBlogOutlineTool } from "../tools/build-blog-outline.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
 import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
@@ -10,7 +11,7 @@ import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 const logger = new Logger({ serviceName: 'agents' });
 
 const ddb = new DynamoDBClient();
-const tools = convertToBedrockTools([createClipTool]);
+const tools = convertToBedrockTools([createClipTool, buildBlogOutlineTool]);
 
 export const handler = async (event) => {
   try {
@@ -80,7 +81,8 @@ Your job on each run:
 1. Analyze the full transcript of a Null Check livestream episode.
 2. Identify 5-10 distinct moments that would make high-performing YouTube clips—content that earns *views* and *subscribers* because it is funny, insightful, or provocative.
 3. Record your findings once using the **createClip** tool (single call, array of clips).
-4. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
+4. Create a structured blog post outline using the **buildBlogOutline** tool based on the episode content.
+5. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
 ### Transcript
 The transcript has been preprocessed from SRT format to merge fragmented segments and remove filler words. Each segment represents a coherent thought or statement from a speaker. Speakers are indicated with their name followed by a colon.
@@ -138,6 +140,50 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 
 ---
 
+### Blog outline generation
+
+After creating clips, you must also create a blog post outline using the **buildBlogOutline** tool. The outline should:
+
+* Be formatted in markdown with clear heading hierarchy (# for title, ## for main sections, ### for subsections)
+* Include an engaging title that captures the episode's main theme
+* Start with an introduction section that hooks the reader
+* Organize content into 4-6 main sections based on the episode's key topics and discussions
+* Include bullet points under each section highlighting specific points, insights, or quotes from the episode
+* End with a conclusion section that summarizes key takeaways
+* Be 200-500 words in outline form (not full prose)
+* Focus on the most valuable and engaging content from the transcript
+* Align with the episode's description and themes when provided
+
+Example outline structure:
+
+# [Engaging Blog Post Title]
+
+## Introduction
+- Hook that draws readers in
+- Brief context about the episode topic
+- What readers will learn
+
+## [Main Topic 1]
+- Key point or insight
+- Supporting detail or quote
+- Practical application or example
+
+## [Main Topic 2]
+- Key point or insight
+- Supporting detail or quote
+- Practical application or example
+
+## [Additional sections as needed]
+
+## Conclusion
+- Summary of main takeaways
+- Call to action or next steps
+- Link back to the episode
+
+Call **buildBlogOutline** once with the complete markdown outline after you've called **createClip**.
+
+---
+
 ### Working rules
 
 * Produce 5-10 clips per transcript.
@@ -161,8 +207,9 @@ Think like a YouTube growth editor, not a stenographer.
 ### Completion policy
 
 1. Call **createClip** exactly once with your full list of recommended clips.
-2. Return a short 3-4 sentence summary of what the transcript was about and key takeaways
-3. Do not mention the clips you created
+2. Call **buildBlogOutline** exactly once with your structured markdown outline.
+3. Return a short 3-4 sentence summary of what the transcript was about and key takeaways
+4. Do not mention the clips or blog outline you created
 `;
 
     const userPrompt = `

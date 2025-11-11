@@ -52,6 +52,18 @@ export function WelcomeStep({ onContinue }: WelcomeStepProps) {
             2
           </div>
           <div>
+            <h3 className="font-semibold text-gray-900 mb-1">Configure Brand Voice (Optional)</h3>
+            <p className="text-sm text-gray-600">
+              Define your content's tone and writing style for AI-generated blog posts
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+            3
+          </div>
+          <div>
             <h3 className="font-semibold text-gray-900 mb-1">Review Team Invitations</h3>
             <p className="text-sm text-gray-600">
               Accept or decline any pending team invitations
@@ -61,7 +73,7 @@ export function WelcomeStep({ onContinue }: WelcomeStepProps) {
 
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
-            3
+            4
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 mb-1">Create or Join a Team</h3>

@@ -142,6 +142,14 @@ export const TeamSchemas = {
           timezone: { type: 'string' }
         },
         additionalProperties: false
+      },
+      brandVoice: {
+        type: 'object',
+        properties: {
+          tone: { type: 'string', minLength: 1, maxLength: 200 },
+          writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
+        },
+        additionalProperties: false
       }
     },
     required: ['name'],
@@ -160,6 +168,14 @@ export const TeamSchemas = {
             items: { type: 'string', enum: ['linkedin live', 'X', 'twitch', 'youtube'] }
           },
           timezone: { type: 'string' }
+        },
+        additionalProperties: false
+      },
+      brandVoice: {
+        type: 'object',
+        properties: {
+          tone: { type: 'string', minLength: 1, maxLength: 200 },
+          writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
         },
         additionalProperties: false
       }
@@ -252,6 +268,14 @@ export const UserSchemas = {
         properties: {
           timezone: { type: 'string' },
           notifications: { type: 'boolean' }
+        },
+        additionalProperties: false
+      },
+      brandVoice: {
+        type: 'object',
+        properties: {
+          tone: { type: 'string', minLength: 1, maxLength: 200 },
+          writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
         },
         additionalProperties: false
       }
@@ -390,6 +414,26 @@ export const RecommendationsSchemas = {
       }
     },
     required: ['episodeId', 'suggestedFlow', 'proposedTitle', 'proposedDescription', 'keyLearningMoments', 'detailedOutline'],
+    additionalProperties: false
+  }
+};
+
+// Blog Schemas
+export const BlogSchemas = {
+  update: {
+    type: 'object',
+    properties: {
+      outline: { type: 'string', minLength: 1 },
+      content: { type: 'string', minLength: 1 }
+    },
+    additionalProperties: false
+  },
+  regenerate: {
+    type: 'object',
+    properties: {
+      outline: { type: 'string', minLength: 1 }
+    },
+    required: ['outline'],
     additionalProperties: false
   }
 };

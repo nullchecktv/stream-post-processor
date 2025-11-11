@@ -15,6 +15,8 @@ const updateTeamSchema = z.object({
   name: z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
   timezone: z.string().optional(),
+  tone: z.string().max(200, 'Tone must be less than 200 characters').optional(),
+  writingStyle: z.string().max(500, 'Writing style must be less than 500 characters').optional(),
 })
 
 type UpdateTeamFormData = z.infer<typeof updateTeamSchema>
@@ -43,6 +45,8 @@ function TeamSettingsPage() {
     name: '',
     description: '',
     timezone: '',
+    tone: '',
+    writingStyle: '',
   })
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -68,6 +72,8 @@ function TeamSettingsPage() {
           name: foundTeam.name,
           description: foundTeam.description || '',
           timezone: foundTeam.settings?.timezone || '',
+          tone: foundTeam.brandVoice?.tone || '',
+          writingStyle: foundTeam.brandVoice?.writingStyle || '',
         })
         setSelectedPlatforms(foundTeam.settings?.defaultPlatforms || [])
       } else {
@@ -112,6 +118,10 @@ function TeamSettingsPage() {
           defaultPlatforms: selectedPlatforms.length > 0 ? selectedPlatforms : undefined,
           timezone: validated.timezone || undefined,
         },
+        brandVoice: validated.tone || validated.writingStyle ? {
+          tone: validated.tone || '',
+          writingStyle: validated.writingStyle || '',
+        } : undefined,
       })
 
       showToast('Team settings updated successfully', 'success')
@@ -242,6 +252,84 @@ function TeamSettingsPage() {
             {errors.timezone && (
               <p className="mt-1 text-sm text-red-600">{errors.timezone}</p>
             )}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              type="submit"
+              variant="primary"
+              loading={submitting}
+              className="w-full sm:w-auto"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Brand Voice</h2>
+        <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+          Configure your team's brand voice to personalize AI-generated blog content
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <Input
+            label="Tone (Optional)"
+            type="text"
+            value={formData.tone}
+            onChange={(e) => handleChange('tone', e.target.value)}
+            error={errors.tone}
+            placeholder="e.g., professional and conversational, casual and humorous"
+            disabled={submitting}
+          />
+          <p className="mt-1 text-xs text-gray-500 -mt-2 sm:-mt-4">
+            Examples: "professional and conversational", "casual and humorous", "technical and authoritative"
+          </p>
+
+          <div>
+            <label htmlFor="writingStyle" className="block text-sm font-medium text-gray-700 mb-1">
+              Writing Style (Optional)
+            </label>
+            <textarea
+              id="writingStyle"
+              value={formData.writingStyle}
+              onChange={(e) => handleChange('writingStyle', e.target.value)}
+              placeholder="e.g., storytelling with code examples, technical with practical examples"
+              disabled={submitting}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            {errors.writingStyle && (
+              <p className="mt-1 text-sm text-red-600">{errors.writingStyle}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Examples: "storytelling with code examples", "technical with practical examples", "educational with step-by-step guides"
+            </p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <svg
+                className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="text-xs sm:text-sm text-blue-800">
+                <p className="font-semibold mb-1">How this helps</p>
+                <p>
+                  When team members generate blog posts from episode transcripts, the AI will use these team settings to match your brand's voice and style. Team settings take precedence over individual member settings.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end pt-2">

@@ -20,7 +20,7 @@ export function Breadcrumb() {
 
     if (episodeIndex !== -1 && pathSegments[episodeIndex + 1]) {
       const episodeId = pathSegments[episodeIndex + 1]
-      if (episodeId !== 'overview' && episodeId !== 'details' && episodeId !== 'plan' && episodeId !== 'uploads' && episodeId !== 'clips') {
+      if (episodeId !== 'overview' && episodeId !== 'details' && episodeId !== 'plan' && episodeId !== 'uploads' && episodeId !== 'clips' && episodeId !== 'blog') {
         episodesApi.get(episodeId)
           .then(episode => setEpisodeTitle(episode.title))
           .catch(() => setEpisodeTitle(null))
@@ -59,7 +59,7 @@ export function Breadcrumb() {
           label: team?.name || 'Team',
           path: `/teams/${segment}`
         })
-      } else if (pathSegments[i - 1] === 'episodes' && segment !== 'overview' && segment !== 'details' && segment !== 'plan' && segment !== 'uploads' && segment !== 'clips') {
+      } else if (pathSegments[i - 1] === 'episodes' && segment !== 'overview' && segment !== 'details' && segment !== 'plan' && segment !== 'uploads' && segment !== 'clips' && segment !== 'blog') {
         breadcrumbs.push({
           label: episodeTitle || 'Episode',
           path: `/episodes/${segment}/overview`
@@ -74,6 +74,8 @@ export function Breadcrumb() {
         breadcrumbs.push({ label: 'Uploads' })
       } else if (segment === 'clips' && pathSegments[i - 1]) {
         breadcrumbs.push({ label: 'Clips' })
+      } else if (segment === 'blog' && pathSegments[i - 1]) {
+        breadcrumbs.push({ label: 'Blog' })
       }
     }
 

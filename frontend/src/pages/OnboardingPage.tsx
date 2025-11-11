@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { WelcomeStep } from '../components/onboarding/WelcomeStep'
 import { ProfileStep } from '../components/onboarding/ProfileStep'
 import { InvitationsStep } from '../components/onboarding/InvitationsStep'
+import { BrandVoiceStep } from '../components/onboarding/BrandVoiceStep'
 import { TeamStep } from '../components/onboarding/TeamStep'
 import { useUser } from '../hooks/useUser'
 import { useActivity } from '../hooks/useActivity'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type OnboardingStep = 'welcome' | 'profile' | 'invitations' | 'team' | 'complete'
+type OnboardingStep = 'welcome' | 'profile' | 'brandVoice' | 'invitations' | 'team' | 'complete'
 
 function OnboardingPage() {
   usePageTitle('Get Started')
@@ -34,6 +35,19 @@ function OnboardingPage() {
 
   const handleProfileComplete = async () => {
     await refreshProfile()
+    setCurrentStep('brandVoice')
+  }
+
+  const handleBrandVoiceComplete = async () => {
+    await refreshProfile()
+    if (!activityLoading && hasInvitations) {
+      setCurrentStep('invitations')
+    } else {
+      setCurrentStep('team')
+    }
+  }
+
+  const handleBrandVoiceSkip = () => {
     if (!activityLoading && hasInvitations) {
       setCurrentStep('invitations')
     } else {
@@ -75,6 +89,23 @@ function OnboardingPage() {
                 </p>
               </div>
               <ProfileStep onComplete={handleProfileComplete} />
+            </div>
+          )}
+
+          {currentStep === 'brandVoice' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  Configure Brand Voice (Optional)
+                </h2>
+                <p className="text-gray-600 mt-2">
+                  Define your content's tone and writing style for AI-generated blog posts
+                </p>
+              </div>
+              <BrandVoiceStep
+                onComplete={handleBrandVoiceComplete}
+                onSkip={handleBrandVoiceSkip}
+              />
             </div>
           )}
 

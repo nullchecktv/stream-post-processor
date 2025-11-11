@@ -40,6 +40,10 @@ interface UpdateTeamData {
     defaultPlatforms?: string[]
     timezone?: string
   }
+  brandVoice?: {
+    tone: string
+    writingStyle: string
+  }
 }
 
 export const TeamContext = createContext<TeamContextType | undefined>(undefined)
