@@ -29,7 +29,11 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
     setError(null)
 
     try {
-      await usersApi.updateProfile({ brandVoice: data })
+      await usersApi.updateProfile({
+        branding: {
+          voice: data
+        } as any
+      })
       onComplete()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save brand voice settings')

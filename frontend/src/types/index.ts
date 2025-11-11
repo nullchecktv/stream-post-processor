@@ -146,6 +146,10 @@ export interface BrandingConfig {
     text: string
   }
   fontFamily: string
+  voice?: {
+    tone: string
+    writingStyle: string
+  }
 }
 
 export interface Team {
@@ -157,10 +161,6 @@ export interface Team {
   settings?: {
     defaultPlatforms?: Platform[]
     timezone?: string
-  }
-  brandVoice?: {
-    tone: string
-    writingStyle: string
   }
   branding?: BrandingConfig
   createdAt: string
@@ -184,10 +184,6 @@ export interface UserProfile {
   preferences?: {
     timezone?: string
     notifications?: boolean
-  }
-  brandVoice?: {
-    tone: string
-    writingStyle: string
   }
   branding?: BrandingConfig
   teams: TeamMembership[]

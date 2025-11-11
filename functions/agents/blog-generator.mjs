@@ -156,8 +156,8 @@ const loadBrandVoice = async (tenantId, episode) => {
 
       if (teamResponse.Item) {
         const team = unmarshall(teamResponse.Item);
-        if (team.brandVoice) {
-          brandVoice = team.brandVoice;
+        if (team.branding?.voice) {
+          brandVoice = team.branding.voice;
           logger.info('Loaded team brand voice', { teamId });
         }
       }
@@ -182,8 +182,8 @@ const loadBrandVoice = async (tenantId, episode) => {
 
       if (userResponse.Item) {
         const user = unmarshall(userResponse.Item);
-        if (user.brandVoice) {
-          brandVoice = user.brandVoice;
+        if (user.branding?.voice) {
+          brandVoice = user.branding.voice;
           logger.info('Loaded user brand voice', { userId });
         }
       }

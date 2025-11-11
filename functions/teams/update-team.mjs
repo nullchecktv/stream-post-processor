@@ -43,7 +43,6 @@ export const handler = async (event) => {
     const name = data.name !== undefined ? data.name : currentTeam.name;
     const description = data.description !== undefined ? data.description : currentTeam.description;
     const settings = data.settings !== undefined ? data.settings : currentTeam.settings;
-    const brandVoice = data.brandVoice !== undefined ? data.brandVoice : currentTeam.brandVoice;
     const branding = data.branding !== undefined ? data.branding : currentTeam.branding;
 
     const now = new Date().toISOString();
@@ -53,7 +52,6 @@ export const handler = async (event) => {
       name,
       description,
       settings,
-      brandVoice,
       branding,
       updatedAt: now
     };

@@ -15,7 +15,7 @@ export const handler = async (event) => {
     if (!validation.success) return validation.error;
 
     const { userId, data } = validation;
-    const { name, description, settings, brandVoice } = data;
+    const { name, description, settings, branding } = data;
 
     const now = new Date().toISOString();
     const teamId = randomUUID();
@@ -45,7 +45,7 @@ export const handler = async (event) => {
       ownerId: userId,
       status: 'active',
       settings: teamSettings,
-      ...(brandVoice && { brandVoice }),
+      ...(branding && { branding }),
       createdAt: now,
       updatedAt: now
     };

@@ -42,9 +42,18 @@ Episode Transcript → Clip Detector Agent → buildBlogOutline Tool → DynamoD
   email: "user@example.com",
   name: "John Doe",
   activeTeamId: "team-uuid",
-  brandVoice: {
-    tone: "professional and conversational",
-    writingStyle: "technical with practical examples"
+  branding: {
+    colors: {
+      primary: "#3B82F6",
+      secondary: "#8B5CF6",
+      background: "#1F2937",
+      text: "#F9FAFB"
+    },
+    fontFamily: "Inter",
+    voice: {
+      tone: "professional and conversational",
+      writingStyle: "technical with practical examples"
+    }
   },
   preferences: { ... },
   createdAt: "2025-01-15T10:30:00Z",
@@ -59,9 +68,18 @@ Episode Transcript → Clip Detector Agent → buildBlogOutline Tool → DynamoD
   sk: "metadata",
   name: "My Content Team",
   description: "Team for podcast production",
-  brandVoice: {
-    tone: "casual and humorous",
-    writingStyle: "storytelling with code examples"
+  branding: {
+    colors: {
+      primary: "#3B82F6",
+      secondary: "#8B5CF6",
+      background: "#1F2937",
+      text: "#F9FAFB"
+    },
+    fontFamily: "Inter",
+    voice: {
+      tone: "casual and humorous",
+      writingStyle: "storytelling with code examples"
+    }
   },
   ownerId: "user-uuid",
   status: "active",

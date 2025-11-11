@@ -92,8 +92,8 @@ function ProfilePage() {
         name: profile.name,
         timezone: profile.preferences?.timezone || '',
         notifications: profile.preferences?.notifications ?? true,
-        tone: profile.brandVoice?.tone || '',
-        writingStyle: profile.brandVoice?.writingStyle || '',
+        tone: profile.branding?.voice?.tone || '',
+        writingStyle: profile.branding?.voice?.writingStyle || '',
         useTeamBranding: !profile.branding,
         branding: profile.branding || DEFAULT_BRANDING,
       })
@@ -126,14 +126,16 @@ function ProfilePage() {
           timezone: validated.timezone || undefined,
           notifications: validated.notifications,
         },
-        brandVoice: validated.tone || validated.writingStyle ? {
-          tone: validated.tone || '',
-          writingStyle: validated.writingStyle || '',
-        } : undefined,
       }
 
       if (!validated.useTeamBranding && validated.branding) {
-        updateData.branding = validated.branding
+        updateData.branding = {
+          ...validated.branding,
+          voice: validated.tone || validated.writingStyle ? {
+            tone: validated.tone || '',
+            writingStyle: validated.writingStyle || '',
+          } : undefined,
+        }
       } else if (validated.useTeamBranding) {
         updateData.branding = null
       }

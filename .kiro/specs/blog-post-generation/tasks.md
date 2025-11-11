@@ -1,8 +1,8 @@
 # Implementation Plan
 
 - [x] 1. Extend data models for brand voice configuration
-  - Add brandVoice object to user profile schema with tone and writingStyle fields
-  - Add brandVoice object to team metadata schema with tone and writingStyle fields
+  - Add voice object under branding in user profile schema with tone and writingStyle fields
+  - Add voice object under branding in team metadata schema with tone and writingStyle fields
   - Update DynamoDB item structures to include new fields
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 

@@ -1609,22 +1609,6 @@ paths:
                         enum: ["linkedin live", "X", "twitch", "youtube"]
                     timezone:
                       type: string
-                brandVoice:
-                  type: object
-                  description: Brand voice configuration for AI-generated content
-                  properties:
-                    tone:
-                      type: string
-                      minLength: 1
-                      maxLength: 200
-                      description: Desired tone for generated content
-                      example: "casual and humorous"
-                    writingStyle:
-                      type: string
-                      minLength: 1
-                      maxLength: 200
-                      description: Desired writing style for generated content
-                      example: "storytelling with code examples"
                 branding:
                   $ref: "#/components/schemas/Branding"
       responses:
@@ -1720,22 +1704,8 @@ paths:
                       type: boolean
                       description: Enable notifications
                       example: true
-                brandVoice:
-                  type: object
-                  description: Brand voice configuration for AI-generated content
-                  properties:
-                    tone:
-                      type: string
-                      minLength: 1
-                      maxLength: 200
-                      description: Desired tone for generated content
-                      example: "professional and conversational"
-                    writingStyle:
-                      type: string
-                      minLength: 1
-                      maxLength: 200
-                      description: Desired writing style for generated content
-                      example: "technical with practical examples"
+                branding:
+                  $ref: "#/components/schemas/Branding"
       responses:
         200:
           description: Profile updated
@@ -2581,6 +2551,22 @@ components:
           maxLength: 100
           description: Font family for text rendering
           example: "Inter"
+        voice:
+          type: object
+          description: Brand voice configuration for AI-generated content
+          properties:
+            tone:
+              type: string
+              minLength: 1
+              maxLength: 200
+              description: Desired tone for generated content
+              example: "professional and conversational"
+            writingStyle:
+              type: string
+              minLength: 1
+              maxLength: 200
+              description: Desired writing style for generated content
+              example: "technical with practical examples"
       required:
         - colors
         - fontFamily
@@ -3160,19 +3146,6 @@ components:
             timezone:
               type: string
               example: "America/New_York"
-        brandVoice:
-          type: object
-          nullable: true
-          description: Brand voice configuration for AI-generated content
-          properties:
-            tone:
-              type: string
-              description: Desired tone for generated content
-              example: "casual and humorous"
-            writingStyle:
-              type: string
-              description: Desired writing style for generated content
-              example: "storytelling with code examples"
         branding:
           $ref: "#/components/schemas/Branding"
         createdAt:
@@ -3220,19 +3193,10 @@ components:
             notifications:
               type: boolean
               example: true
-        brandVoice:
-          type: object
-          nullable: true
-          description: Brand voice configuration for AI-generated content
-          properties:
-            tone:
-              type: string
-              description: Desired tone for generated content
-              example: "professional and conversational"
-            writingStyle:
-              type: string
-              description: Desired writing style for generated content
-              example: "technical with practical examples"
+        branding:
+          allOf:
+            - $ref: "#/components/schemas/Branding"
+            - nullable: true
         teams:
           type: array
           description: All teams the user belongs to (for backward compatibility)

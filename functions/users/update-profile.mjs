@@ -62,8 +62,6 @@ export const handler = async (event) => {
       };
     }
 
-    if (data.brandVoice !== undefined) {
-      updatedProfile.brandVoice = data.brandVoice;
     if (data.branding !== undefined) {
       updatedProfile.branding = data.branding;
     }

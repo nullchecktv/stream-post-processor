@@ -15,7 +15,15 @@ const BrandingSchema = {
       required: ['primary', 'secondary', 'background', 'text'],
       additionalProperties: false
     },
-    fontFamily: { type: 'string', minLength: 1, maxLength: 100 }
+    fontFamily: { type: 'string', minLength: 1, maxLength: 100 },
+    voice: {
+      type: 'object',
+      properties: {
+        tone: { type: 'string', minLength: 1, maxLength: 200 },
+        writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
+      },
+      additionalProperties: false
+    }
   },
   required: ['colors', 'fontFamily'],
   additionalProperties: false
@@ -164,14 +172,6 @@ export const TeamSchemas = {
         },
         additionalProperties: false
       },
-      brandVoice: {
-        type: 'object',
-        properties: {
-          tone: { type: 'string', minLength: 1, maxLength: 200 },
-          writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
-        },
-        additionalProperties: false
-      },
       branding: BrandingSchema
     },
     required: ['name'],
@@ -190,14 +190,6 @@ export const TeamSchemas = {
             items: { type: 'string', enum: ['linkedin live', 'X', 'twitch', 'youtube'] }
           },
           timezone: { type: 'string' }
-        },
-        additionalProperties: false
-      },
-      brandVoice: {
-        type: 'object',
-        properties: {
-          tone: { type: 'string', minLength: 1, maxLength: 200 },
-          writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
         },
         additionalProperties: false
       },
@@ -291,14 +283,6 @@ export const UserSchemas = {
         properties: {
           timezone: { type: 'string' },
           notifications: { type: 'boolean' }
-        },
-        additionalProperties: false
-      },
-      brandVoice: {
-        type: 'object',
-        properties: {
-          tone: { type: 'string', minLength: 1, maxLength: 200 },
-          writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
         },
         additionalProperties: false
       },

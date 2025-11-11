@@ -194,9 +194,18 @@ describe('Blog Generator Agent', () => {
             pk: 'team#team-789',
             sk: 'metadata',
             name: 'Test Team',
-            brandVoice: {
-              tone: 'casual and humorous',
-              writingStyle: 'storytelling with examples'
+            branding: {
+              colors: {
+                primary: '#3B82F6',
+                secondary: '#8B5CF6',
+                background: '#1F2937',
+                text: '#F9FAFB'
+              },
+              fontFamily: 'Inter',
+              voice: {
+                tone: 'casual and humorous',
+                writingStyle: 'storytelling with examples'
+              }
             }
           })
         });
