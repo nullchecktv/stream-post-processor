@@ -12,6 +12,7 @@ import { ProfileGuard } from './components/auth/ProfileGuard'
 import { TeamGuard } from './components/auth/TeamGuard'
 import { PageLayout } from './components/layout'
 import { EpisodeLayout } from './components/episodes/EpisodeLayout'
+import { TeamLayout } from './components/teams/TeamLayout'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 
@@ -26,10 +27,13 @@ const EpisodeOverviewPage = lazy(() => import('./pages/EpisodeOverviewPage'))
 const EpisodeDetailsPage = lazy(() => import('./pages/EpisodeDetailsPage'))
 const EpisodeContentPage = lazy(() => import('./pages/EpisodeContentPage'))
 const EpisodeClipsPage = lazy(() => import('./pages/EpisodeClipsPage'))
+const EpisodeQuotesPage = lazy(() => import('./pages/EpisodeQuotesPage'))
 const ClipDetailPage = lazy(() => import('./pages/ClipDetailPage'))
+const QuoteDetailPage = lazy(() => import('./pages/QuoteDetailPage'))
 const TeamsListPage = lazy(() => import('./pages/TeamsListPage'))
 const TeamDetailPage = lazy(() => import('./pages/TeamDetailPage'))
-const TeamSettingsPage = lazy(() => import('./pages/TeamSettingsPage'))
+const TeamGeneralSettingsPage = lazy(() => import('./pages/TeamGeneralSettingsPage'))
+const TeamBrandingSettingsPage = lazy(() => import('./pages/TeamBrandingSettingsPage'))
 const TeamMembersPage = lazy(() => import('./pages/TeamMembersPage'))
 const ActivityPage = lazy(() => import('./pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
@@ -67,10 +71,15 @@ function App() {
                                   <Route path="details" element={<EpisodeDetailsPage />} />
                                   <Route path="uploads" element={<EpisodeContentPage />} />
                                   <Route path="clips" element={<EpisodeClipsPage />} />
+                                  <Route path="quotes" element={<EpisodeQuotesPage />} />
                                 </Route>
                                 <Route path="/episodes/:episodeId/clips/:clipId" element={<ClipDetailPage />} />
+                                <Route path="/episodes/:episodeId/quotes/:quoteId" element={<QuoteDetailPage />} />
                                 <Route path="/teams/:teamId" element={<TeamDetailPage />} />
-                                <Route path="/teams/:teamId/settings" element={<TeamSettingsPage />} />
+                                <Route path="/teams/:teamId/settings" element={<TeamLayout />}>
+                                  <Route path="general" element={<TeamGeneralSettingsPage />} />
+                                  <Route path="branding" element={<TeamBrandingSettingsPage />} />
+                                </Route>
                                 <Route path="/teams/:teamId/members" element={<TeamMembersPage />} />
                               </Route>
                               <Route path="*" element={<NotFoundPage />} />

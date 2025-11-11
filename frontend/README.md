@@ -56,12 +56,12 @@ cp .env.example .env
 3. Update `.env` with your configuration:
 ```env
 VITE_API_URL=https://your-api-url.com/api
-VITE_COGNITO_USER_POOL_ID=your-user-pool-id
-VITE_COGNITO_CLIENT_ID=your-client-id
-VITE_COGNITO_DOMAIN=your-cognito-domain
-VITE_COGNITO_REDIRECT_SIGN_IN=http://localhost:5173
-VITE_COGNITO_REDIRECT_SIGN_OUT=http://localhost:5173
-VITE_COGNITO_REGION=us-east-1
+VITE_USER_POOL_ID=your-user-pool-id
+VITE_USER_POOL_CLIENT_ID=your-client-id
+VITE_USER_POOL_DOMAIN=your-cognito-domain
+VITE_REDIRECT_SIGN_IN=http://localhost:5173
+VITE_REDIRECT_SIGN_OUT=http://localhost:5173
+VITE_REGION=us-east-1
 ```
 
 ### Development

@@ -104,6 +104,16 @@ export interface Activity {
   metadata?: Record<string, unknown>
 }
 
+export interface BrandingConfig {
+  colors: {
+    primary: string
+    secondary: string
+    background: string
+    text: string
+  }
+  fontFamily: string
+}
+
 export interface Team {
   id: string
   name: string
@@ -114,6 +124,7 @@ export interface Team {
     defaultPlatforms?: Platform[]
     timezone?: string
   }
+  branding?: BrandingConfig
   createdAt: string
   updatedAt: string
 }
@@ -136,6 +147,7 @@ export interface UserProfile {
     timezone?: string
     notifications?: boolean
   }
+  branding?: BrandingConfig
   teams: TeamMembership[]
   ownedTeams: TeamMembership[]
   memberTeams: TeamMembership[]
@@ -177,6 +189,23 @@ export interface Notification {
   }
   isRead: boolean
   createdAt: string
+}
+
+export interface Quote {
+  id: string
+  text: string
+  speaker: string
+  timestamp: string
+  relevanceScore?: number
+  status: 'detected' | 'generated' | 'approved' | 'rejected' | 'failed'
+  imageUrl?: string
+  createdAt: string
+}
+
+export interface QuoteDetail extends Quote {
+  showSpeaker: boolean
+  showEpisodeTitle: boolean
+  updatedAt: string
 }
 
 export interface ApiError {

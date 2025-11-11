@@ -62,6 +62,10 @@ export const handler = async (event) => {
       };
     }
 
+    if (data.branding !== undefined) {
+      updatedProfile.branding = data.branding;
+    }
+
     await ddb.send(new PutItemCommand({
       TableName: process.env.TABLE_NAME,
       Item: marshall(updatedProfile)

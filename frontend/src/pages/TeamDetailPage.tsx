@@ -153,7 +153,7 @@ function TeamDetailPage() {
 
             {isOwner && (
               <Button
-                onClick={() => navigate(`/teams/${team.id}/settings`)}
+                onClick={() => navigate(`/teams/${team.id}/settings/general`)}
                 variant="text"
                 className="w-full justify-start text-sm sm:text-base"
               >
