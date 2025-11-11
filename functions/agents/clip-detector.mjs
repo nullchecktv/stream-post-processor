@@ -1,6 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
+import { createQuoteTool } from "../tools/create-quotes.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
 import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
@@ -10,7 +11,7 @@ import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 const logger = new Logger({ serviceName: 'agents' });
 
 const ddb = new DynamoDBClient();
-const tools = convertToBedrockTools([createClipTool]);
+const tools = convertToBedrockTools([createClipTool, createQuoteTool]);
 
 export const handler = async (event) => {
   try {
@@ -79,8 +80,9 @@ Your job on each run:
 
 1. Analyze the full transcript of a Null Check livestream episode.
 2. Identify 5-10 distinct moments that would make high-performing YouTube clips—content that earns *views* and *subscribers* because it is funny, insightful, or provocative.
-3. Record your findings once using the **createClip** tool (single call, array of clips).
-4. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
+3. Identify 3-7 memorable, shareable quotes for social media graphics.
+4. Record your findings using the **createClip** tool (single call, array of clips) and **createQuote** tool (single call, array of quotes).
+5. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
 ### Transcript
 The transcript has been preprocessed from SRT format to merge fragmented segments and remove filler words. Each segment represents a coherent thought or statement from a speaker. Speakers are indicated with their name followed by a colon.
@@ -119,8 +121,8 @@ Each clip you pass to **createClip** must contain the schema:
 
 {
   "segments": [
-    { "startTime": "00:14:32", "endTime": "00:15:18", "speaker": "Allen", "order": 1 }
-    { "startTime": "00:41:01", "endTime": "00:41:05", "speaker": "Andres": "order": 2 }
+    { "startTime": "00:14:32", "endTime": "00:15:18", "speaker": "Allen", "order": 1, "transcript": "Did you know agents could do this?" }
+    { "startTime": "00:41:01", "endTime": "00:41:05", "speaker": "Andres": "order": 2, "transcript": "No I didn't, but now we can use it" }
   ],
   "title": "Why we let our AI agent go rogue (on purpose)",
   "summary": "Allen and Andres debate what happens when you remove safety guardrails from an agent and whether chaos teaches more than control.",
@@ -138,6 +140,55 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 
 ---
 
+### Quote detection
+
+In addition to clips, identify 3-7 memorable quotes that would work well as standalone social media graphics.
+
+#### Quote selection criteria
+
+Quotes should:
+
+* Be memorable and shareable—something viewers would want to post or discuss.
+* Provide standalone value without requiring full episode context.
+* Align with episode themes and description when provided—prioritize quotes that reinforce the episode's core topics.
+* Be concise and impactful (5-280 characters).
+* Represent the show's personality: smart, candid, insightful, or funny.
+* Come from clear, unambiguous moments in the transcript (avoid speaker bleed or fragmented thoughts).
+* Remove filler words from the text
+
+Avoid:
+
+* Quotes that require additional context to understand.
+* Inside jokes or references that only regular viewers would get.
+* Technical jargon without explanation.
+* Incomplete thoughts or sentence fragments.
+* Quotes with heavy cross-talk or unclear attribution.
+
+#### Quote structure requirements
+
+Each quote you pass to **createQuote** must contain:
+
+{
+  "title": "Brief descriptive name for the quote (10-40 characters)",
+  "text": "The actual quote text (5-280 characters)",
+  "speaker": "Allen",
+  "timestamp": "00:14:32",
+  "relevanceScore": 85,
+  "context": "Optional: Brief context if needed for internal reference",
+  "showSpeaker": true,
+  "showEpisodeTitle": true
+}
+
+**Relevance scoring (0-100):**
+* 90-100: Perfectly captures episode theme, highly shareable, strong standalone value
+* 75-89: Strong alignment with themes, good standalone value
+* 60-74: Relevant but may need minor context
+* Below 60: Do not include—insufficient standalone value or relevance
+
+All quotes go into one **createQuote** call as an array.
+
+---
+
 ### Working rules
 
 * Produce 5-10 clips per transcript.
@@ -150,6 +201,7 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 * Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
 * Verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
 * Use the exact timestamps from the transcript - padding will be added automatically during processing.
+* Include the text for each segment as part of the segment definition in the tool call.
 
 ### Audience objective
 
@@ -161,8 +213,9 @@ Think like a YouTube growth editor, not a stenographer.
 ### Completion policy
 
 1. Call **createClip** exactly once with your full list of recommended clips.
-2. Return a short 3-4 sentence summary of what the transcript was about and key takeaways
-3. Do not mention the clips you created
+2. Call **createQuote** exactly once with your full list of memorable quotes.
+3. Return a short 3-4 sentence summary of what the transcript was about and key takeaways.
+4. Do not mention the clips or quotes you created in your summary
 `;
 
     const userPrompt = `

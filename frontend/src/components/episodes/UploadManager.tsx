@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUpload } from '../../hooks/useUpload'
 import { UploadProgress } from './UploadProgress'
 
@@ -7,10 +7,15 @@ interface UploadManagerProps {
   collapsible?: boolean
 }
 
+const MINIMIZED_KEY = 'uploadManager.isMinimized'
+
 export function UploadManager({ position = 'bottom-right', collapsible = true }: UploadManagerProps) {
   const { uploads, activeUploadsCount, removeUpload } = useUpload()
   const [isExpanded, setIsExpanded] = useState(true)
-  const [isMinimized, setIsMinimized] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(() => {
+    const stored = localStorage.getItem(MINIMIZED_KEY)
+    return stored === 'true'
+  })
 
   if (uploads.length === 0) {
     return null
@@ -27,8 +32,17 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
   }
 
   const handleMinimize = () => {
-    setIsMinimized(!isMinimized)
+    const newMinimized = !isMinimized
+    setIsMinimized(newMinimized)
+    localStorage.setItem(MINIMIZED_KEY, String(newMinimized))
   }
+
+  useEffect(() => {
+    if (activeUploadsCount > 0 && isMinimized) {
+      setIsMinimized(false)
+      localStorage.setItem(MINIMIZED_KEY, 'false')
+    }
+  }, [activeUploadsCount, isMinimized])
 
   const handleRemove = (uploadId: string) => {
     removeUpload(uploadId)

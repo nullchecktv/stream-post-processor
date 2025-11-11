@@ -1,5 +1,26 @@
 // JSON Schema definitions for AWS Powertools validation
 
+// Branding Schema (shared between Team and User)
+const BrandingSchema = {
+  type: 'object',
+  properties: {
+    colors: {
+      type: 'object',
+      properties: {
+        primary: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+        secondary: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+        background: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+        text: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' }
+      },
+      required: ['primary', 'secondary', 'background', 'text'],
+      additionalProperties: false
+    },
+    fontFamily: { type: 'string', minLength: 1, maxLength: 100 }
+  },
+  required: ['colors', 'fontFamily'],
+  additionalProperties: false
+};
+
 // Episode Schemas
 export const EpisodeSchemas = {
   create: {
@@ -142,7 +163,8 @@ export const TeamSchemas = {
           timezone: { type: 'string' }
         },
         additionalProperties: false
-      }
+      },
+      branding: BrandingSchema
     },
     required: ['name'],
     additionalProperties: false
@@ -162,7 +184,8 @@ export const TeamSchemas = {
           timezone: { type: 'string' }
         },
         additionalProperties: false
-      }
+      },
+      branding: BrandingSchema
     },
     additionalProperties: false
   },
@@ -254,7 +277,8 @@ export const UserSchemas = {
           notifications: { type: 'boolean' }
         },
         additionalProperties: false
-      }
+      },
+      branding: BrandingSchema
     },
     additionalProperties: false
   },
@@ -390,6 +414,52 @@ export const RecommendationsSchemas = {
       }
     },
     required: ['episodeId', 'suggestedFlow', 'proposedTitle', 'proposedDescription', 'keyLearningMoments', 'detailedOutline'],
+    additionalProperties: false
+  }
+};
+
+// Quote Schemas
+export const QuoteSchemas = {
+  create: {
+    type: 'object',
+    properties: {
+      text: { type: 'string', minLength: 5, maxLength: 280 },
+      speaker: { type: 'string', minLength: 1, maxLength: 100 },
+      timestamp: { type: 'string', pattern: '^\\d{2}:\\d{2}:\\d{2}$' },
+      relevanceScore: { type: 'number', minimum: 0, maximum: 100 },
+      context: { type: 'string', maxLength: 500 },
+      showSpeaker: { type: 'boolean' },
+      showEpisodeTitle: { type: 'boolean' }
+    },
+    required: ['text', 'speaker', 'timestamp'],
+    additionalProperties: false
+  },
+  update: {
+    type: 'object',
+    properties: {
+      text: { type: 'string', minLength: 5, maxLength: 280 },
+      speaker: { type: 'string', minLength: 1, maxLength: 100 },
+      showSpeaker: { type: 'boolean' },
+      showEpisodeTitle: { type: 'boolean' },
+      status: { type: 'string', enum: ['detected', 'generated', 'failed', 'approved', 'rejected'] }
+    },
+    additionalProperties: false
+  },
+  pathParameters: {
+    type: 'object',
+    properties: {
+      episodeId: { type: 'string' }
+    },
+    required: ['episodeId'],
+    additionalProperties: false
+  },
+  pathParametersWithQuote: {
+    type: 'object',
+    properties: {
+      episodeId: { type: 'string' },
+      quoteId: { type: 'string', minLength: 1 }
+    },
+    required: ['episodeId', 'quoteId'],
     additionalProperties: false
   }
 };

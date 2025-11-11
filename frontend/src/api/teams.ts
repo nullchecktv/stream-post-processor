@@ -1,6 +1,6 @@
 import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
-import type { Team, TeamMember, PendingInvitation } from '../types'
+import type { Team, TeamMember, PendingInvitation, BrandingConfig } from '../types'
 
 interface ListTeamsResponse {
   items: Team[]
@@ -27,6 +27,7 @@ interface UpdateTeamData {
     defaultPlatforms?: string[]
     timezone?: string
   }
+  branding?: BrandingConfig
 }
 
 interface ListMembersParams {
@@ -80,13 +81,12 @@ export const teamsApi = {
   getTeam: (teamId: string) => apiRequest<Team>(`/teams/${teamId}`),
 
   updateTeam: async (teamId: string, data: UpdateTeamData) => {
-    const result = await apiRequest<Team>(`/teams/${teamId}`, {
+    await apiRequest<void>(`/teams/${teamId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
     apiCache.invalidate(`GET:/teams/${teamId}`)
     apiCache.invalidate('GET:/teams')
-    return result
   },
 
   deleteTeam: async (teamId: string) => {

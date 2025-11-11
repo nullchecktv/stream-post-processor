@@ -6,16 +6,51 @@ import { useToast } from '../hooks/useToast'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
+import { ColorPicker } from '../components/common/ColorPicker'
+import { BrandingPreview } from '../components/common/BrandingPreview'
 import ProfileSkeleton from '../components/common/ProfileSkeleton'
 import { z } from 'zod'
+import type { BrandingConfig } from '../types'
+
+const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be a valid hex color (e.g., #3B82F6)')
 
 const updateProfileSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   timezone: z.string().optional(),
   notifications: z.boolean().optional(),
+  useTeamBranding: z.boolean().optional(),
+  branding: z.object({
+    colors: z.object({
+      primary: hexColorSchema,
+      secondary: hexColorSchema,
+      background: hexColorSchema,
+      text: hexColorSchema,
+    }),
+    fontFamily: z.string().min(1, 'Font family is required'),
+  }).optional(),
 })
 
 type UpdateProfileFormData = z.infer<typeof updateProfileSchema>
+
+const DEFAULT_BRANDING: BrandingConfig = {
+  colors: {
+    primary: '#3B82F6',
+    secondary: '#8B5CF6',
+    background: '#1F2937',
+    text: '#F9FAFB',
+  },
+  fontFamily: 'Inter',
+}
+
+const FONT_OPTIONS = [
+  'Comic Neue',
+  'Inter',
+  'Lora',
+  'Montserrat',
+  'Press Start 2P',
+  'Roboto Condensed',
+  'Source Code Pro',
+]
 
 const TIMEZONE_OPTIONS = [
   'America/New_York',
@@ -37,6 +72,8 @@ function ProfilePage() {
     name: '',
     timezone: '',
     notifications: true,
+    useTeamBranding: true,
+    branding: DEFAULT_BRANDING,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -51,6 +88,8 @@ function ProfilePage() {
         name: profile.name,
         timezone: profile.preferences?.timezone || '',
         notifications: profile.preferences?.notifications ?? true,
+        useTeamBranding: !profile.branding,
+        branding: profile.branding || DEFAULT_BRANDING,
       })
       setIsInitialized(true)
     }
@@ -75,13 +114,21 @@ function ProfilePage() {
       setErrors({})
       setSubmitting(true)
 
-      await updateProfile({
+      const updateData: any = {
         name: validated.name,
         preferences: {
           timezone: validated.timezone || undefined,
           notifications: validated.notifications,
         },
-      })
+      }
+
+      if (!validated.useTeamBranding && validated.branding) {
+        updateData.branding = validated.branding
+      } else if (validated.useTeamBranding) {
+        updateData.branding = null
+      }
+
+      await updateProfile(updateData)
     } catch (err) {
       if (err instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {}
@@ -96,6 +143,43 @@ function ProfilePage() {
       }
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleBrandingColorChange = (colorKey: keyof BrandingConfig['colors'], value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      branding: {
+        ...prev.branding!,
+        colors: {
+          ...prev.branding!.colors,
+          [colorKey]: value,
+        },
+      },
+    }))
+    if (errors[`branding.colors.${colorKey}`]) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[`branding.colors.${colorKey}`]
+        return newErrors
+      })
+    }
+  }
+
+  const handleBrandingFontChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      branding: {
+        ...prev.branding!,
+        fontFamily: value,
+      },
+    }))
+    if (errors['branding.fontFamily']) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors['branding.fontFamily']
+        return newErrors
+      })
     }
   }
 
@@ -209,6 +293,106 @@ function ProfilePage() {
             </Button>
           </div>
         </form>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Personal Branding</h2>
+        <p className="text-gray-600 mb-6">
+          Customize the appearance of your quote graphics. By default, your team's branding is used.
+        </p>
+
+        <div className="space-y-6">
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.useTeamBranding}
+                onChange={(e) => handleChange('useTeamBranding', e.target.checked)}
+                disabled={submitting}
+                className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Use team branding
+              </span>
+            </label>
+            <p className="mt-1 text-sm text-gray-500 ml-6">
+              When enabled, your quote graphics will use your team's branding settings
+            </p>
+          </div>
+
+          {!formData.useTeamBranding && (
+            <>
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Brand Colors</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ColorPicker
+                    label="Primary Color"
+                    value={formData.branding!.colors.primary}
+                    onChange={(value) => handleBrandingColorChange('primary', value)}
+                    disabled={submitting}
+                    error={errors['branding.colors.primary']}
+                  />
+                  <ColorPicker
+                    label="Secondary Color"
+                    value={formData.branding!.colors.secondary}
+                    onChange={(value) => handleBrandingColorChange('secondary', value)}
+                    disabled={submitting}
+                    error={errors['branding.colors.secondary']}
+                  />
+                  <ColorPicker
+                    label="Background Color"
+                    value={formData.branding!.colors.background}
+                    onChange={(value) => handleBrandingColorChange('background', value)}
+                    disabled={submitting}
+                    error={errors['branding.colors.background']}
+                  />
+                  <ColorPicker
+                    label="Text Color"
+                    value={formData.branding!.colors.text}
+                    onChange={(value) => handleBrandingColorChange('text', value)}
+                    disabled={submitting}
+                    error={errors['branding.colors.text']}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="fontFamily" className="block text-sm font-medium text-gray-700 mb-1">
+                  Font Family
+                </label>
+                <select
+                  id="fontFamily"
+                  value={formData.branding!.fontFamily}
+                  onChange={(e) => handleBrandingFontChange(e.target.value)}
+                  disabled={submitting}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {FONT_OPTIONS.map((font) => (
+                    <option key={font} value={font}>
+                      {font}
+                    </option>
+                  ))}
+                </select>
+                {errors['branding.fontFamily'] && (
+                  <p className="mt-1 text-sm text-red-600">{errors['branding.fontFamily']}</p>
+                )}
+              </div>
+
+              <BrandingPreview branding={formData.branding!} />
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  variant="primary"
+                  loading={submitting}
+                >
+                  Save Branding
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">

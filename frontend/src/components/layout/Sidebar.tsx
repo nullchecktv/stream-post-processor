@@ -5,7 +5,7 @@ import { useSidebar } from '../../hooks/useSidebar'
 import { useUser } from '../../hooks/useUser'
 import { SidebarItem } from './SidebarItem'
 import { SidebarSection } from './SidebarSection'
-import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film } from 'lucide-react'
+import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film, MessageSquareQuote, Palette, Pencil } from 'lucide-react'
 import { useActivity } from '../../hooks/useActivity'
 
 export function Sidebar() {
@@ -20,6 +20,9 @@ export function Sidebar() {
 
   const isEpisodePage = location.pathname.startsWith('/episodes/')
   const episodeId = location.pathname.match(/\/episodes\/([^/]+)/)?.[1]
+
+  const isTeamSettingsPage = location.pathname.match(/\/teams\/([^/]+)\/settings/)
+  const teamId = location.pathname.match(/\/teams\/([^/]+)/)?.[1]
 
   useEffect(() => {
     const checkMobile = () => {
@@ -246,7 +249,7 @@ export function Sidebar() {
               />
               <SidebarItem
                 to={`/episodes/${episodeId}/details`}
-                icon={FileText}
+                icon={Pencil}
                 label="Details"
                 isCollapsed={isCollapsed}
               />
@@ -266,6 +269,29 @@ export function Sidebar() {
                 to={`/episodes/${episodeId}/clips`}
                 icon={Film}
                 label="Clips"
+                isCollapsed={isCollapsed}
+              />
+              <SidebarItem
+                to={`/episodes/${episodeId}/quotes`}
+                icon={MessageSquareQuote}
+                label="Quotes"
+                isCollapsed={isCollapsed}
+              />
+            </SidebarSection>
+          )}
+
+          {isTeamSettingsPage && teamId && (
+            <SidebarSection title="TEAM SETTINGS" isCollapsed={isCollapsed}>
+              <SidebarItem
+                to={`/teams/${teamId}/settings/general`}
+                icon={Settings}
+                label="General"
+                isCollapsed={isCollapsed}
+              />
+              <SidebarItem
+                to={`/teams/${teamId}/settings/branding`}
+                icon={Palette}
+                label="Branding"
                 isCollapsed={isCollapsed}
               />
             </SidebarSection>

@@ -49,8 +49,13 @@ export function Breadcrumb() {
         breadcrumbs.push({ label: 'Profile', path: '/profile' })
       } else if (segment === 'episodes') {
         breadcrumbs.push({ label: 'Episodes', path: '/episodes' })
-      } else if (segment === 'settings' && pathSegments[i - 1]) {
-        breadcrumbs.push({ label: 'Settings' })
+      } else if (segment === 'settings' && pathSegments[i - 2] === 'teams') {
+        const teamId = pathSegments[i - 1]
+        breadcrumbs.push({ label: 'Settings', path: `/teams/${teamId}/settings/general` })
+      } else if (segment === 'general' && pathSegments[i - 1] === 'settings') {
+        breadcrumbs.push({ label: 'General' })
+      } else if (segment === 'branding' && pathSegments[i - 1] === 'settings') {
+        breadcrumbs.push({ label: 'Branding' })
       } else if (segment === 'members' && pathSegments[i - 1]) {
         breadcrumbs.push({ label: 'Members' })
       } else if (pathSegments[i - 1] === 'teams' && segment !== 'settings' && segment !== 'members') {
