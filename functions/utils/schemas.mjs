@@ -340,6 +340,84 @@ export const InvitationSchemas = {
   }
 };
 
+// Plan Schemas
+export const PlanSchemas = {
+  create: {
+    type: 'object',
+    properties: {
+      objectives: { type: 'string', minLength: 1 },
+      concepts: { type: 'string', minLength: 1 },
+      notes: { type: 'string' }
+    },
+    required: ['objectives', 'concepts'],
+    additionalProperties: false
+  },
+  update: {
+    type: 'object',
+    properties: {
+      objectives: { type: 'string', minLength: 1 },
+      concepts: { type: 'string', minLength: 1 },
+      notes: { type: 'string' }
+    },
+    required: ['objectives', 'concepts'],
+    additionalProperties: false
+  },
+  pathParameters: {
+    type: 'object',
+    properties: {
+      episodeId: { type: 'string', minLength: 1 }
+    },
+    required: ['episodeId'],
+    additionalProperties: false
+  }
+};
+
+// Recommendations Schemas
+export const RecommendationsSchemas = {
+  setPlanRecommendations: {
+    type: 'object',
+    properties: {
+      episodeId: { type: 'string', minLength: 1 },
+      suggestedFlow: {
+        type: 'string',
+        minLength: 1,
+        pattern: '^flowchart'
+      },
+      proposedTitle: { type: 'string', minLength: 10, maxLength: 200 },
+      proposedDescription: { type: 'string', minLength: 50, maxLength: 1000 },
+      keyLearningMoments: {
+        type: 'array',
+        items: { type: 'string', minLength: 1 },
+        minItems: 1
+      },
+      detailedOutline: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            section: { type: 'string', minLength: 1 },
+            duration: { type: 'string', minLength: 1 },
+            talkingPoints: {
+              type: 'array',
+              items: { type: 'string', minLength: 1 },
+              minItems: 1
+            },
+            demoArtifacts: {
+              type: 'array',
+              items: { type: 'string', minLength: 1 }
+            }
+          },
+          required: ['section', 'duration', 'talkingPoints'],
+          additionalProperties: false
+        },
+        minItems: 3
+      }
+    },
+    required: ['episodeId', 'suggestedFlow', 'proposedTitle', 'proposedDescription', 'keyLearningMoments', 'detailedOutline'],
+    additionalProperties: false
+  }
+};
+
 // Quote Schemas
 export const QuoteSchemas = {
   create: {

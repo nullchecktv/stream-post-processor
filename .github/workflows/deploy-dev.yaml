@@ -9,6 +9,10 @@ on:
       - '!frontend/**'
       - '!.github/workflows/deploy-frontend-dev.yaml'
 
+concurrency:
+  group: deploy-dev-backend
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read

@@ -6,20 +6,26 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../hooks/useToast'
 import { EpisodeForm } from '../components/episodes/EpisodeForm'
 import { QuoteCard } from '../components/episodes/QuoteCard'
+import { PlanForm, type PlanFormData } from '../components/episodes/PlanForm'
+import { PlanRecommendations } from '../components/episodes/PlanRecommendations'
+import { MermaidDiagram } from '../components/episodes/MermaidDiagram'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
-import type { Episode, Quote } from '../types'
+import type { Episode, Quote, EpisodePlan } from '../types'
 import type { EpisodeFormData } from '../utils/validation'
 
-type TabType = 'details' | 'quotes'
+type TabType = 'details' | 'quotes' | 'plan'
 
 function EpisodeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [episode, setEpisode] = useState<Episode | null>(null)
+  const [episodePlan, setEpisodePlan] = useState<EpisodePlan | null>(null)
   const [loading, setLoading] = useState(true)
+  const [planLoading, setPlanLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPlanSubmitting, setIsPlanSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [activeTab, setActiveTab] = useState<TabType>('details')
@@ -28,6 +34,7 @@ function EpisodeDetailPage() {
   const [quotesError, setQuotesError] = useState<string | null>(null)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMoreQuotes, setHasMoreQuotes] = useState(false)
+  const [showPlanForm, setShowPlanForm] = useState(false)
 
   usePageTitle(episode ? `Edit ${episode.title}` : 'Edit Episode')
 
@@ -59,6 +66,38 @@ function EpisodeDetailPage() {
       fetchQuotes()
     }
   }, [activeTab, id])
+
+  useEffect(() => {
+    const fetchPlan = async () => {
+      if (!id) return
+
+      setPlanLoading(true)
+      try {
+        const data = await episodesApi.getPlan(id)
+        setEpisodePlan(data)
+      } catch (err) {
+        console.error('Failed to fetch plan:', err)
+      } finally {
+        setPlanLoading(false)
+      }
+    }
+
+    if (activeTab === 'plan') {
+      fetchPlan()
+    }
+  }, [id, activeTab])
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   const fetchQuotes = async (cursor?: string) => {
     if (!id) return
@@ -121,20 +160,6 @@ function EpisodeDetailPage() {
     }
   }
 
-
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
-
   const handleSubmit = async (data: EpisodeFormData) => {
     if (!id) return
 
@@ -146,16 +171,33 @@ function EpisodeDetailPage() {
       const updatedEpisode = await episodesApi.update(id, data)
       setEpisode(updatedEpisode)
       setHasUnsavedChanges(false)
-      setSuccessMessage('Episode updated successfully!')
-
-      setTimeout(() => {
-        setSuccessMessage(null)
-      }, 3000)
+      showToast('Episode updated successfully!', 'success')
     } catch (err) {
       console.error('Failed to update episode:', err)
-      setError('Failed to save changes. Please try again.')
+      showToast('Failed to save changes. Please try again.', 'error')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handlePlanSubmit = async (data: PlanFormData) => {
+    if (!id) return
+
+    setIsPlanSubmitting(true)
+
+    try {
+      const result = episodePlan?.plan
+        ? await episodesApi.updatePlan(id, data)
+        : await episodesApi.createPlan(id, data)
+
+      setEpisodePlan(result)
+      setShowPlanForm(false)
+      showToast(episodePlan?.plan ? 'Plan updated successfully!' : 'Plan created successfully!', 'success')
+    } catch (err) {
+      console.error('Failed to save plan:', err)
+      showToast('Failed to save plan. Please try again.', 'error')
+    } finally {
+      setIsPlanSubmitting(false)
     }
   }
 
@@ -242,11 +284,21 @@ function EpisodeDetailPage() {
             }`}
           >
             Quotes
-            {episode?.metrics && (
+            {quotes.length > 0 && (
               <span className="ml-2 py-0.5 px-2 rounded-full text-xs bg-gray-100 text-gray-600">
                 {quotes.length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('plan')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'plan'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Plan
           </button>
         </nav>
       </div>
@@ -341,6 +393,118 @@ function EpisodeDetailPage() {
                     )}
                   </button>
                 </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'plan' && (
+        <div className="space-y-6">
+          {planLoading ? (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <>
+              {!episodePlan?.plan && !showPlanForm && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="text-center py-8">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">No plan yet</h3>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Create a plan to organize your episode and get AI-powered recommendations.
+                    </p>
+                    <button
+                      onClick={() => setShowPlanForm(true)}
+                      className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    >
+                      Create Plan
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(showPlanForm || episodePlan?.plan) && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {episodePlan?.plan ? 'Episode Plan' : 'Create Episode Plan'}
+                    </h2>
+                    {episodePlan?.plan && !showPlanForm && (
+                      <button
+                        onClick={() => setShowPlanForm(true)}
+                        className="text-sm text-primary hover:text-primary-dark font-medium"
+                      >
+                        Edit Plan
+                      </button>
+                    )}
+                  </div>
+
+                  {showPlanForm ? (
+                    <PlanForm
+                      plan={episodePlan?.plan}
+                      onSubmit={handlePlanSubmit}
+                      onCancel={episodePlan?.plan ? () => setShowPlanForm(false) : undefined}
+                      isSubmitting={isPlanSubmitting}
+                    />
+                  ) : (
+                    episodePlan?.plan && (
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-700 mb-2">Objectives</h3>
+                          <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+                            {episodePlan.plan.objectives}
+                          </p>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-700 mb-2">Concepts</h3>
+                          <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+                            {episodePlan.plan.concepts}
+                          </p>
+                        </div>
+                        {episodePlan.plan.notes && (
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-700 mb-2">Notes</h3>
+                            <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+                              {episodePlan.plan.notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+
+              {episodePlan?.plan && !showPlanForm && (
+                <>
+                  <PlanRecommendations
+                    recommendations={episodePlan.recommendations}
+                    isLoading={false}
+                  />
+
+                  {episodePlan.recommendations?.suggestedFlow && (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        Suggested Episode Flow
+                      </h3>
+                      <MermaidDiagram diagram={episodePlan.recommendations.suggestedFlow} />
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

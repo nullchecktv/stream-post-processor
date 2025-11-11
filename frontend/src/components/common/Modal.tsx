@@ -28,8 +28,9 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       )
 
-      if (focusableElements && focusableElements.length > 0) {
-        (focusableElements[0] as HTMLElement).focus()
+      const firstInput = modalRef.current?.querySelector('input, textarea') as HTMLElement
+      if (firstInput) {
+        firstInput.focus()
       }
 
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,7 +61,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         previousActiveElement.current?.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) return null
 

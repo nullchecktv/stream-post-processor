@@ -31,6 +31,26 @@ const statusIcons = {
     <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
       <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
     </svg>
+  ),
+  plan_added: (
+    <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  plan_updated: (
+    <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+      <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+  ),
+  recommendations_generated: (
+    <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+      <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
+  ),
+  recommendations_failed: (
+    <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+      <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
   )
 }
 
@@ -39,7 +59,11 @@ const statusColors = {
   processing: 'bg-info/10 text-info border-info/30',
   'Ready for Clip Gen': 'bg-warning/10 text-warning border-warning/30',
   published: 'bg-success/10 text-success border-success/30',
-  archived: 'bg-gray-100 text-gray-600 border-gray-300'
+  archived: 'bg-gray-100 text-gray-600 border-gray-300',
+  plan_added: 'bg-purple-100 text-purple-700 border-purple-300',
+  plan_updated: 'bg-purple-100 text-purple-700 border-purple-300',
+  recommendations_generated: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+  recommendations_failed: 'bg-red-100 text-red-700 border-red-300'
 }
 
 function formatRelativeTime(timestamp: string): string {

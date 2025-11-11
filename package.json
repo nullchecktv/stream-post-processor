@@ -7,7 +7,8 @@
     "test": "jest",
     "test:unit": "jest tests/unit",
     "test:watch": "jest --watch",
-    "test:setup": "node tests/manual/test-setup.mjs"
+    "test:setup": "node tests/manual/test-setup.mjs",
+    "coverage": "c8 npm test"
   },
   "repository": {
     "type": "git",
