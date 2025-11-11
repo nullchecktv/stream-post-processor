@@ -138,6 +138,16 @@ export interface EpisodePlan {
   recommendations: Recommendations | null
 }
 
+export interface BrandingConfig {
+  colors: {
+    primary: string
+    secondary: string
+    background: string
+    text: string
+  }
+  fontFamily: string
+}
+
 export interface Team {
   id: string
   name: string
@@ -152,6 +162,7 @@ export interface Team {
     tone: string
     writingStyle: string
   }
+  branding?: BrandingConfig
   createdAt: string
   updatedAt: string
 }
@@ -178,6 +189,7 @@ export interface UserProfile {
     tone: string
     writingStyle: string
   }
+  branding?: BrandingConfig
   teams: TeamMembership[]
   ownedTeams: TeamMembership[]
   memberTeams: TeamMembership[]
@@ -219,6 +231,23 @@ export interface Notification {
   }
   isRead: boolean
   createdAt: string
+}
+
+export interface Quote {
+  id: string
+  text: string
+  speaker: string
+  timestamp: string
+  relevanceScore?: number
+  status: 'proposed' | 'created' | 'approved' | 'rejected' | 'failed'
+  imageUrl?: string
+  createdAt: string
+}
+
+export interface QuoteDetail extends Quote {
+  showSpeaker: boolean
+  showEpisodeTitle: boolean
+  updatedAt: string
 }
 
 export interface ApiError {

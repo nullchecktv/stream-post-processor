@@ -35,6 +35,7 @@ tags:
   - name: Episodes
   - name: Uploads
   - name: Clips
+  - name: Quotes
   - name: Teams
   - name: Users
   - name: Notifications
@@ -1254,6 +1255,207 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/quotes:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: List quotes for episode
+      description: Retrieves all quotes for a specific episode with pagination support
+      tags: [Quotes]
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/NextToken"
+      responses:
+        200:
+          description: List of quotes for the episode with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/QuoteListView"
+                  nextToken:
+                    type: string
+                    description: Token for next page (only present if more items available)
+                required:
+                  - items
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListQuotesFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      summary: Create quote
+      description: Creates a new quote manually for an episode. Graphic generation is triggered automatically via EventBridge.
+      tags: [Quotes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  minLength: 5
+                  maxLength: 280
+                  description: Quote text (5-280 characters)
+                speaker:
+                  type: string
+                  minLength: 1
+                  description: Speaker attribution
+                timestamp:
+                  type: string
+                  pattern: '^\d{2}:\d{2}:\d{2}$'
+                  description: Time in transcript (HH:MM:SS format)
+                relevanceScore:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  description: Relevance score (0-100)
+                context:
+                  type: string
+                  description: Optional surrounding context
+                showSpeaker:
+                  type: boolean
+                  default: true
+                  description: Display speaker name in graphic
+                showEpisodeTitle:
+                  type: boolean
+                  default: true
+                  description: Display episode title in graphic
+              required: [text, speaker, timestamp]
+      responses:
+        201:
+          description: Quote created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Unique quote identifier
+                required:
+                  - id
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data - missing required fields or validation errors
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateQuoteFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /episodes/{episodeId}/quotes/{quoteId}:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+      - $ref: "#/components/parameters/QuoteId"
+    put:
+      summary: Update quote
+      description: Updates quote metadata. Graphic regeneration is triggered automatically via EventBridge if text, speaker, showSpeaker, or showEpisodeTitle changed.
+      tags: [Quotes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  minLength: 5
+                  maxLength: 280
+                  description: Updated quote text
+                speaker:
+                  type: string
+                  minLength: 1
+                  description: Updated speaker attribution
+                showSpeaker:
+                  type: boolean
+                  description: Display speaker name in graphic
+                showEpisodeTitle:
+                  type: boolean
+                  description: Display episode title in graphic
+                status:
+                  type: string
+                  enum: ["proposed", "created", "approved", "rejected"]
+                  description: Quote status
+      responses:
+        204:
+          description: Quote updated successfully
+        400:
+          $ref: "#/components/responses/BadRequest"
+          description: Invalid request data
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode or quote not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateQuoteFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    get:
+      summary: Get quote
+      description: Retrieves a single quote with all its details including presigned URL for generated graphic
+      tags: [Quotes]
+      responses:
+        200:
+          description: Quote details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteDetail"
+        404:
+          $ref: "#/components/responses/NotFound"
+          description: Episode or quote not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetQuoteFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    delete:
+      summary: Delete quote
+      description: Deletes quote and associated graphic from S3. Returns 204 on success or if quote doesn't exist (idempotent).
+      tags: [Quotes]
+      responses:
+        204:
+          description: Quote deleted successfully or quote not found
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteQuoteFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
   /teams:
     get:
       summary: List user's teams
@@ -1423,6 +1625,8 @@ paths:
                       maxLength: 200
                       description: Desired writing style for generated content
                       example: "storytelling with code examples"
+                branding:
+                  $ref: "#/components/schemas/Branding"
       responses:
         200:
           description: Team updated
@@ -2285,6 +2489,12 @@ components:
       required: true
       schema:
         type: string
+    QuoteId:
+      in: path
+      name: quoteId
+      required: true
+      schema:
+        type: string
     TeamId:
       in: path
       name: teamId
@@ -2332,6 +2542,49 @@ components:
         type: string
       description: Pagination cursor for next page
   schemas:
+    Branding:
+      type: object
+      description: Branding configuration for quote graphics
+      properties:
+        colors:
+          type: object
+          description: Brand color palette
+          properties:
+            primary:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+              description: Primary brand color (used for borders)
+              example: "#3B82F6"
+            secondary:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+              description: Secondary brand color (used for accents)
+              example: "#8B5CF6"
+            background:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+              description: Background color
+              example: "#1F2937"
+            text:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+              description: Text color
+              example: "#F9FAFB"
+          required:
+            - primary
+            - secondary
+            - background
+            - text
+        fontFamily:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Font family for text rendering
+          example: "Inter"
+      required:
+        - colors
+        - fontFamily
+
     EpisodeListView:
       type: object
       properties:
@@ -2671,6 +2924,162 @@ components:
                   type: integer
                   example: 2
 
+    QuoteListView:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique quote identifier
+          example: "quote-uuid"
+        text:
+          type: string
+          description: Quote text
+          example: "This is a memorable quote from the episode"
+        speaker:
+          type: string
+          description: Speaker attribution
+          example: "Allen"
+      required:
+        - id
+        - text
+        - speaker
+
+    QuoteDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique quote identifier
+          example: "quote-uuid"
+        text:
+          type: string
+          description: Quote text
+          example: "This is a memorable quote from the episode"
+        speaker:
+          type: string
+          description: Speaker attribution
+          example: "Allen"
+        timestamp:
+          type: string
+          description: Time in transcript (HH:MM:SS format)
+          example: "00:15:30"
+        relevanceScore:
+          type: number
+          description: Relevance score (0-100)
+          example: 85
+        status:
+          type: string
+          description: Quote status
+          enum: ["proposed", "created", "failed", "approved", "rejected"]
+          example: "created"
+        showSpeaker:
+          type: boolean
+          description: Display speaker name in graphic
+          example: true
+        showEpisodeTitle:
+          type: boolean
+          description: Display episode title in graphic
+          example: true
+        imageUrl:
+          type: string
+          format: uri
+          description: Presigned S3 URL for quote graphic (only present if generated)
+          example: "https://s3.amazonaws.com/..."
+        createdAt:
+          type: string
+          format: date-time
+          description: When the quote was created
+          example: "2025-01-15T10:40:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the quote was last updated
+          example: "2025-01-15T10:42:15Z"
+      required:
+        - id
+        - text
+        - speaker
+        - timestamp
+        - status
+        - showSpeaker
+        - showEpisodeTitle
+        - createdAt
+        - updatedAt
+
+    Quote:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique quote identifier
+          example: "quote-uuid"
+        episodeId:
+          type: string
+          description: Episode this quote belongs to
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        text:
+          type: string
+          description: Quote text
+          example: "This is a memorable quote from the episode"
+        speaker:
+          type: string
+          description: Speaker attribution
+          example: "Allen"
+        timestamp:
+          type: string
+          description: Time in transcript (HH:MM:SS format)
+          example: "00:15:30"
+        relevanceScore:
+          type: number
+          description: Relevance score (0-100)
+          example: 85
+        context:
+          type: string
+          description: Optional surrounding context
+          example: "Discussion about AI and machine learning"
+        showSpeaker:
+          type: boolean
+          description: Display speaker name in graphic
+          example: true
+        showEpisodeTitle:
+          type: boolean
+          description: Display episode title in graphic
+          example: true
+        status:
+          type: string
+          description: Quote status
+          enum: ["proposed", "created", "approved", "rejected"]
+          example: "generated"
+        s3Key:
+          type: string
+          description: S3 key for generated graphic (only present if generated)
+          example: "tenant123/episode-uuid/quotes/quote-uuid.png"
+        fileSize:
+          type: integer
+          description: File size in bytes (only present if generated)
+          example: 524288
+        createdAt:
+          type: string
+          format: date-time
+          description: When the quote was created
+          example: "2025-01-15T10:40:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the quote was last updated
+          example: "2025-01-15T10:42:15Z"
+      required:
+        - id
+        - episodeId
+        - text
+        - speaker
+        - timestamp
+        - status
+        - showSpeaker
+        - showEpisodeTitle
+        - createdAt
+        - updatedAt
+
     TeamListView:
       type: object
       properties:
@@ -2764,6 +3173,8 @@ components:
               type: string
               description: Desired writing style for generated content
               example: "storytelling with code examples"
+        branding:
+          $ref: "#/components/schemas/Branding"
         createdAt:
           type: string
           format: date-time

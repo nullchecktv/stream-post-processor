@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { teamsApi } from '../api/teams'
 import { usersApi } from '../api/users'
-import type { Team, TeamMember, PendingInvitation } from '../types'
+import type { Team, TeamMember, PendingInvitation, BrandingConfig } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useToast } from './ToastContext'
@@ -13,7 +13,7 @@ interface TeamContextType {
   error: string | null
   fetchTeams: () => Promise<void>
   createTeam: (data: CreateTeamData) => Promise<Team>
-  updateTeam: (teamId: string, data: UpdateTeamData) => Promise<Team>
+  updateTeam: (teamId: string, data: UpdateTeamData) => Promise<void>
   deleteTeam: (teamId: string) => Promise<void>
   setActiveTeam: (teamId: string | null) => Promise<void>
   fetchMembers: (teamId: string) => Promise<{ members: TeamMember[], pendingInvitations: PendingInvitation[] }>
@@ -44,6 +44,7 @@ interface UpdateTeamData {
     tone: string
     writingStyle: string
   }
+  branding?: BrandingConfig
 }
 
 export const TeamContext = createContext<TeamContextType | undefined>(undefined)
@@ -111,16 +112,12 @@ export function TeamProvider({ children }: TeamProviderProps) {
     }
   }
 
-  const updateTeam = async (teamId: string, data: UpdateTeamData): Promise<Team> => {
+  const updateTeam = async (teamId: string, data: UpdateTeamData): Promise<void> => {
     try {
       setError(null)
-      const updatedTeam = await teamsApi.updateTeam(teamId, data)
-      setTeams(prev => prev.map(t => t.id === teamId ? updatedTeam : t))
-      if (activeTeam?.id === teamId) {
-        setActiveTeamState(updatedTeam)
-      }
+      await teamsApi.updateTeam(teamId, data)
+      await fetchTeams()
       showSuccess('Team updated successfully')
-      return updatedTeam
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update team'
       setError(errorMessage)

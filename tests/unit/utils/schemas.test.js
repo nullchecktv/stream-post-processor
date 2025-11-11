@@ -133,6 +133,55 @@ describe('Schema Definitions', () => {
         expect(schema.properties.settings.properties.defaultPlatforms.type).toBe('array');
         expect(schema.required).toContain('name');
       });
+
+      test('should validate branding configuration', () => {
+        const schema = TeamSchemas.create;
+
+        expect(schema.properties.branding).toBeDefined();
+        expect(schema.properties.branding.type).toBe('object');
+        expect(schema.properties.branding.properties.colors).toBeDefined();
+        expect(schema.properties.branding.properties.fontFamily).toBeDefined();
+        expect(schema.properties.branding.required).toContain('colors');
+        expect(schema.properties.branding.required).toContain('fontFamily');
+      });
+
+      test('should validate branding color hex codes', () => {
+        const brandingSchema = TeamSchemas.create.properties.branding;
+        const colorProps = brandingSchema.properties.colors.properties;
+
+        expect(colorProps.primary.pattern).toBe('^#[0-9A-Fa-f]{6}$');
+        expect(colorProps.secondary.pattern).toBe('^#[0-9A-Fa-f]{6}$');
+        expect(colorProps.background.pattern).toBe('^#[0-9A-Fa-f]{6}$');
+        expect(colorProps.text.pattern).toBe('^#[0-9A-Fa-f]{6}$');
+      });
+
+      test('should require all color fields in branding', () => {
+        const brandingSchema = TeamSchemas.create.properties.branding;
+        const colorsRequired = brandingSchema.properties.colors.required;
+
+        expect(colorsRequired).toContain('primary');
+        expect(colorsRequired).toContain('secondary');
+        expect(colorsRequired).toContain('background');
+        expect(colorsRequired).toContain('text');
+      });
+
+      test('should validate fontFamily constraints', () => {
+        const brandingSchema = TeamSchemas.create.properties.branding;
+        const fontFamily = brandingSchema.properties.fontFamily;
+
+        expect(fontFamily.type).toBe('string');
+        expect(fontFamily.minLength).toBe(1);
+        expect(fontFamily.maxLength).toBe(100);
+      });
+    });
+
+    describe('update schema', () => {
+      test('should include branding in update schema', () => {
+        const schema = TeamSchemas.update;
+
+        expect(schema.properties.branding).toBeDefined();
+        expect(schema.properties.branding.type).toBe('object');
+      });
     });
 
     describe('addMember schema', () => {
@@ -250,6 +299,25 @@ describe('Schema Definitions', () => {
         expect(schema.properties.preferences.properties.timezone.type).toBe('string');
         expect(schema.properties.preferences.properties.notifications.type).toBe('boolean');
         expect(schema.additionalProperties).toBe(false);
+      });
+
+      test('should validate branding configuration', () => {
+        const schema = UserSchemas.updateProfile;
+
+        expect(schema.properties.branding).toBeDefined();
+        expect(schema.properties.branding.type).toBe('object');
+        expect(schema.properties.branding.properties.colors).toBeDefined();
+        expect(schema.properties.branding.properties.fontFamily).toBeDefined();
+      });
+
+      test('should validate branding color hex codes', () => {
+        const brandingSchema = UserSchemas.updateProfile.properties.branding;
+        const colorProps = brandingSchema.properties.colors.properties;
+
+        expect(colorProps.primary.pattern).toBe('^#[0-9A-Fa-f]{6}$');
+        expect(colorProps.secondary.pattern).toBe('^#[0-9A-Fa-f]{6}$');
+        expect(colorProps.background.pattern).toBe('^#[0-9A-Fa-f]{6}$');
+        expect(colorProps.text.pattern).toBe('^#[0-9A-Fa-f]{6}$');
       });
     });
 

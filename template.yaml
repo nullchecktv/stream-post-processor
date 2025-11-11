@@ -49,8 +49,10 @@ Metadata:
       - js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);
     External:
       - "@aws-sdk/*"
+      - "@napi-rs/canvas"
     Loader:
       - .hbs=text
+      - .ttf=file
 
 Globals:
   Function:
@@ -2294,6 +2296,214 @@ Resources:
             RestApiId: !Ref Api
             Path: /notifications/{notificationId}
             Method: DELETE
+
+  CreateQuoteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - quotes/create-quote.mjs
+    Properties:
+      Handler: quotes/create-quote.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Create:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/quotes
+            Method: POST
+
+  ListQuotesFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - quotes/list-quotes.mjs
+    Properties:
+      Handler: quotes/list-quotes.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          ENCRYPTION_KEY: !Ref EncryptionKey
+      Events:
+        List:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/quotes
+            Method: GET
+
+  GetQuoteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - quotes/get-quote.mjs
+    Properties:
+      Handler: quotes/get-quote.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub "${TranscriptBucket.Arn}/*"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        Get:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/quotes/{quoteId}
+            Method: GET
+
+  UpdateQuoteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - quotes/update-quote.mjs
+    Properties:
+      Handler: quotes/update-quote.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Update:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/quotes/{quoteId}
+            Method: PUT
+
+  DeleteQuoteFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - quotes/delete-quote.mjs
+    Properties:
+      Handler: quotes/delete-quote.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+              Resource: !Sub "${TranscriptBucket.Arn}/*"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        Delete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/quotes/{quoteId}
+            Method: DELETE
+
+  GenerateQuoteGraphicFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - quotes/generate-graphic.mjs
+    Properties:
+      Handler: quotes/generate-graphic.handler
+      MemorySize: 1024
+      Timeout: 30
+      Layers:
+        - arn:aws:lambda:us-east-1:205979422636:layer:napi-rs-canvas:888
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub "${TranscriptBucket.Arn}/*"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        Generate:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - nullcheck
+              detail-type:
+                - Generate Quote Graphic
 
   FFMPEGLambdaLayer:
     Type: AWS::Serverless::Application
