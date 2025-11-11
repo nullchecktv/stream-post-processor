@@ -197,7 +197,7 @@ export interface Quote {
   speaker: string
   timestamp: string
   relevanceScore?: number
-  status: 'detected' | 'generated' | 'approved' | 'rejected' | 'failed'
+  status: 'proposed' | 'created' | 'approved' | 'rejected' | 'failed'
   imageUrl?: string
   createdAt: string
 }

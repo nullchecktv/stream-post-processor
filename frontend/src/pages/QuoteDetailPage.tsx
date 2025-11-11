@@ -9,13 +9,13 @@ import { ChevronRight, Home, Download, Trash2 } from 'lucide-react'
 import type { QuoteDetail, Episode } from '../types'
 
 const statusConfig = {
-  detected: {
+  proposed: {
     colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    label: 'Detected'
+    label: 'Proposed'
   },
-  generated: {
+  created: {
     colors: 'bg-green-50 text-green-700 border-green-200',
-    label: 'Generated'
+    label: 'Created'
   },
   approved: {
     colors: 'bg-primary/10 text-primary border-primary/20',
@@ -41,6 +41,7 @@ function QuoteDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const [showSpeaker, setShowSpeaker] = useState(true)
   const [showEpisodeTitle, setShowEpisodeTitle] = useState(true)
 
@@ -101,6 +102,8 @@ function QuoteDetailPage() {
   const handleSave = async () => {
     if (!episodeId || !quoteId || !quote) return
 
+    const willRegenerate = showSpeaker !== quote.showSpeaker || showEpisodeTitle !== quote.showEpisodeTitle
+
     try {
       setSaving(true)
       await quotesApi.update(episodeId, quoteId, {
@@ -109,12 +112,62 @@ function QuoteDetailPage() {
       })
       showToast('Quote settings saved successfully', 'success')
       await fetchData()
+
+      if (willRegenerate) {
+        setRegenerating(true)
+        showToast('Regenerating image...', 'info')
+        pollForUpdatedQuote()
+      }
     } catch (err) {
       console.error('Failed to save quote:', err)
       showToast('Failed to save quote settings. Please try again.', 'error')
     } finally {
       setSaving(false)
     }
+  }
+
+  const pollForUpdatedQuote = async () => {
+    if (!episodeId || !quoteId || !quote) return
+
+    const maxAttempts = 10
+    const pollInterval = 1000
+    let attempts = 0
+    const previousUpdatedAt = quote.updatedAt
+
+    const poll = async () => {
+      attempts++
+
+      try {
+        const updatedQuote = await quotesApi.get(episodeId, quoteId)
+
+        if (updatedQuote.updatedAt !== previousUpdatedAt && updatedQuote.status === 'created') {
+          setQuote(updatedQuote)
+          setRegenerating(false)
+          return
+        }
+
+        if (updatedQuote.status === 'failed') {
+          setQuote(updatedQuote)
+          setRegenerating(false)
+          return
+        }
+
+        if (attempts < maxAttempts) {
+          setTimeout(poll, pollInterval)
+        } else {
+          setRegenerating(false)
+        }
+      } catch (err) {
+        console.error('Failed to poll quote status:', err)
+        if (attempts < maxAttempts) {
+          setTimeout(poll, pollInterval)
+        } else {
+          setRegenerating(false)
+        }
+      }
+    }
+
+    setTimeout(poll, pollInterval)
   }
 
   const handleDownload = async () => {
@@ -152,7 +205,7 @@ function QuoteDetailPage() {
     )
   }
 
-  const config = statusConfig[quote.status] || statusConfig.detected
+  const config = statusConfig[quote.status] || statusConfig.proposed
   // Display the graphic whenever an imageUrl exists, regardless of status
   const hasImage = !!quote.imageUrl
 
@@ -194,8 +247,9 @@ function QuoteDetailPage() {
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Delete quote"
+              aria-label="Delete quote"
             >
               <Trash2 className="w-4 h-4" />
               {deleting ? 'Deleting...' : 'Delete'}
@@ -203,31 +257,58 @@ function QuoteDetailPage() {
           </div>
 
           {hasImage && quote.imageUrl && (
-            <div className="mb-6">
+            <div className="mb-6 relative">
               <img
-                src={quote.imageUrl}
+                src={`${quote.imageUrl}?t=${new Date(quote.updatedAt).getTime()}`}
                 alt={`Quote by ${quote.speaker}`}
-                className="w-full h-auto rounded-lg border border-gray-200 shadow-sm"
+                className={`w-full h-auto rounded-lg border border-gray-200 shadow-sm transition-opacity ${
+                  regenerating ? 'opacity-50' : 'opacity-100'
+                }`}
               />
+              {regenerating && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg">
+                  <div className="bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
+                    <svg className="animate-spin h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm font-medium text-gray-700">Regenerating graphic...</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {!hasImage && (
             <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p className="mt-2 text-sm text-gray-500">
-                No graphic generated yet
-              </p>
+              {regenerating ? (
+                <>
+                  <svg className="animate-spin mx-auto h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-600 font-medium">
+                    Generating graphic...
+                  </p>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">
+                    No graphic generated yet
+                  </p>
+                </>
+              )}
             </div>
           )}
 

@@ -9,13 +9,13 @@ interface QuoteCardProps {
 }
 
 const statusConfig = {
-  detected: {
+  proposed: {
     colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    label: 'Detected'
+    label: 'Proposed'
   },
-  generated: {
+  created: {
     colors: 'bg-green-50 text-green-700 border-green-200',
-    label: 'Generated'
+    label: 'Created'
   },
   approved: {
     colors: 'bg-primary/10 text-primary border-primary/20',
@@ -35,8 +35,8 @@ export function QuoteCard({ quote, onDelete, onDownload }: QuoteCardProps) {
   const navigate = useNavigate()
   const { id: episodeId } = useParams<{ id: string }>()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const config = statusConfig[quote.status] || statusConfig.detected
-  const hasImage = quote.imageUrl && (quote.status === 'generated' || quote.status === 'approved' || quote.status === 'rejected')
+  const config = statusConfig[quote.status] || statusConfig.proposed
+  const hasImage = quote.imageUrl && (quote.status === 'created' || quote.status === 'approved' || quote.status === 'rejected')
 
   const handleDelete = () => {
     onDelete(quote.id)
@@ -96,7 +96,7 @@ export function QuoteCard({ quote, onDelete, onDownload }: QuoteCardProps) {
       {hasImage && quote.imageUrl && (
         <div className="mb-3">
           <img
-            src={quote.imageUrl}
+            src={`${quote.imageUrl}?t=${new Date(quote.createdAt).getTime()}`}
             alt={`Quote by ${quote.speaker}`}
             className="w-full h-auto rounded-lg border border-gray-200"
           />
