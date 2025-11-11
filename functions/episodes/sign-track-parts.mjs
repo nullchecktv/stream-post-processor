@@ -23,14 +23,35 @@ export const handler = async (event) => {
     const trackName = sanitizeTrackName(rawTrackName);
 
     const body = parseBody(event);
+    if (!body) {
+      return formatResponse(400, { message: 'Request body is required' });
+    }
+
     let uploadId, partNumbers;
     try {
-      uploadId = (body?.uploadId || '').toString().trim();
-      partNumbers = Array.isArray(body?.partNumbers) ? body.partNumbers : [];
-    } catch {
-      return formatResponse(400, { message: 'Invalid request' });
+      uploadId = body.uploadId ? String(body.uploadId).trim() : '';
+      partNumbers = Array.isArray(body.partNumbers) ? body.partNumbers : [];
+    } catch (err) {
+      logger.error('Error parsing request body', {
+        error: err.message,
+        body
+      });
+      return formatResponse(400, { message: 'Invalid request format' });
     }
-    if (!uploadId || !partNumbers.length) return formatResponse(400, { message: 'uploadId and partNumbers are required' });
+
+    if (!uploadId) {
+      return formatResponse(400, {
+        message: 'Validation failed',
+        errors: [{ field: 'uploadId', message: 'uploadId is required', code: 'required' }]
+      });
+    }
+
+    if (!partNumbers.length) {
+      return formatResponse(400, {
+        message: 'Validation failed',
+        errors: [{ field: 'partNumbers', message: 'partNumbers array is required and must not be empty', code: 'required' }]
+      });
+    }
 
     const trackResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -39,7 +60,21 @@ export const handler = async (event) => {
     if (!trackResponse.Item) return formatResponse(404, { message: 'Upload not found' });
 
     const track = unmarshall(trackResponse.Item);
-    if (track.uploadId !== uploadId) return formatResponse(400, { message: 'uploadId mismatch for this track' });
+    if (track.uploadId !== uploadId) {
+      logger.error('uploadId mismatch', {
+        providedUploadId: uploadId,
+        storedUploadId: track.uploadId,
+        episodeId,
+        trackName
+      });
+      return formatResponse(400, {
+        message: 'uploadId mismatch for this track',
+        details: {
+          provided: uploadId.substring(0, 20) + '...',
+          expected: track.uploadId ? track.uploadId.substring(0, 20) + '...' : 'none'
+        }
+      });
+    }
 
     const urls = await Promise.all(partNumbers.map(async (partNumber) => {
       const cmd = new UploadPartCommand({
