@@ -19,7 +19,7 @@ permissions:
 jobs:
   pre-deployment-validations:
     name: Pre-deployment Validations
-    uses: ./workflows/shared-pre-deploy-validations.yaml
+    uses: ./.github/workflows/shared-pre-deploy-validations.yaml
 
   prepare-deployment:
     name: Prepare Deployment
