@@ -137,15 +137,32 @@ describe('Powertools Validation Utilities', () => {
         })
       };
 
+      const validationError = new SchemaValidationError('Validation failed: name is required');
+      validationError.cause = [
+        { path: ['name'], message: 'String must contain at least 1 character(s)', code: 'too_small' },
+        { path: ['email'], message: 'Invalid email format', code: 'invalid_string' }
+      ];
       validate.mockImplementationOnce(() => {
-        throw new SchemaValidationError('Validation failed: name is required');
+        throw validationError;
       });
 
       const result = validateRequest(event, testSchema);
 
       expect(result.success).toBe(false);
       expect(result.error.statusCode).toBe(400);
-      expect(JSON.parse(result.error.body).message).toBe('Validation failed: name is required');
+      const body = JSON.parse(result.error.body);
+      expect(body.message).toBe('Validation failed');
+      expect(body.errors).toHaveLength(2);
+      expect(body.errors[0]).toEqual({
+        field: 'name',
+        message: 'String must contain at least 1 character(s)',
+        code: 'too_small'
+      });
+      expect(body.errors[1]).toEqual({
+        field: 'email',
+        message: 'Invalid email format',
+        code: 'invalid_string'
+      });
     });
 
     test('should handle empty request body', () => {
@@ -237,13 +254,20 @@ describe('Powertools Validation Utilities', () => {
         }
       };
 
-      validate.mockRejectedValueOnce(new SchemaValidationError('Invalid UUID format'));
+      const validationError = new SchemaValidationError('Invalid UUID format');
+      validationError.cause = [
+        { path: ['episodeId'], message: 'Invalid UUID format', code: 'invalid_string' }
+      ];
+      validate.mockRejectedValueOnce(validationError);
 
       const result = await validatePathParameters(event, pathSchema);
 
       expect(result.success).toBe(false);
       expect(result.error.statusCode).toBe(400);
-      expect(JSON.parse(result.error.body).message).toBe('Invalid UUID format');
+      const body = JSON.parse(result.error.body);
+      expect(body.message).toBe('Validation failed');
+      expect(body.errors).toHaveLength(1);
+      expect(body.errors[0].field).toBe('episodeId');
     });
   });
 
@@ -294,13 +318,19 @@ describe('Powertools Validation Utilities', () => {
         }
       };
 
-      validate.mockRejectedValueOnce(new SchemaValidationError('Limit exceeds maximum value'));
+      const validationError = new SchemaValidationError('Limit exceeds maximum value');
+      validationError.cause = [
+        { path: ['limit'], message: 'Limit exceeds maximum value', code: 'invalid_string' }
+      ];
+      validate.mockRejectedValueOnce(validationError);
 
       const result = await validateQueryParameters(event, querySchema);
 
       expect(result.success).toBe(false);
       expect(result.error.statusCode).toBe(400);
-      expect(JSON.parse(result.error.body).message).toBe('Limit exceeds maximum value');
+      const body = JSON.parse(result.error.body);
+      expect(body.message).toBe('Validation failed');
+      expect(body.errors).toHaveLength(1);
     });
   });
 
@@ -322,15 +352,22 @@ describe('Powertools Validation Utilities', () => {
         required: ['name']
       };
 
+      const validationError = new SchemaValidationError('Missing required field: name');
+      validationError.cause = [
+        { path: ['name'], message: 'Required', code: 'invalid_type' }
+      ];
       validate.mockImplementationOnce(() => {
-        throw new SchemaValidationError('Missing required field: name');
+        throw validationError;
       });
 
       const result = validateRequest(event, schema);
 
       expect(result.success).toBe(false);
       expect(result.error.statusCode).toBe(400);
-      expect(JSON.parse(result.error.body).message).toBe('Missing required field: name');
+      const body = JSON.parse(result.error.body);
+      expect(body.message).toBe('Validation failed');
+      expect(body.errors).toBeDefined();
+      expect(Array.isArray(body.errors)).toBe(true);
     });
 
     test('should handle edge cases in validation', () => {
