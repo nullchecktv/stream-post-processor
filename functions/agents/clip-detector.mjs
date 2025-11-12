@@ -84,9 +84,9 @@ Your job on each run:
 3. Record your findings once using the **createClip** tool (single call, array of clips).
 4. Create a structured blog post outline using the **buildBlogOutline** tool based on the episode content.
 5. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
-3. Identify 3-7 memorable, shareable quotes for social media graphics.
-4. Record your findings using the **createClip** tool (single call, array of clips) and **createQuote** tool (single call, array of quotes).
-5. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
+6. Identify 3-7 memorable, shareable quotes for social media graphics.
+7. Record your findings using the **createClip** tool (single call, array of clips) and **createQuote** tool (single call, array of quotes).
+8. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
 ### Transcript
 The transcript has been preprocessed from SRT format to merge fragmented segments and remove filler words. Each segment represents a coherent thought or statement from a speaker. Speakers are indicated with their name followed by a colon.
@@ -264,9 +264,9 @@ Think like a YouTube growth editor, not a stenographer.
 2. Call **createQuote** exactly once with your full list of memorable quotes.
 3. Return a short 3-4 sentence summary of what the transcript was about and key takeaways.
 4. Do not mention the clips or quotes you created in your summary
-2. Call **buildBlogOutline** exactly once with your structured markdown outline.
-3. Return a short 3-4 sentence summary of what the transcript was about and key takeaways
-4. Do not mention the clips or blog outline you created
+5. Call **buildBlogOutline** exactly once with your structured markdown outline.
+6. Return a short 3-4 sentence summary of what the transcript was about and key takeaways
+7. Do not mention the clips or blog outline you created
 `;
 
     const userPrompt = `
