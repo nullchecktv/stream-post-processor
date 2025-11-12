@@ -90,6 +90,7 @@ export const handler = async (event) => {
         timezone: 'UTC',
         notifications: true
       },
+      branding: profile.branding || null,
       teams,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt

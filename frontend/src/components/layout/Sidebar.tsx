@@ -5,7 +5,7 @@ import { useSidebar } from '../../hooks/useSidebar'
 import { useUser } from '../../hooks/useUser'
 import { SidebarItem } from './SidebarItem'
 import { SidebarSection } from './SidebarSection'
-import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film, MessageSquareQuote, Palette, Pencil } from 'lucide-react'
+import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film, MessageSquareQuote, Palette, Pencil, BookOpen, PenTool } from 'lucide-react'
 import { useActivity } from '../../hooks/useActivity'
 
 export function Sidebar() {
@@ -277,6 +277,12 @@ export function Sidebar() {
                 label="Quotes"
                 isCollapsed={isCollapsed}
               />
+              <SidebarItem
+                to={`/episodes/${episodeId}/blog`}
+                icon={BookOpen}
+                label="Blog Post"
+                isCollapsed={isCollapsed}
+              />
             </SidebarSection>
           )}
 
@@ -292,6 +298,12 @@ export function Sidebar() {
                 to={`/teams/${teamId}/settings/branding`}
                 icon={Palette}
                 label="Branding"
+                isCollapsed={isCollapsed}
+              />
+              <SidebarItem
+                to={`/teams/${teamId}/settings/writing`}
+                icon={PenTool}
+                label="Writing"
                 isCollapsed={isCollapsed}
               />
             </SidebarSection>

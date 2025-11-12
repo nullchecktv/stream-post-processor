@@ -1,6 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
+import { buildBlogOutlineTool } from "../tools/build-blog-outline.mjs";
 import { createQuoteTool } from "../tools/create-quotes.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
@@ -11,7 +12,7 @@ import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 const logger = new Logger({ serviceName: 'agents' });
 
 const ddb = new DynamoDBClient();
-const tools = convertToBedrockTools([createClipTool, createQuoteTool]);
+const tools = convertToBedrockTools([createClipTool, buildBlogOutlineTool, createQuoteTool]);
 
 export const handler = async (event) => {
   try {
@@ -52,13 +53,14 @@ export const handler = async (event) => {
       throw new Error('Could not find transcript');
     }
 
-    let episodeMeta;
+    let episodeMeta, userId;
     try {
       const episodeResponse = await ddb.send(new GetItemCommand({
         TableName: process.env.TABLE_NAME,
         Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
       }));
       episodeMeta = episodeResponse?.Item ? unmarshall(episodeResponse.Item) : undefined;
+      userId = episodeMeta?.userId;
     } catch (e) {
       logger.warn('Failed to load episode metadata for prompt enrichment', {
         error: e.message,
@@ -80,9 +82,12 @@ Your job on each run:
 
 1. Analyze the full transcript of a Null Check livestream episode.
 2. Identify 5-10 distinct moments that would make high-performing YouTube clips—content that earns *views* and *subscribers* because it is funny, insightful, or provocative.
-3. Identify 3-7 memorable, shareable quotes for social media graphics.
-4. Record your findings using the **createClip** tool (single call, array of clips) and **createQuote** tool (single call, array of quotes).
+3. Record your findings once using the **createClip** tool (single call, array of clips).
+4. Create a structured blog post outline using the **buildBlogOutline** tool based on the episode content.
 5. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
+6. Identify 3-7 memorable, shareable quotes for social media graphics.
+7. Record your findings using the **createClip** tool (single call, array of clips) and **createQuote** tool (single call, array of quotes).
+8. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
 ### Transcript
 The transcript has been preprocessed from SRT format to merge fragmented segments and remove filler words. Each segment represents a coherent thought or statement from a speaker. Speakers are indicated with their name followed by a colon.
@@ -137,6 +142,57 @@ Each clip you pass to **createClip** must contain the schema:
 All clips go into one **createClip** call as an array.
 
 Compose a cohesive clip by piecing together segments from anywhere in the entire transcript, segments inside of clips do not need to be sequential.
+
+---
+
+### Blog outline generation
+
+After creating clips, you must also create a blog post outline using the **buildBlogOutline** tool.
+
+**Critical: This is NOT a summary or recap of the episode.** The blog post should take 1-2 key ideas from the episode and expand on them with depth and new perspective. Think of it as using the episode as a jumping-off point to explore a concept more thoroughly.
+
+The outline should:
+
+* Pick 1-2 core insights or takeaways from the episode that deserve deeper exploration
+* Structure the post to expand on these ideas, not just recap what was said
+* Include sections that go beyond the episode: implications, related concepts, practical applications, contrarian viewpoints
+* Use episode quotes and moments as supporting evidence, not as the main content
+* Be formatted in markdown with natural section headings (not "Introduction", "Conclusion", etc.)
+* Be 200-400 words in outline form
+* Feel like new content that adds value beyond just listening to the episode
+
+**What this means in practice:**
+- If the episode discussed a technical pattern, the blog explores when to use it, when not to, and what alternatives exist
+- If the episode had a debate, the blog examines the underlying principles and broader context
+- If the episode shared an experience, the blog extracts the lesson and applies it to different scenarios
+
+Example outline structure:
+
+# [Title that promises insight, not recap]
+
+## [Natural section heading about the core idea]
+- The key insight from the episode
+- Why this matters more than people realize
+- A deeper angle not fully explored in the episode
+
+## [Section expanding on implications]
+- What this means for [specific audience/use case]
+- Related concepts or patterns
+- Common misconceptions
+
+## [Section with practical application]
+- How to apply this in real scenarios
+- What to watch out for
+- When this approach breaks down
+
+## [Additional sections as needed]
+
+## Conclusion
+- Summary of main takeaways
+- Call to action or next steps
+- Link back to the episode
+
+Call **buildBlogOutline** once with the complete markdown outline after you've called **createClip**.
 
 ---
 
@@ -216,6 +272,9 @@ Think like a YouTube growth editor, not a stenographer.
 2. Call **createQuote** exactly once with your full list of memorable quotes.
 3. Return a short 3-4 sentence summary of what the transcript was about and key takeaways.
 4. Do not mention the clips or quotes you created in your summary
+5. Call **buildBlogOutline** exactly once with your structured markdown outline.
+6. Return a short 3-4 sentence summary of what the transcript was about and key takeaways
+7. Do not mention the clips or blog outline you created
 `;
 
     const userPrompt = `
@@ -224,7 +283,7 @@ ${episodeContextForUser ? `episodeContext:\n${episodeContextForUser}\n` : ''}
 transcript:
 ${transcript}
 `;
-    const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId });
+    const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId, userId });
 
     const now = new Date().toISOString();
     const newStatus = 'analyzed';

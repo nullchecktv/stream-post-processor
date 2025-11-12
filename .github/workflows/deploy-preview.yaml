@@ -80,6 +80,7 @@ jobs:
           ENV_NAME: ${{ needs.prepare-deployment.outputs.env_name }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
           MOMENTO_API_KEY: ${{ secrets.MOMENTO_API_KEY }}
+          SERP_API_KEY: ${{ secrets.SERP_API_KEY }}
           CACHE_NAME: nullcheck
         run: |
           envsubst < samconfig.yaml.template > samconfig.yaml

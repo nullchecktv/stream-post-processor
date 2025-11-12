@@ -36,8 +36,10 @@ export const setPlanRecommendationsTool = {
       .min(3)
       .describe('Detailed section-by-section breakdown of the episode with talking points and demo artifacts')
   }),
-  handler: async (tenantId, { episodeId, suggestedFlow, proposedTitle, proposedDescription, keyLearningMoments, detailedOutline }) => {
+  handler: async (context, { episodeId, suggestedFlow, proposedTitle, proposedDescription, keyLearningMoments, detailedOutline }) => {
     try {
+      const { tenantId } = context;
+
       if (!tenantId) {
         logger.error('Missing tenantId in tool handler', { episodeId });
         return 'Unauthorized: Missing tenant context';

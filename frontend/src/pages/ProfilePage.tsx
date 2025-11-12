@@ -18,6 +18,9 @@ const updateProfileSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   timezone: z.string().optional(),
   notifications: z.boolean().optional(),
+  tone: z.string().max(200, 'Tone must be less than 200 characters').optional(),
+  writingStyle: z.string().max(500, 'Writing style must be less than 500 characters').optional(),
+  perspective: z.enum(['first_person', 'third_person']).optional(),
   useTeamBranding: z.boolean().optional(),
   branding: z.object({
     colors: z.object({
@@ -72,9 +75,13 @@ function ProfilePage() {
     name: '',
     timezone: '',
     notifications: true,
+    tone: '',
+    writingStyle: '',
+    perspective: 'first_person',
     useTeamBranding: true,
     branding: DEFAULT_BRANDING,
   })
+  const [useTeamWriting, setUseTeamWriting] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -84,13 +91,18 @@ function ProfilePage() {
 
   useEffect(() => {
     if (profile && !isInitialized) {
+      const hasPersonalVoice = profile.branding?.voice?.tone || profile.branding?.voice?.writingStyle
       setFormData({
         name: profile.name,
         timezone: profile.preferences?.timezone || '',
         notifications: profile.preferences?.notifications ?? true,
+        tone: profile.branding?.voice?.tone || '',
+        writingStyle: profile.branding?.voice?.writingStyle || '',
+        perspective: (profile.branding?.voice?.perspective as 'first_person' | 'third_person') || 'first_person',
         useTeamBranding: !profile.branding,
         branding: profile.branding || DEFAULT_BRANDING,
       })
+      setUseTeamWriting(!hasPersonalVoice)
       setIsInitialized(true)
     }
   }, [profile, isInitialized])
@@ -123,9 +135,26 @@ function ProfilePage() {
       }
 
       if (!validated.useTeamBranding && validated.branding) {
-        updateData.branding = validated.branding
+        updateData.branding = {
+          ...validated.branding,
+          voice: !useTeamWriting && (validated.tone || validated.writingStyle) ? {
+            tone: validated.tone || '',
+            writingStyle: validated.writingStyle || '',
+            perspective: validated.perspective || 'first_person',
+          } : undefined,
+        }
       } else if (validated.useTeamBranding) {
-        updateData.branding = null
+        if (!useTeamWriting && (validated.tone || validated.writingStyle)) {
+          updateData.branding = {
+            voice: {
+              tone: validated.tone || '',
+              writingStyle: validated.writingStyle || '',
+              perspective: validated.perspective || 'first_person',
+            }
+          }
+        } else {
+          updateData.branding = null
+        }
       }
 
       await updateProfile(updateData)
@@ -293,6 +322,150 @@ function ProfilePage() {
             </Button>
           </div>
         </form>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Writing Voice</h2>
+        <p className="text-gray-600 mb-6">
+          Configure your writing voice to personalize AI-generated blog content. By default, your team's writing settings are used.
+        </p>
+
+        <div className="space-y-6">
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={useTeamWriting}
+                onChange={(e) => setUseTeamWriting(e.target.checked)}
+                disabled={submitting}
+                className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Use team writing settings
+              </span>
+            </label>
+            <p className="mt-1 text-sm text-gray-500 ml-6">
+              When enabled, blog posts will use your team's tone and writing style
+            </p>
+          </div>
+
+          {!useTeamWriting && (
+            <form onSubmit={handleSubmit} className="space-y-6 border-t border-gray-200 pt-6">
+              <Input
+                label="Tone"
+                type="text"
+                value={formData.tone}
+                onChange={(e) => handleChange('tone', e.target.value)}
+                error={errors.tone}
+                placeholder="e.g., professional and conversational, casual and humorous"
+                disabled={submitting}
+              />
+              <p className="mt-1 text-xs text-gray-500 -mt-4">
+                Examples: "professional and conversational", "casual and humorous", "technical and authoritative"
+              </p>
+
+              <div>
+                <label htmlFor="writingStyle" className="block text-sm font-medium text-gray-700 mb-1">
+                  Writing Style
+                </label>
+                <textarea
+                  id="writingStyle"
+                  value={formData.writingStyle}
+                  onChange={(e) => handleChange('writingStyle', e.target.value)}
+                  placeholder="e.g., storytelling with code examples, technical with practical examples"
+                  disabled={submitting}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                {errors.writingStyle && (
+                  <p className="mt-1 text-sm text-red-600">{errors.writingStyle}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Examples: "storytelling with code examples", "technical with practical examples", "educational with step-by-step guides"
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Writing Perspective
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-start cursor-pointer">
+                    <input
+                      type="radio"
+                      name="perspective"
+                      value="first_person"
+                      checked={formData.perspective === 'first_person'}
+                      onChange={(e) => handleChange('perspective', e.target.value)}
+                      disabled={submitting}
+                      className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">First Person</span>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Write as if you're speaking directly (I, we, my, our). Best for personal blogs and direct engagement.
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-start cursor-pointer">
+                    <input
+                      type="radio"
+                      name="perspective"
+                      value="third_person"
+                      checked={formData.perspective === 'third_person'}
+                      onChange={(e) => handleChange('perspective', e.target.value)}
+                      disabled={submitting}
+                      className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">Third Person</span>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Write from an outside perspective (they, the team, the author). Best for company blogs and professional content.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+                {errors.perspective && (
+                  <p className="mt-1 text-sm text-red-600">{errors.perspective}</p>
+                )}
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg
+                    className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div className="text-sm text-blue-800">
+                    <p className="font-semibold mb-1">Personal writing voice</p>
+                    <p>
+                      These settings will override your team's writing voice for blog posts you generate.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={submitting}
+                >
+                  Save Writing Voice
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">

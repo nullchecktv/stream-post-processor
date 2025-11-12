@@ -146,6 +146,11 @@ export interface BrandingConfig {
     text: string
   }
   fontFamily: string
+  voice?: {
+    tone: string
+    writingStyle: string
+    perspective?: 'first_person' | 'third_person'
+  }
 }
 
 export interface Team {
@@ -246,4 +251,23 @@ export interface ApiError {
   error: string
   message: string
   details?: Record<string, unknown>
+}
+
+export type BlogStatus =
+  | 'outline_created'
+  | 'content_generating'
+  | 'content_generated'
+  | 'outline_edited'
+  | 'content_edited'
+  | 'regenerating'
+  | 'failed'
+
+export interface BlogData {
+  episodeId: string
+  outline: string | null
+  content: string | null
+  status: BlogStatus
+  wordCount: number | null
+  createdAt: string | null
+  updatedAt: string | null
 }

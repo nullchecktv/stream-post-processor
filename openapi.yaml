@@ -999,6 +999,174 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/blog:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: Get episode blog
+      description: Retrieves the blog outline and content for an episode
+      tags: [Episodes]
+      responses:
+        200:
+          description: Episode blog with outline and content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogResponse"
+        404:
+          description: Blog not found for episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "NotFound"
+                message: "No blog found for episode"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetBlogFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    put:
+      summary: Update episode blog
+      description: Updates the blog outline or content for an episode
+      tags: [Episodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                outline:
+                  type: string
+                  description: Markdown formatted blog outline
+                  minLength: 1
+                content:
+                  type: string
+                  description: Markdown formatted blog content
+                  minLength: 1
+      responses:
+        200:
+          description: Blog updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogResponse"
+        400:
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "At least one of outline or content must be provided"
+        404:
+          description: Blog not found for episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "No blog found for episode"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateBlogFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    delete:
+      summary: Delete episode blog
+      description: Deletes both the blog outline and content for an episode
+      tags: [Episodes]
+      responses:
+        204:
+          description: Blog deleted successfully
+        404:
+          description: Blog not found for episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "No blog found for episode"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteBlogFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      summary: Regenerate episode blog
+      description: Regenerates blog content from an edited outline by triggering the Blog Generator Agent
+      tags: [Episodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - outline
+              properties:
+                outline:
+                  type: string
+                  description: Markdown formatted blog outline
+                  minLength: 1
+      responses:
+        202:
+          description: Blog regeneration started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  episodeId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [regenerating]
+                  message:
+                    type: string
+              example:
+                episodeId: "123e4567-e89b-12d3-a456-426614174000"
+                status: "regenerating"
+                message: "Blog content regeneration started"
+        400:
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        404:
+          description: Blog not found for episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "No blog found for episode"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegenerateBlogFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
   /episodes/{episodeId}/clips/{clipId}/generate:
     parameters:
       - $ref: "#/components/parameters/EpisodeId"
@@ -1536,6 +1704,8 @@ paths:
                       type: boolean
                       description: Enable notifications
                       example: true
+                branding:
+                  $ref: "#/components/schemas/Branding"
       responses:
         200:
           description: Profile updated
@@ -2381,6 +2551,30 @@ components:
           maxLength: 100
           description: Font family for text rendering
           example: "Inter"
+        voice:
+          type: object
+          description: Brand voice configuration for AI-generated content
+          properties:
+            tone:
+              type: string
+              minLength: 1
+              maxLength: 200
+              description: Desired tone for generated content
+              example: "professional and conversational"
+            writingStyle:
+              type: string
+              minLength: 1
+              maxLength: 500
+              description: Desired writing style for generated content
+              example: "technical with practical examples"
+            perspective:
+              type: string
+              enum:
+                - first_person
+                - third_person
+              default: first_person
+              description: Writing perspective for generated content. first_person uses "I/we/my/our", third_person uses "they/the team/the author"
+              example: "first_person"
       required:
         - colors
         - fontFamily
@@ -3007,6 +3201,10 @@ components:
             notifications:
               type: boolean
               example: true
+        branding:
+          allOf:
+            - $ref: "#/components/schemas/Branding"
+            - nullable: true
         teams:
           type: array
           description: All teams the user belongs to (for backward compatibility)
@@ -3462,6 +3660,58 @@ components:
       required:
         - episodeId
         - plan
+
+    BlogResponse:
+      type: object
+      properties:
+        episodeId:
+          type: string
+          description: Episode identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        outline:
+          type: string
+          nullable: true
+          description: Markdown formatted blog outline
+          example: "# Blog Post Title\n\n## Introduction\n\n## Main Content\n\n## Conclusion"
+        content:
+          type: string
+          nullable: true
+          description: Full blog post content in markdown format
+          example: "# Mastering Serverless Architecture\n\nIn this comprehensive guide..."
+        status:
+          type: string
+          enum:
+            - outline_created
+            - content_generating
+            - content_generated
+            - outline_edited
+            - content_edited
+            - regenerating
+            - failed
+          description: Current status of the blog
+          example: "content_generated"
+        wordCount:
+          type: integer
+          nullable: true
+          description: Word count of the blog content
+          example: 1847
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the blog was created
+          example: "2025-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the blog was last updated
+          example: "2025-01-15T10:35:00Z"
+      required:
+        - episodeId
+        - outline
+        - content
+        - status
 
   responses:
     BadRequest:

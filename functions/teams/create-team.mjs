@@ -15,7 +15,7 @@ export const handler = async (event) => {
     if (!validation.success) return validation.error;
 
     const { userId, data } = validation;
-    const { name, description, settings } = data;
+    const { name, description, settings, branding } = data;
 
     const now = new Date().toISOString();
     const teamId = randomUUID();
@@ -35,6 +35,17 @@ export const handler = async (event) => {
       timezone: settings?.timezone || 'UTC'
     };
 
+    let teamBranding = branding;
+    if (branding && branding.voice) {
+      teamBranding = {
+        ...branding,
+        voice: {
+          ...branding.voice,
+          perspective: branding.voice.perspective || 'first_person'
+        }
+      };
+    }
+
     const teamItem = {
       pk: `team#${teamId}`,
       sk: 'metadata',
@@ -45,6 +56,7 @@ export const handler = async (event) => {
       ownerId: userId,
       status: 'active',
       settings: teamSettings,
+      ...(teamBranding && { branding: teamBranding }),
       createdAt: now,
       updatedAt: now
     };

@@ -68,7 +68,11 @@ export const converse = async (model, systemPrompt, userPrompt, tools, options) 
 
             // Never allow an LLM to provide a tenant id!! Instead infer it from the code for security purposes
             if (options?.tenantId && tool.isMultiTenant) {
-              toolResult = await tool.handler(options.tenantId, toolInput);
+              const context = {
+                tenantId: options.tenantId,
+                userId: options.userId
+              };
+              toolResult = await tool.handler(context, toolInput);
             } else {
               toolResult = await tool.handler(toolInput);
             }

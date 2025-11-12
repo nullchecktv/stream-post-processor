@@ -77,7 +77,7 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
     return etag.replace(/"/g, '')
   }
 
-  const uploadMultipart = async (file: File, trackName: string, uploadId: string) => {
+  const uploadMultipart = async (file: File, trackName: string, s3UploadId: string, uiUploadId: string) => {
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
     const parts: PartUpload[] = []
 
@@ -86,7 +86,7 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
       const partNumbers = Array.from({ length: batchSize }, (_, j) => i + j + 1)
 
       const { parts: signedParts } = await episodesApi.signTrackParts(episodeId, trackName, {
-        uploadId,
+        uploadId: s3UploadId,
         partNumbers,
       })
 
@@ -98,7 +98,7 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
         const etag = await uploadPart(uploadUrl, chunk, partNumber)
 
         const progress = Math.round((partNumber / totalChunks) * 90)
-        updateUpload(uploadId, { progress })
+        updateUpload(uiUploadId, { progress })
 
         return { partNumber, etag }
       })
@@ -180,7 +180,7 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
       updateUpload(uploadId, { progress: 10 })
 
       if (selectedFile.size > MULTIPART_THRESHOLD) {
-        const parts = await uploadMultipart(selectedFile, trackName, uploadId)
+        const parts = await uploadMultipart(selectedFile, trackName, s3UploadId, uploadId)
 
         updateUpload(uploadId, { progress: 92 })
 

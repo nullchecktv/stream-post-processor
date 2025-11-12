@@ -63,7 +63,13 @@ export const handler = async (event) => {
     }
 
     if (data.branding !== undefined) {
-      updatedProfile.branding = data.branding;
+      updatedProfile.branding = {
+        ...data.branding,
+        voice: data.branding.voice ? {
+          ...data.branding.voice,
+          perspective: data.branding.voice.perspective || 'first_person'
+        } : undefined
+      };
     }
 
     await ddb.send(new PutItemCommand({

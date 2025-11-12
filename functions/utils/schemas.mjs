@@ -15,7 +15,16 @@ const BrandingSchema = {
       required: ['primary', 'secondary', 'background', 'text'],
       additionalProperties: false
     },
-    fontFamily: { type: 'string', minLength: 1, maxLength: 100 }
+    fontFamily: { type: 'string', minLength: 1, maxLength: 100 },
+    voice: {
+      type: 'object',
+      properties: {
+        tone: { type: 'string', minLength: 1, maxLength: 200 },
+        writingStyle: { type: 'string', minLength: 1, maxLength: 200 },
+        perspective: { type: 'string', enum: ['first_person', 'third_person'], default: 'first_person' }
+      },
+      additionalProperties: false
+    }
   },
   required: ['colors', 'fontFamily'],
   additionalProperties: false
@@ -70,7 +79,7 @@ export const TrackSchemas = {
       trackName: {
         type: 'string',
         minLength: 1,
-        maxLength: 50,
+        maxLength: 150,
         pattern: '^[a-zA-Z0-9_-]+$'
       },
       speakers: {
@@ -414,6 +423,26 @@ export const RecommendationsSchemas = {
       }
     },
     required: ['episodeId', 'suggestedFlow', 'proposedTitle', 'proposedDescription', 'keyLearningMoments', 'detailedOutline'],
+    additionalProperties: false
+  }
+};
+
+// Blog Schemas
+export const BlogSchemas = {
+  update: {
+    type: 'object',
+    properties: {
+      outline: { type: 'string', minLength: 1 },
+      content: { type: 'string', minLength: 1 }
+    },
+    additionalProperties: false
+  },
+  regenerate: {
+    type: 'object',
+    properties: {
+      outline: { type: 'string', minLength: 1 }
+    },
+    required: ['outline'],
     additionalProperties: false
   }
 };

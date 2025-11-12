@@ -13,7 +13,8 @@ dev:
         "EncryptionKey=$ENCRYPTION_KEY",
         "EnvironmentName=$ENV_NAME",
         "MomentoApiKey=$MOMENTO_API_KEY",
-        "MomentoCacheName=$CACHE_NAME"
+        "MomentoCacheName=$CACHE_NAME",
+        "SerpApiKey=$SERP_API_KEY"
       ]
   global:
     parameters:

@@ -48,11 +48,23 @@ export const handler = async (event) => {
 
     const key = record.key;
 
+    const s3Parts = parts.map(part => ({
+      ETag: part.etag || part.ETag,
+      PartNumber: part.partNumber || part.PartNumber
+    }));
+
+    logger.info('Completing multipart upload', {
+      episodeId,
+      trackName,
+      uploadId,
+      partCount: s3Parts.length
+    });
+
     await s3.send(new CompleteMultipartUploadCommand({
       Bucket: process.env.BUCKET_NAME,
       Key: key,
       UploadId: uploadId,
-      MultipartUpload: { Parts: parts }
+      MultipartUpload: { Parts: s3Parts }
     }));
 
     const now = new Date().toISOString();
