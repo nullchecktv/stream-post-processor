@@ -38,6 +38,7 @@ Parameters:
     Type: String
     Default: ""
     Description: API Key for Serp (web search API)
+    NoEcho: true
 
 Metadata:
   esbuild-properties: &esbuild-properties
