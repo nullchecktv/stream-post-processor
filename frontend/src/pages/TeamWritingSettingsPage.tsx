@@ -13,7 +13,7 @@ import { z } from 'zod'
 
 const writingSchema = z.object({
   tone: z.string().min(1, 'Tone is required').max(200, 'Tone must be less than 200 characters'),
-  writingStyle: z.string().min(1, 'Writing style is required').max(200, 'Writing style must be less than 200 characters'),
+  writingStyle: z.string().min(1, 'Writing style is required').max(500, 'Writing style must be less than 500 characters'),
 })
 
 type WritingFormData = z.infer<typeof writingSchema>

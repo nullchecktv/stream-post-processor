@@ -20,7 +20,7 @@ export const ProfileSchema = z.object({
 
 export const BrandVoiceSchema = z.object({
   tone: z.string().min(1, 'Tone is required').max(200, 'Tone must be less than 200 characters'),
-  writingStyle: z.string().min(1, 'Writing style is required').max(200, 'Writing style must be less than 200 characters'),
+  writingStyle: z.string().min(1, 'Writing style is required').max(500, 'Writing style must be less than 500 characters'),
 })
 
 export const TeamSchema = z.object({
