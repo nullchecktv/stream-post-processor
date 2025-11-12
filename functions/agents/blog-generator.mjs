@@ -1,34 +1,31 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { webSearchTool } from '../tools/web-search.mjs';
-import { convertToBedrockTools } from '../utils/tools.mjs';
 import { converse } from '../utils/agents.mjs';
+import { convertToBedrockTools } from '../utils/tools.mjs';
+import { webSearchTool } from '../tools/web-search.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 const ddb = new DynamoDBClient();
+
 const tools = convertToBedrockTools([webSearchTool]);
 
 export const handler = async (event) => {
-  let tenantId, episodeId, userId;
+  let episodeId, tenantId, userId;
 
   try {
-    const detail = event?.detail;
-    if (!detail?.episodeId || !detail?.tenantId) {
-      logger.error('Invalid event structure', {
-        detail
-      });
-      return { statusCode: 400, body: 'Invalid event structure' };
-    }
-
-    tenantId = detail.tenantId;
+    const detail = event.detail;
     episodeId = detail.episodeId;
+    tenantId = detail.tenantId;
     userId = detail.userId;
 
-    logger.info('Starting blog content generation', {
-      episodeId,
-      tenantId
-    });
+    if (!episodeId || !tenantId) {
+      logger.error('Missing required fields in event', {
+        episodeId,
+        tenantId
+      });
+      return { statusCode: 400, message: 'Missing required fields' };
+    }
 
     const outlineResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -43,7 +40,7 @@ export const handler = async (event) => {
         episodeId,
         tenantId
       });
-      return { statusCode: 404, body: 'Blog outline not found' };
+      return { statusCode: 404, message: 'Blog outline not found' };
     }
 
     const outlineData = unmarshall(outlineResponse.Item);
@@ -57,27 +54,126 @@ export const handler = async (event) => {
       })
     }));
 
-    const episode = episodeResponse.Item ? unmarshall(episodeResponse.Item) : null;
+    let episodeMetadata = {};
 
-    const quotes = await loadEpisodeQuotes(tenantId, episodeId);
+    if (episodeResponse.Item) {
+      episodeMetadata = unmarshall(episodeResponse.Item);
+    }
 
-    const brandVoice = await loadBrandVoice(tenantId, userId);
+    const quotesResponse = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      ExpressionAttributeValues: marshall({
+        ':pk': `${tenantId}#${episodeId}`,
+        ':sk': 'data#quote#'
+      })
+    }));
 
-    await updateBlogStatus(tenantId, episodeId, 'content_generating');
+    const quotes = quotesResponse.Items?.map(item => unmarshall(item)) || [];
 
-    const systemPrompt = buildSystemPrompt(brandVoice);
-    const userPrompt = buildUserPrompt(outline, episode, quotes);
+    const quotesContext = quotes.length > 0
+      ? quotes.map(q => `"${q.text}" - ${q.speaker} (${q.timestamp})`).join('\n')
+      : 'No quotes available for this episode.';
+
+    const brandVoice = await loadBrandVoiceSettings(tenantId, userId);
+
+    const tone = brandVoice.tone || 'professional and conversational';
+    const writingStyle = brandVoice.writingStyle || 'clear and engaging';
+    const perspective = brandVoice.perspective || 'first_person';
+
+    const perspectiveInstructions = perspective === 'first_person'
+      ? `Write using first-person pronouns: "I", "we", "my", "our". Speak directly as the author/creator. Example: "In my experience, I've found that..."`
+      : `Write using third-person pronouns: "they", "the team", "the author". Avoid first-person pronouns. Write from an outside perspective. Example: "The team discovered that..."`;
+
+    const systemPrompt = `
+You are BlogForge, an autonomous blog writer for technical content creators.
+
+Your job:
+1. Read the provided blog outline and episode context
+2. Research relevant topics using web search when needed
+3. Write a comprehensive blog post in the specified brand voice
+4. Include code examples, practical insights, and actionable takeaways
+5. Format content in markdown with proper headings, lists, and code blocks
+
+Brand Voice Guidelines:
+- Tone: ${tone}
+- Writing Style: ${writingStyle}
+- Perspective: ${perspective}
+
+Writing Perspective:
+${perspectiveInstructions}
+
+Content Requirements:
+- Introduction that hooks the reader
+- Clear section structure following the outline
+- Technical accuracy with practical examples
+- Conclusion with key takeaways
+- 1500-2500 words total length
+- Proper markdown formatting
+
+Use web search to:
+- Verify technical details
+- Find relevant examples
+- Research current best practices
+- Gather supporting statistics
+
+Write the complete blog post now based on the outline provided.
+`;
+
+    const episodeContext = [
+      episodeMetadata.title ? `Title: ${episodeMetadata.title}` : null,
+      episodeMetadata.description ? `Description: ${episodeMetadata.description}` : null,
+      episodeMetadata.themes ? `Themes: ${episodeMetadata.themes.join(', ')}` : null,
+      episodeMetadata.airDate ? `Air Date: ${episodeMetadata.airDate}` : null
+    ].filter(Boolean).join('\n');
+
+    const userPrompt = `
+Episode Context:
+${episodeContext}
+
+Key Quotes from Episode:
+${quotesContext}
+
+Blog Outline:
+${outline}
+
+Write the complete blog post now following the outline and brand voice guidelines. Use the quotes as supporting evidence and to add authenticity to the content.
+`;
+
+    await ddb.send(new UpdateItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({
+        pk: `${tenantId}#${episodeId}`,
+        sk: 'data#blog#outline'
+      }),
+      UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt',
+      ExpressionAttributeNames: {
+        '#status': 'status',
+        '#updatedAt': 'updatedAt'
+      },
+      ExpressionAttributeValues: marshall({
+        ':status': 'content_generating',
+        ':updatedAt': new Date().toISOString()
+      })
+    }));
+
+    logger.info('Starting blog content generation', {
+      episodeId,
+      tenantId,
+      perspective,
+      tone
+    });
 
     const content = await converse(
       process.env.MODEL_ID,
       systemPrompt,
       userPrompt,
       tools,
-      { tenantId }
+      { tenantId, userId }
     );
 
     const now = new Date().toISOString();
-    const wordCount = countWords(content);
+    const wordCount = content.split(/\s+/).length;
 
     await ddb.send(new PutItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -92,6 +188,23 @@ export const handler = async (event) => {
       })
     }));
 
+    await ddb.send(new UpdateItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({
+        pk: `${tenantId}#${episodeId}`,
+        sk: 'data#blog#outline'
+      }),
+      UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt',
+      ExpressionAttributeNames: {
+        '#status': 'status',
+        '#updatedAt': 'updatedAt'
+      },
+      ExpressionAttributeValues: marshall({
+        ':status': 'content_generated',
+        ':updatedAt': now
+      })
+    }));
+
     logger.info('Blog content generated successfully', {
       episodeId,
       tenantId,
@@ -100,26 +213,42 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        episodeId,
-        status: 'content_generated',
-        wordCount
-      })
+      message: 'Blog content generated successfully',
+      wordCount
     };
   } catch (err) {
     logger.error('Blog generation failed', {
       error: err.message,
       stack: err.stack,
-      episodeId: episodeId || 'unknown',
-      tenantId: tenantId || 'unknown'
+      episodeId,
+      tenantId
     });
 
-    if (tenantId && episodeId) {
+    if (episodeId && tenantId) {
       try {
-        await updateBlogStatus(tenantId, episodeId, 'failed', err.message);
-      } catch (error_) {
-        logger.error('Failed to update status to failed', {
-          error: error_.message
+        await ddb.send(new UpdateItemCommand({
+          TableName: process.env.TABLE_NAME,
+          Key: marshall({
+            pk: `${tenantId}#${episodeId}`,
+            sk: 'data#blog#outline'
+          }),
+          UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt, #errorMessage = :errorMessage',
+          ExpressionAttributeNames: {
+            '#status': 'status',
+            '#updatedAt': 'updatedAt',
+            '#errorMessage': 'errorMessage'
+          },
+          ExpressionAttributeValues: marshall({
+            ':status': 'failed',
+            ':updatedAt': new Date().toISOString(),
+            ':errorMessage': err.message
+          })
+        }));
+      } catch (updateErr) {
+        logger.error('Failed to update error status', {
+          error: updateErr.message,
+          episodeId,
+          tenantId
         });
       }
     }
@@ -128,38 +257,24 @@ export const handler = async (event) => {
   }
 };
 
-const loadBrandVoice = async (tenantId, userId) => {
-  let brandVoice = null;
+const loadBrandVoiceSettings = async (tenantId, userId) => {
+  const defaultVoice = {
+    tone: 'professional and conversational',
+    writingStyle: 'clear and engaging',
+    perspective: 'first_person'
+  };
 
-  if (tenantId === userId) {
-    try {
-      const userResponse = await ddb.send(new GetItemCommand({
-        TableName: process.env.TABLE_NAME,
-        Key: marshall({
-          pk: `user#${userId}`,
-          sk: 'profile'
-        })
-      }));
+  if (!tenantId || !userId) {
+    return defaultVoice;
+  }
 
-      if (userResponse.Item) {
-        const user = unmarshall(userResponse.Item);
-        if (user.branding?.voice) {
-          brandVoice = user.branding.voice;
-          logger.info('Loaded user brand voice', { userId });
-        }
-      }
-    } catch (err) {
-      logger.warn('Could not load user brand voice', {
-        error: err.message,
-        userId
-      });
-    }
-  } else {
-    try {
+  try {
+    if (tenantId.startsWith('team#')) {
+      const teamId = tenantId.replace('team#', '');
       const teamResponse = await ddb.send(new GetItemCommand({
         TableName: process.env.TABLE_NAME,
         Key: marshall({
-          pk: `team#${tenantId}`,
+          pk: `team#${teamId}`,
           sk: 'metadata'
         })
       }));
@@ -167,163 +282,40 @@ const loadBrandVoice = async (tenantId, userId) => {
       if (teamResponse.Item) {
         const team = unmarshall(teamResponse.Item);
         if (team.branding?.voice) {
-          brandVoice = team.branding.voice;
-          logger.info('Loaded team brand voice', { teamId: tenantId });
+          return {
+            tone: team.branding.voice.tone || defaultVoice.tone,
+            writingStyle: team.branding.voice.writingStyle || defaultVoice.writingStyle,
+            perspective: team.branding.voice.perspective || defaultVoice.perspective
+          };
         }
       }
-    } catch (err) {
-      logger.warn('Could not load team brand voice', {
-        error: err.message,
-        teamId: tenantId
-      });
     }
-  }
 
-  return brandVoice;
-};
-
-const buildSystemPrompt = (brandVoice) => {
-  const tone = brandVoice?.tone || 'conversational and authentic';
-  const writingStyle = brandVoice?.writingStyle || 'natural storytelling with real examples';
-
-  return `You're a writer turning episode content into blog posts that sound like they were written by an actual human, not an AI.
-
-Write in a ${tone} tone with ${writingStyle}.
-
-The goal is to create content that feels genuine and engaging, like you're having a conversation with someone who's interested in the topic. Avoid the typical blog post formula - no "In this post, we'll explore..." openings, no bullet-pointed lists with "Key Takeaway #1" headings, no "In conclusion" wrap-ups.
-
-Instead:
-- Start with something that grabs attention - a surprising fact, a relatable problem, or an interesting observation
-- Let the content flow naturally from one idea to the next
-- Use the quotes provided to support your points, weaving them into the narrative rather than dropping them in as block quotes
-- When you research something, link to it inline (like [this](url)) rather than listing citations at the end
-- Write the way people actually talk and think about these topics
-- Include code examples or technical details when they help illustrate a point, but integrate them naturally
-- End when you've said what needs to be said - no forced conclusions or summaries
-
-If you need to verify facts, find examples, or research current information, use web search. When you reference something you found, link to it naturally in the text.
-
-Format in markdown:
-- Use # for the title, ## for major sections (but make them sound natural, not like a table of contents)
-- Code blocks with \`\`\`language when showing code
-- Inline code with \`backticks\` for technical terms
-- Links inline: [descriptive text](url)
-- Emphasis with *italics* or **bold** sparingly, only when it genuinely adds impact
-
-Aim for 1500-2500 words, but let the content dictate the length. If you've made your point well in 1400 words, stop there.
-
-Return only the blog post content in markdown. No meta-commentary, no "Here's the blog post:", just the content itself.`;
-};
-
-const loadEpisodeQuotes = async (tenantId, episodeId) => {
-  try {
-    const response = await ddb.send(new QueryCommand({
+    const userResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
-      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
-      ExpressionAttributeValues: marshall({
-        ':pk': `${tenantId}#${episodeId}`,
-        ':sk': 'data#quote#'
+      Key: marshall({
+        pk: `user#${userId}`,
+        sk: 'profile'
       })
     }));
 
-    if (!response.Items || response.Items.length === 0) {
-      logger.info('No quotes found for episode', { episodeId, tenantId });
-      return [];
+    if (userResponse.Item) {
+      const user = unmarshall(userResponse.Item);
+      if (user.branding?.voice) {
+        return {
+          tone: user.branding.voice.tone || defaultVoice.tone,
+          writingStyle: user.branding.voice.writingStyle || defaultVoice.writingStyle,
+          perspective: user.branding.voice.perspective || defaultVoice.perspective
+        };
+      }
     }
-
-    const quotes = response.Items.map(item => unmarshall(item));
-
-    logger.info('Loaded quotes for blog generation', {
-      episodeId,
-      tenantId,
-      quoteCount: quotes.length
-    });
-
-    return quotes;
   } catch (err) {
-    logger.error('Error loading quotes', {
+    logger.warn('Failed to load brand voice settings, using defaults', {
       error: err.message,
-      stack: err.stack,
-      episodeId,
-      tenantId
+      tenantId,
+      userId
     });
-    return [];
-  }
-};
-
-const buildUserPrompt = (outline, episode, quotes) => {
-  const episodeContext = [];
-
-  if (episode?.title) {
-    episodeContext.push(`Episode Title: ${episode.title}`);
   }
 
-  if (episode?.episodeNumber) {
-    episodeContext.push(`Episode Number: ${episode.episodeNumber}`);
-  }
-
-  if (episode?.description) {
-    episodeContext.push(`Description: ${episode.description}`);
-  }
-
-  if (episode?.themes && Array.isArray(episode.themes) && episode.themes.length > 0) {
-    episodeContext.push(`Themes: ${episode.themes.join(', ')}`);
-  }
-
-  if (episode?.airDate) {
-    episodeContext.push(`Air Date: ${episode.airDate}`);
-  }
-
-  const contextSection = episodeContext.length > 0
-    ? `Episode Context:\n${episodeContext.join('\n')}\n\n`
-    : '';
-
-  const quotesSection = quotes.length > 0
-    ? `Key Quotes from Episode:\n${quotes.map(q => `- "${q.text}" - ${q.speaker} (${q.timestamp})`).join('\n')}\n\n`
-    : '';
-
-  return `${contextSection}Blog Outline:
-${outline}
-
-${quotesSection}Please write a complete blog post based on this outline. Follow the structure provided and expand each section with detailed content, examples, and insights from the episode. You can reference and incorporate the quotes above where relevant to support your points.`;
-};
-
-const updateBlogStatus = async (tenantId, episodeId, status, errorMessage = null) => {
-  const now = new Date().toISOString();
-  const updateExpression = errorMessage
-    ? 'SET #status = :status, #updatedAt = :updatedAt, #errorMessage = :errorMessage'
-    : 'SET #status = :status, #updatedAt = :updatedAt';
-
-  const expressionAttributeValues = {
-    ':status': status,
-    ':updatedAt': now
-  };
-
-  if (errorMessage) {
-    expressionAttributeValues[':errorMessage'] = errorMessage;
-  }
-
-  await ddb.send(new UpdateItemCommand({
-    TableName: process.env.TABLE_NAME,
-    Key: marshall({
-      pk: `${tenantId}#${episodeId}`,
-      sk: 'data#blog#outline'
-    }),
-    UpdateExpression: updateExpression,
-    ExpressionAttributeNames: {
-      '#status': 'status',
-      '#updatedAt': 'updatedAt',
-      ...(errorMessage && { '#errorMessage': 'errorMessage' })
-    },
-    ExpressionAttributeValues: marshall(expressionAttributeValues)
-  }));
-};
-
-const countWords = (text) => {
-  if (!text) return 0;
-  return text
-    .trim()
-    .split(/\s+/)
-    .filter(word => word.length > 0)
-    .length;
+  return defaultVoice;
 };

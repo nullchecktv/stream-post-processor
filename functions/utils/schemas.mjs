@@ -20,7 +20,8 @@ const BrandingSchema = {
       type: 'object',
       properties: {
         tone: { type: 'string', minLength: 1, maxLength: 200 },
-        writingStyle: { type: 'string', minLength: 1, maxLength: 200 }
+        writingStyle: { type: 'string', minLength: 1, maxLength: 200 },
+        perspective: { type: 'string', enum: ['first_person', 'third_person'], default: 'first_person' }
       },
       additionalProperties: false
     }

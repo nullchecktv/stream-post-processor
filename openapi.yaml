@@ -2567,6 +2567,14 @@ components:
               maxLength: 500
               description: Desired writing style for generated content
               example: "technical with practical examples"
+            perspective:
+              type: string
+              enum:
+                - first_person
+                - third_person
+              default: first_person
+              description: Writing perspective for generated content. first_person uses "I/we/my/our", third_person uses "they/the team/the author"
+              example: "first_person"
       required:
         - colors
         - fontFamily

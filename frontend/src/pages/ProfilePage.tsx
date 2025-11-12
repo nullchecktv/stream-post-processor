@@ -20,6 +20,7 @@ const updateProfileSchema = z.object({
   notifications: z.boolean().optional(),
   tone: z.string().max(200, 'Tone must be less than 200 characters').optional(),
   writingStyle: z.string().max(500, 'Writing style must be less than 500 characters').optional(),
+  perspective: z.enum(['first_person', 'third_person']).optional(),
   useTeamBranding: z.boolean().optional(),
   branding: z.object({
     colors: z.object({
@@ -76,6 +77,7 @@ function ProfilePage() {
     notifications: true,
     tone: '',
     writingStyle: '',
+    perspective: 'first_person',
     useTeamBranding: true,
     branding: DEFAULT_BRANDING,
   })
@@ -96,6 +98,7 @@ function ProfilePage() {
         notifications: profile.preferences?.notifications ?? true,
         tone: profile.branding?.voice?.tone || '',
         writingStyle: profile.branding?.voice?.writingStyle || '',
+        perspective: (profile.branding?.voice?.perspective as 'first_person' | 'third_person') || 'first_person',
         useTeamBranding: !profile.branding,
         branding: profile.branding || DEFAULT_BRANDING,
       })
@@ -137,6 +140,7 @@ function ProfilePage() {
           voice: !useTeamWriting && (validated.tone || validated.writingStyle) ? {
             tone: validated.tone || '',
             writingStyle: validated.writingStyle || '',
+            perspective: validated.perspective || 'first_person',
           } : undefined,
         }
       } else if (validated.useTeamBranding) {
@@ -145,6 +149,7 @@ function ProfilePage() {
             voice: {
               tone: validated.tone || '',
               writingStyle: validated.writingStyle || '',
+              perspective: validated.perspective || 'first_person',
             }
           }
         } else {
@@ -378,6 +383,51 @@ function ProfilePage() {
                 <p className="mt-1 text-xs text-gray-500">
                   Examples: "storytelling with code examples", "technical with practical examples", "educational with step-by-step guides"
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Writing Perspective
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-start cursor-pointer">
+                    <input
+                      type="radio"
+                      name="perspective"
+                      value="first_person"
+                      checked={formData.perspective === 'first_person'}
+                      onChange={(e) => handleChange('perspective', e.target.value)}
+                      disabled={submitting}
+                      className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">First Person</span>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Write as if you're speaking directly (I, we, my, our). Best for personal blogs and direct engagement.
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-start cursor-pointer">
+                    <input
+                      type="radio"
+                      name="perspective"
+                      value="third_person"
+                      checked={formData.perspective === 'third_person'}
+                      onChange={(e) => handleChange('perspective', e.target.value)}
+                      disabled={submitting}
+                      className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">Third Person</span>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Write from an outside perspective (they, the team, the author). Best for company blogs and professional content.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+                {errors.perspective && (
+                  <p className="mt-1 text-sm text-red-600">{errors.perspective}</p>
+                )}
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

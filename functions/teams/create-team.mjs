@@ -35,6 +35,17 @@ export const handler = async (event) => {
       timezone: settings?.timezone || 'UTC'
     };
 
+    let teamBranding = branding;
+    if (branding && branding.voice) {
+      teamBranding = {
+        ...branding,
+        voice: {
+          ...branding.voice,
+          perspective: branding.voice.perspective || 'first_person'
+        }
+      };
+    }
+
     const teamItem = {
       pk: `team#${teamId}`,
       sk: 'metadata',
@@ -45,7 +56,7 @@ export const handler = async (event) => {
       ownerId: userId,
       status: 'active',
       settings: teamSettings,
-      ...(branding && { branding }),
+      ...(teamBranding && { branding: teamBranding }),
       createdAt: now,
       updatedAt: now
     };

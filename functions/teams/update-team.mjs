@@ -43,7 +43,17 @@ export const handler = async (event) => {
     const name = data.name !== undefined ? data.name : currentTeam.name;
     const description = data.description !== undefined ? data.description : currentTeam.description;
     const settings = data.settings !== undefined ? data.settings : currentTeam.settings;
-    const branding = data.branding !== undefined ? data.branding : currentTeam.branding;
+
+    let branding = data.branding !== undefined ? data.branding : currentTeam.branding;
+    if (data.branding !== undefined && data.branding.voice) {
+      branding = {
+        ...data.branding,
+        voice: {
+          ...data.branding.voice,
+          perspective: data.branding.voice.perspective || 'first_person'
+        }
+      };
+    }
 
     const now = new Date().toISOString();
 

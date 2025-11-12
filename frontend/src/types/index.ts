@@ -149,6 +149,7 @@ export interface BrandingConfig {
   voice?: {
     tone: string
     writingStyle: string
+    perspective?: 'first_person' | 'third_person'
   }
 }
 

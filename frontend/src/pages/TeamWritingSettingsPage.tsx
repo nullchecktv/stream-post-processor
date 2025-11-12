@@ -14,6 +14,7 @@ import { z } from 'zod'
 const writingSchema = z.object({
   tone: z.string().min(1, 'Tone is required').max(200, 'Tone must be less than 200 characters'),
   writingStyle: z.string().min(1, 'Writing style is required').max(500, 'Writing style must be less than 500 characters'),
+  perspective: z.enum(['first_person', 'third_person']),
 })
 
 type WritingFormData = z.infer<typeof writingSchema>
@@ -44,6 +45,7 @@ function TeamWritingSettingsPage() {
   const [formData, setFormData] = useState<WritingFormData>({
     tone: '',
     writingStyle: '',
+    perspective: 'first_person',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -65,6 +67,7 @@ function TeamWritingSettingsPage() {
         setFormData({
           tone: foundTeam.branding?.voice?.tone || '',
           writingStyle: foundTeam.branding?.voice?.writingStyle || '',
+          perspective: (foundTeam.branding?.voice?.perspective as 'first_person' | 'third_person') || 'first_person',
         })
       } else {
         navigate('/teams')
@@ -105,6 +108,7 @@ function TeamWritingSettingsPage() {
           voice: {
             tone: validated.tone,
             writingStyle: validated.writingStyle,
+            perspective: validated.perspective,
           },
         },
       })
@@ -214,6 +218,54 @@ function TeamWritingSettingsPage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Writing Perspective
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Choose the point of view for your blog content. This affects how the AI writes about your team and content.
+              </p>
+              <div className="space-y-3">
+                <label className="flex items-start cursor-pointer p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="perspective"
+                    value="first_person"
+                    checked={formData.perspective === 'first_person'}
+                    onChange={(e) => handleChange('perspective', e.target.value as 'first_person' | 'third_person')}
+                    disabled={submitting}
+                    className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-gray-900">First Person</span>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Write as if you're speaking directly (I, we, my, our). Best for personal blogs and direct engagement.
+                    </p>
+                  </div>
+                </label>
+                <label className="flex items-start cursor-pointer p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="perspective"
+                    value="third_person"
+                    checked={formData.perspective === 'third_person'}
+                    onChange={(e) => handleChange('perspective', e.target.value as 'first_person' | 'third_person')}
+                    disabled={submitting}
+                    className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-gray-900">Third Person</span>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Write from an outside perspective (they, the team, the author). Best for company blogs and professional content.
+                    </p>
+                  </div>
+                </label>
+              </div>
+              {errors.perspective && (
+                <p className="mt-1 text-sm text-red-600">{errors.perspective}</p>
+              )}
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
