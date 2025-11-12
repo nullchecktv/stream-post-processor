@@ -201,9 +201,7 @@ function BlogPage() {
     try {
       await episodesApi.updateBlog(id, { outline })
 
-      if (id) {
-        clearDraftFromStorage(id)
-      }
+      clearDraftFromStorage(id)
 
       showToast('Outline saved successfully', 'success')
     } catch (err) {
@@ -252,9 +250,7 @@ function BlogPage() {
       const data = await episodesApi.getBlog(id)
       setBlogData(data)
 
-      if (id) {
-        clearDraftFromStorage(id)
-      }
+      clearDraftFromStorage(id)
     } catch (err) {
       console.error('Failed to regenerate blog:', err)
 
