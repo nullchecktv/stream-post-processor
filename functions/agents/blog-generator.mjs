@@ -1,5 +1,5 @@
 import { Logger } from '@aws-lambda-powertools/logger';
-import { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { webSearchTool } from '../tools/web-search.mjs';
 import { convertToBedrockTools } from '../utils/tools.mjs';
@@ -10,7 +10,7 @@ const ddb = new DynamoDBClient();
 const tools = convertToBedrockTools([webSearchTool]);
 
 export const handler = async (event) => {
-  let tenantId, episodeId;
+  let tenantId, episodeId, userId;
 
   try {
     const detail = event?.detail;
@@ -23,6 +23,7 @@ export const handler = async (event) => {
 
     tenantId = detail.tenantId;
     episodeId = detail.episodeId;
+    userId = detail.userId;
 
     logger.info('Starting blog content generation', {
       episodeId,
@@ -58,27 +59,14 @@ export const handler = async (event) => {
 
     const episode = episodeResponse.Item ? unmarshall(episodeResponse.Item) : null;
 
-    const transcriptKey = `${tenantId}/${episodeId}/transcript.srt`;
-    let transcriptExcerpt = '';
-    try {
-      const { loadAndPreprocessTranscript } = await import('../utils/transcripts.mjs');
-      const fullTranscript = await loadAndPreprocessTranscript(transcriptKey);
-      if (fullTranscript) {
-        transcriptExcerpt = fullTranscript.substring(0, 15000);
-      }
-    } catch (err) {
-      logger.warn('Could not load transcript', {
-        error: err.message,
-        transcriptKey
-      });
-    }
+    const quotes = await loadEpisodeQuotes(tenantId, episodeId);
 
-    const brandVoice = await loadBrandVoice(tenantId, episode);
+    const brandVoice = await loadBrandVoice(tenantId, userId);
 
     await updateBlogStatus(tenantId, episodeId, 'content_generating');
 
     const systemPrompt = buildSystemPrompt(brandVoice);
-    const userPrompt = buildUserPrompt(outline, episode, transcriptExcerpt);
+    const userPrompt = buildUserPrompt(outline, episode, quotes);
 
     const content = await converse(
       process.env.MODEL_ID,
@@ -140,37 +128,10 @@ export const handler = async (event) => {
   }
 };
 
-const loadBrandVoice = async (tenantId, episode) => {
+const loadBrandVoice = async (tenantId, userId) => {
   let brandVoice = null;
 
-  if (episode?.activeTeamId || tenantId.startsWith('team#')) {
-    const teamId = episode?.activeTeamId || tenantId.replace('team#', '');
-    try {
-      const teamResponse = await ddb.send(new GetItemCommand({
-        TableName: process.env.TABLE_NAME,
-        Key: marshall({
-          pk: `team#${teamId}`,
-          sk: 'metadata'
-        })
-      }));
-
-      if (teamResponse.Item) {
-        const team = unmarshall(teamResponse.Item);
-        if (team.branding?.voice) {
-          brandVoice = team.branding.voice;
-          logger.info('Loaded team brand voice', { teamId });
-        }
-      }
-    } catch (err) {
-      logger.warn('Could not load team brand voice', {
-        error: err.message,
-        teamId
-      });
-    }
-  }
-
-  if (!brandVoice && tenantId.startsWith('user#')) {
-    const userId = tenantId.replace('user#', '');
+  if (tenantId === userId) {
     try {
       const userResponse = await ddb.send(new GetItemCommand({
         TableName: process.env.TABLE_NAME,
@@ -193,55 +154,104 @@ const loadBrandVoice = async (tenantId, episode) => {
         userId
       });
     }
+  } else {
+    try {
+      const teamResponse = await ddb.send(new GetItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: marshall({
+          pk: `team#${tenantId}`,
+          sk: 'metadata'
+        })
+      }));
+
+      if (teamResponse.Item) {
+        const team = unmarshall(teamResponse.Item);
+        if (team.branding?.voice) {
+          brandVoice = team.branding.voice;
+          logger.info('Loaded team brand voice', { teamId: tenantId });
+        }
+      }
+    } catch (err) {
+      logger.warn('Could not load team brand voice', {
+        error: err.message,
+        teamId: tenantId
+      });
+    }
   }
 
   return brandVoice;
 };
 
 const buildSystemPrompt = (brandVoice) => {
-  const tone = brandVoice?.tone || 'professional and engaging';
-  const writingStyle = brandVoice?.writingStyle || 'clear and informative with practical examples';
+  const tone = brandVoice?.tone || 'conversational and authentic';
+  const writingStyle = brandVoice?.writingStyle || 'natural storytelling with real examples';
 
-  return `You are BlogForge, an autonomous blog writer for technical content creators.
+  return `You're a writer turning episode content into blog posts that sound like they were written by an actual human, not an AI.
 
-Your job:
-1. Read the provided blog outline and episode context
-2. Research relevant topics using web search when needed
-3. Write a comprehensive blog post in the specified brand voice
-4. Include code examples, practical insights, and actionable takeaways
-5. Format content in markdown with proper headings, lists, and code blocks
+Write in a ${tone} tone with ${writingStyle}.
 
-Brand Voice Guidelines:
-- Tone: ${tone}
-- Writing Style: ${writingStyle}
+The goal is to create content that feels genuine and engaging, like you're having a conversation with someone who's interested in the topic. Avoid the typical blog post formula - no "In this post, we'll explore..." openings, no bullet-pointed lists with "Key Takeaway #1" headings, no "In conclusion" wrap-ups.
 
-Content Requirements:
-- Introduction that hooks the reader
-- Clear section structure following the outline
-- Technical accuracy with practical examples
-- Conclusion with key takeaways
-- 1500-2500 words total length
-- Proper markdown formatting
+Instead:
+- Start with something that grabs attention - a surprising fact, a relatable problem, or an interesting observation
+- Let the content flow naturally from one idea to the next
+- Use the quotes provided to support your points, weaving them into the narrative rather than dropping them in as block quotes
+- When you research something, link to it inline (like [this](url)) rather than listing citations at the end
+- Write the way people actually talk and think about these topics
+- Include code examples or technical details when they help illustrate a point, but integrate them naturally
+- End when you've said what needs to be said - no forced conclusions or summaries
 
-Use web search to:
-- Verify technical details
-- Find relevant examples
-- Research current best practices
-- Gather supporting statistics
+If you need to verify facts, find examples, or research current information, use web search. When you reference something you found, link to it naturally in the text.
 
-Writing Guidelines:
-- Write in a conversational yet authoritative voice
-- Use concrete examples and code snippets where appropriate
-- Break down complex concepts into digestible sections
-- Include actionable insights readers can apply immediately
-- Maintain consistency with the brand voice throughout
-- Use proper markdown syntax for headings (# ## ###), lists, code blocks, and emphasis
+Format in markdown:
+- Use # for the title, ## for major sections (but make them sound natural, not like a table of contents)
+- Code blocks with \`\`\`language when showing code
+- Inline code with \`backticks\` for technical terms
+- Links inline: [descriptive text](url)
+- Emphasis with *italics* or **bold** sparingly, only when it genuinely adds impact
 
-Output Format:
-Return ONLY the complete blog post content in markdown format. Do not include meta-commentary about the writing process.`;
+Aim for 1500-2500 words, but let the content dictate the length. If you've made your point well in 1400 words, stop there.
+
+Return only the blog post content in markdown. No meta-commentary, no "Here's the blog post:", just the content itself.`;
 };
 
-const buildUserPrompt = (outline, episode, transcriptExcerpt) => {
+const loadEpisodeQuotes = async (tenantId, episodeId) => {
+  try {
+    const response = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      ExpressionAttributeValues: marshall({
+        ':pk': `${tenantId}#${episodeId}`,
+        ':sk': 'data#quote#'
+      })
+    }));
+
+    if (!response.Items || response.Items.length === 0) {
+      logger.info('No quotes found for episode', { episodeId, tenantId });
+      return [];
+    }
+
+    const quotes = response.Items.map(item => unmarshall(item));
+
+    logger.info('Loaded quotes for blog generation', {
+      episodeId,
+      tenantId,
+      quoteCount: quotes.length
+    });
+
+    return quotes;
+  } catch (err) {
+    logger.error('Error loading quotes', {
+      error: err.message,
+      stack: err.stack,
+      episodeId,
+      tenantId
+    });
+    return [];
+  }
+};
+
+const buildUserPrompt = (outline, episode, quotes) => {
   const episodeContext = [];
 
   if (episode?.title) {
@@ -268,14 +278,14 @@ const buildUserPrompt = (outline, episode, transcriptExcerpt) => {
     ? `Episode Context:\n${episodeContext.join('\n')}\n\n`
     : '';
 
-  const transcriptSection = transcriptExcerpt
-    ? `Transcript Excerpt (first 15,000 characters):\n${transcriptExcerpt}\n\n`
+  const quotesSection = quotes.length > 0
+    ? `Key Quotes from Episode:\n${quotes.map(q => `- "${q.text}" - ${q.speaker} (${q.timestamp})`).join('\n')}\n\n`
     : '';
 
   return `${contextSection}Blog Outline:
 ${outline}
 
-${transcriptSection}Please write a complete blog post based on this outline. Follow the structure provided and expand each section with detailed content, examples, and insights from the episode.`;
+${quotesSection}Please write a complete blog post based on this outline. Follow the structure provided and expand each section with detailed content, examples, and insights from the episode. You can reference and incorporate the quotes above where relevant to support your points.`;
 };
 
 const updateBlogStatus = async (tenantId, episodeId, status, errorMessage = null) => {

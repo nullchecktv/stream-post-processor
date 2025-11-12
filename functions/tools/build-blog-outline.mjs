@@ -16,8 +16,10 @@ export const buildBlogOutlineTool = {
     episodeId: z.string().uuid().describe('The episode ID for which to create the blog outline'),
     outline: z.string().min(50).describe('Markdown formatted outline with sections and key points')
   }),
-  handler: async (tenantId, { episodeId, outline }) => {
+  handler: async (context, { episodeId, outline }) => {
     try {
+      const { tenantId, userId } = context;
+
       if (!tenantId) {
         logger.error('Missing tenantId in tool handler', {
           episodeId
@@ -50,6 +52,7 @@ export const buildBlogOutlineTool = {
               Detail: JSON.stringify({
                 episodeId,
                 tenantId,
+                userId,
                 timestamp: now
               })
             }
@@ -76,7 +79,7 @@ export const buildBlogOutlineTool = {
         error: err.message,
         stack: err.stack,
         episodeId,
-        tenantId
+        tenantId: context?.tenantId
       });
       return 'Something went wrong while creating blog outline';
     }

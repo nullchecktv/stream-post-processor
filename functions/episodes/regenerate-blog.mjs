@@ -12,7 +12,7 @@ const logger = new Logger({ serviceName: 'episodes' });
 
 export const handler = async (event) => {
   try {
-    const { tenantId } = event.requestContext.authorizer;
+    const { tenantId, userId } = event.requestContext.authorizer;
 
     if (!tenantId) {
       logger.error('Missing tenantId in authorizer context');
@@ -66,6 +66,7 @@ export const handler = async (event) => {
           Detail: JSON.stringify({
             episodeId,
             tenantId,
+            userId,
             timestamp: now
           })
         }

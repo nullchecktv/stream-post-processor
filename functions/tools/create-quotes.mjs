@@ -33,8 +33,10 @@ export const createQuoteTool = {
       })
     ).min(1).max(MAX_QUOTES_PER_REQUEST)
   }),
-  handler: async (tenantId, { episodeId, quotes }) => {
+  handler: async (context, { episodeId, quotes }) => {
     try {
+      const { tenantId } = context;
+
       if (!tenantId) {
         logger.error('Missing tenantId in tool handler', {
           episodeId

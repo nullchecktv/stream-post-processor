@@ -1,5 +1,5 @@
 const { mockClient } = require('aws-sdk-client-mock');
-const { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand, QueryCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall } = require('@aws-sdk/util-dynamodb');
 
 jest.mock('@aws-lambda-powertools/logger', () => {
@@ -7,9 +7,7 @@ jest.mock('@aws-lambda-powertools/logger', () => {
   return { Logger };
 });
 
-jest.mock('../../../functions/utils/transcripts.mjs', () => ({
-  loadAndPreprocessTranscript: jest.fn()
-}));
+
 
 jest.mock('../../../functions/utils/agents.mjs', () => ({
   converse: jest.fn()
@@ -33,7 +31,6 @@ jest.mock('../../../functions/tools/web-search.mjs', () => {
 const ddbMock = mockClient(DynamoDBClient);
 
 const { handler } = require('../../../functions/agents/blog-generator.mjs');
-const { loadAndPreprocessTranscript } = require('../../../functions/utils/transcripts.mjs');
 const { converse } = require('../../../functions/utils/agents.mjs');
 const { Logger } = require('@aws-lambda-powertools/logger');
 
@@ -76,10 +73,27 @@ describe('Blog Generator Agent', () => {
             description: 'Test description',
             themes: ['technology', 'programming']
           })
-        })
-        .resolvesOnce({});
+        });
 
-      loadAndPreprocessTranscript.mockResolvedValue('This is a test transcript with enough content to be useful.');
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          marshall({
+            pk: 'tenant-456#episode-123',
+            sk: 'data#quote#quote-1',
+            text: 'This is a great insight about technology',
+            speaker: 'Allen',
+            timestamp: '00:15:30'
+          }),
+          marshall({
+            pk: 'tenant-456#episode-123',
+            sk: 'data#quote#quote-2',
+            text: 'Programming is all about solving problems',
+            speaker: 'Andres',
+            timestamp: '00:22:45'
+          })
+        ]
+      });
+
       converse.mockResolvedValue('# Generated Blog Post\n\nThis is the generated content with over 1500 words of detailed information about the topic discussed in the episode.');
 
       ddbMock.on(UpdateItemCommand).resolves({});
@@ -107,6 +121,7 @@ describe('Blog Generator Agent', () => {
       };
 
       ddbMock.on(GetItemCommand).resolves({});
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       const result = await handler(event);
 
@@ -118,6 +133,8 @@ describe('Blog Generator Agent', () => {
       const event = {
         detail: {}
       };
+
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       const result = await handler(event);
 
@@ -149,10 +166,9 @@ describe('Blog Generator Agent', () => {
             sk: 'metadata',
             title: 'Test Episode'
           })
-        })
-        .resolvesOnce({});
+        });
 
-      loadAndPreprocessTranscript.mockResolvedValue('Test transcript');
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
       converse.mockRejectedValue(new Error('Model invocation failed'));
 
       ddbMock.on(UpdateItemCommand).resolves({});
@@ -167,50 +183,69 @@ describe('Blog Generator Agent', () => {
       const event = {
         detail: {
           episodeId: 'episode-123',
-          tenantId: 'team#team-789',
+          tenantId: 'team-789',
+          userId: 'user-456',
           timestamp: '2025-01-15T10:00:00Z'
         }
       };
 
-      ddbMock.on(GetItemCommand)
-        .resolvesOnce({
-          Item: marshall({
-            pk: 'team#team-789#episode-123',
-            sk: 'data#blog#outline',
-            outline: '# Blog Title\n\n## Introduction',
-            status: 'outline_created'
-          })
+      ddbMock.on(GetItemCommand, {
+        TableName: 'test-table',
+        Key: marshall({
+          pk: 'team-789#episode-123',
+          sk: 'data#blog#outline'
         })
-        .resolvesOnce({
-          Item: marshall({
-            pk: 'team#team-789#episode-123',
-            sk: 'metadata',
-            title: 'Test Episode',
-            activeTeamId: 'team-789'
-          })
+      }).resolves({
+        Item: marshall({
+          pk: 'team-789#episode-123',
+          sk: 'data#blog#outline',
+          outline: '# Blog Title\n\n## Introduction',
+          status: 'outline_created'
         })
-        .resolvesOnce({
-          Item: marshall({
-            pk: 'team#team-789',
-            sk: 'metadata',
-            name: 'Test Team',
-            branding: {
-              colors: {
-                primary: '#3B82F6',
-                secondary: '#8B5CF6',
-                background: '#1F2937',
-                text: '#F9FAFB'
-              },
-              fontFamily: 'Inter',
-              voice: {
-                tone: 'casual and humorous',
-                writingStyle: 'storytelling with examples'
-              }
-            }
-          })
-        });
+      });
 
-      loadAndPreprocessTranscript.mockResolvedValue('Test transcript');
+      ddbMock.on(GetItemCommand, {
+        TableName: 'test-table',
+        Key: marshall({
+          pk: 'team-789#episode-123',
+          sk: 'metadata'
+        })
+      }).resolves({
+        Item: marshall({
+          pk: 'team-789#episode-123',
+          sk: 'metadata',
+          title: 'Test Episode'
+        })
+      });
+
+      ddbMock.on(GetItemCommand, {
+        TableName: 'test-table',
+        Key: marshall({
+          pk: 'team#team-789',
+          sk: 'metadata'
+        })
+      }).resolves({
+        Item: marshall({
+          pk: 'team#team-789',
+          sk: 'metadata',
+          name: 'Test Team',
+          branding: {
+            colors: {
+              primary: '#3B82F6',
+              secondary: '#8B5CF6',
+              background: '#1F2937',
+              text: '#F9FAFB'
+            },
+            fontFamily: 'Inter',
+            voice: {
+              tone: 'casual and humorous',
+              writingStyle: 'storytelling with examples'
+            }
+          }
+        })
+      });
+
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
       converse.mockResolvedValue('# Generated Blog Post\n\nContent here');
 
       ddbMock.on(UpdateItemCommand).resolves({});
@@ -225,7 +260,82 @@ describe('Blog Generator Agent', () => {
       expect(systemPrompt).toContain('storytelling with examples');
     });
 
-    test('should handle missing transcript gracefully', async () => {
+    test('should load user brand voice when no team context', async () => {
+      const event = {
+        detail: {
+          episodeId: 'episode-123',
+          tenantId: 'user-456',
+          userId: 'user-456',
+          timestamp: '2025-01-15T10:00:00Z'
+        }
+      };
+
+      ddbMock.on(GetItemCommand, {
+        TableName: 'test-table',
+        Key: marshall({
+          pk: 'user-456#episode-123',
+          sk: 'data#blog#outline'
+        })
+      }).resolves({
+        Item: marshall({
+          pk: 'user-456#episode-123',
+          sk: 'data#blog#outline',
+          outline: '# Blog Title\n\n## Introduction',
+          status: 'outline_created'
+        })
+      });
+
+      ddbMock.on(GetItemCommand, {
+        TableName: 'test-table',
+        Key: marshall({
+          pk: 'user-456#episode-123',
+          sk: 'metadata'
+        })
+      }).resolves({
+        Item: marshall({
+          pk: 'user-456#episode-123',
+          sk: 'metadata',
+          title: 'Test Episode'
+        })
+      });
+
+      ddbMock.on(GetItemCommand, {
+        TableName: 'test-table',
+        Key: marshall({
+          pk: 'user#user-456',
+          sk: 'profile'
+        })
+      }).resolves({
+        Item: marshall({
+          pk: 'user#user-456',
+          sk: 'profile',
+          email: 'user@example.com',
+          name: 'Test User',
+          branding: {
+            voice: {
+              tone: 'technical and precise',
+              writingStyle: 'detailed with code examples'
+            }
+          }
+        })
+      });
+
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+      converse.mockResolvedValue('# Generated Blog Post\n\nContent here');
+
+      ddbMock.on(UpdateItemCommand).resolves({});
+      ddbMock.on(PutItemCommand).resolves({});
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(converse).toHaveBeenCalled();
+      const systemPrompt = converse.mock.calls[0][1];
+      expect(systemPrompt).toContain('technical and precise');
+      expect(systemPrompt).toContain('detailed with code examples');
+    });
+
+    test('should handle missing quotes gracefully', async () => {
       const event = {
         detail: {
           episodeId: 'episode-123',
@@ -249,10 +359,9 @@ describe('Blog Generator Agent', () => {
             sk: 'metadata',
             title: 'Test Episode'
           })
-        })
-        .resolvesOnce({});
+        });
 
-      loadAndPreprocessTranscript.mockRejectedValue(new Error('Transcript not found'));
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
       converse.mockResolvedValue('# Generated Blog Post\n\nContent here');
 
       ddbMock.on(UpdateItemCommand).resolves({});
@@ -387,10 +496,9 @@ describe('Blog Generator Agent', () => {
             sk: 'metadata',
             title: 'Test Episode'
           })
-        })
-        .resolvesOnce({});
+        });
 
-      loadAndPreprocessTranscript.mockResolvedValue('Test transcript');
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
       converse.mockResolvedValue('# Generated content');
 
       ddbMock.on(UpdateItemCommand).resolves({});
@@ -426,10 +534,9 @@ describe('Blog Generator Agent', () => {
             sk: 'metadata',
             title: 'Test Episode'
           })
-        })
-        .resolvesOnce({});
+        });
 
-      loadAndPreprocessTranscript.mockResolvedValue('Test transcript');
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
       converse.mockRejectedValue(new Error('Generation failed'));
 
       ddbMock.on(UpdateItemCommand).resolves({});

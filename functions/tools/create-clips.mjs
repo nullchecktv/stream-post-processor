@@ -45,8 +45,10 @@ export const createClipTool = {
       })
     ).min(1).max(MAX_CLIPS_PER_REQUEST)
   }),
-  handler: async (tenantId, { episodeId, clips }) => {
+  handler: async (context, { episodeId, clips }) => {
     try {
+      const { tenantId } = context;
+
       if (!tenantId) {
         logger.error('Missing tenantId in tool handler', {
           episodeId

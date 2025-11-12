@@ -24,15 +24,30 @@ This feature enables automatic generation of blog posts from episode transcripts
 
 #### Acceptance Criteria
 
-1. WHEN a User updates their profile, THE System SHALL store tone and writing style fields in the user profile record
-2. WHEN a User updates team settings, THE System SHALL store tone and writing style fields in the team record
+1. WHEN a User updates their profile, THE System SHALL store tone, writing style, and perspective fields in the user profile record
+2. WHEN a User updates team settings, THE System SHALL store tone, writing style, and perspective fields in the team record
 3. THE System SHALL retrieve brand voice settings from the active tenant context during blog generation
 4. THE System SHALL validate that tone and writing style fields contain non-empty string values when provided
-5. WHERE a User belongs to a team, THE System SHALL use team brand voice settings over individual user settings
-6. WHEN a User completes onboarding, THE System SHALL present brand voice configuration as an optional step
-7. WHEN a User skips brand voice configuration during onboarding, THE System SHALL allow configuration later in profile settings
+5. THE System SHALL validate that perspective field contains one of the enum values: first_person or third_person
+6. WHERE a User belongs to a team, THE System SHALL use team brand voice settings over individual user settings
+7. WHEN a User completes onboarding, THE System SHALL present brand voice configuration as an optional step
+8. WHEN a User skips brand voice configuration during onboarding, THE System SHALL allow configuration later in profile settings
+9. THE System SHALL use first_person as the default perspective value when not explicitly configured
 
 ### Requirement 2
+
+**User Story:** As a content creator, I want to configure the writing perspective for my blog posts, so that the content is written from my preferred point of view
+
+#### Acceptance Criteria
+
+1. THE System SHALL provide a perspective configuration option with two enum values: first_person and third_person
+2. WHEN perspective is set to first_person, THE System SHALL instruct the Blog Generator Agent to write using "I", "we", "my", and "our" pronouns
+3. WHEN perspective is set to third_person, THE System SHALL instruct the Blog Generator Agent to write using "they", "the team", "the author", and avoid first-person pronouns
+4. THE System SHALL display a clear explanation in the UI that first_person perspective writes as if the author is speaking directly, while third_person writes about the author or team from an outside perspective
+5. THE System SHALL include the perspective setting in the system prompt provided to the Blog Generator Agent
+6. WHEN no perspective is configured, THE System SHALL default to first_person perspective
+
+### Requirement 3
 
 **User Story:** As a content creator, I want the AI to automatically create a blog outline from my episode transcript, so that I have a structured starting point for content creation
 
@@ -44,7 +59,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 4. THE System SHALL set blog status to outline_created when storing the outline
 5. THE System SHALL record a timestamp for outline creation in the blog record
 
-### Requirement 3
+### Requirement 4
 
 **User Story:** As a content creator, I want the system to automatically generate a full blog post from the outline, so that I can publish content without manual writing
 
@@ -59,7 +74,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 7. THE System SHALL set blog status to content_generated when storing the content
 8. THE System SHALL record a timestamp for content generation in the blog record
 
-### Requirement 4
+### Requirement 5
 
 **User Story:** As a content creator, I want to retrieve my episode's blog post, so that I can review the generated content
 
@@ -72,7 +87,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 5. THE System SHALL return HTTP status 200 with blog data when the blog exists
 6. THE System SHALL include blog status in the response
 
-### Requirement 5
+### Requirement 6
 
 **User Story:** As a content creator, I want to edit the blog outline or content directly, so that I can refine the generated content
 
@@ -87,7 +102,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 7. THE System SHALL return HTTP status 200 with updated blog data on successful update
 8. THE System SHALL return HTTP status 404 when attempting to update a non-existent blog
 
-### Requirement 6
+### Requirement 7
 
 **User Story:** As a content creator, I want to delete a blog post, so that I can remove unwanted content
 
@@ -98,7 +113,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 3. THE System SHALL return HTTP status 204 on successful deletion
 4. THE System SHALL return HTTP status 404 when attempting to delete a non-existent blog
 
-### Requirement 7
+### Requirement 8
 
 **User Story:** As a content creator, I want to regenerate the blog content from an edited outline, so that I can get fresh content based on my changes
 
@@ -111,7 +126,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 5. THE System SHALL return HTTP status 202 to indicate accepted for processing
 6. THE System SHALL include a status field in the response indicating regeneration has started
 
-### Requirement 8
+### Requirement 9
 
 **User Story:** As a content creator, I want to view the blog outline and content in the UI, so that I can review the generated content visually
 
@@ -125,7 +140,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 6. WHEN a User selects preview mode, THE System SHALL render the markdown as formatted HTML
 7. THE System SHALL display the preview as read-only content
 
-### Requirement 9
+### Requirement 10
 
 **User Story:** As a content creator, I want to regenerate the blog post when I've edited the outline, so that the content reflects my structural changes
 
@@ -138,7 +153,7 @@ This feature enables automatic generation of blog posts from episode transcripts
 5. THE System SHALL display a loading indicator during regeneration
 6. WHEN regeneration completes, THE System SHALL refresh the displayed content
 
-### Requirement 10
+### Requirement 11
 
 **User Story:** As a content creator, I want to track the status of blog generation, so that I know when content is ready
 

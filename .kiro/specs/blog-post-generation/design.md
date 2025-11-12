@@ -52,7 +52,8 @@ Episode Transcript → Clip Detector Agent → buildBlogOutline Tool → DynamoD
     fontFamily: "Inter",
     voice: {
       tone: "professional and conversational",
-      writingStyle: "technical with practical examples"
+      writingStyle: "technical with practical examples",
+      perspective: "first_person"
     }
   },
   preferences: { ... },
@@ -78,7 +79,8 @@ Episode Transcript → Clip Detector Agent → buildBlogOutline Tool → DynamoD
     fontFamily: "Inter",
     voice: {
       tone: "casual and humorous",
-      writingStyle: "storytelling with code examples"
+      writingStyle: "storytelling with code examples",
+      perspective: "third_person"
     }
   },
   ownerId: "user-uuid",
@@ -87,6 +89,19 @@ Episode Transcript → Clip Detector Agent → buildBlogOutline Tool → DynamoD
   updatedAt: "2025-01-15T10:30:00Z"
 }
 ```
+
+#### Perspective Configuration
+The `perspective` field controls the point of view used in blog content:
+
+- **first_person**: Content written using "I", "we", "my", "our" - as if the author is speaking directly to the reader
+  - Example: "In my experience, I've found that..."
+  - Use case: Personal blogs, individual creator content, direct engagement
+
+- **third_person**: Content written using "they", "the team", "the author" - from an outside perspective
+  - Example: "The team discovered that..."
+  - Use case: Company blogs, team content, professional/journalistic tone
+
+Default value is `first_person` when not explicitly configured.
 
 #### API Endpoints for Brand Voice
 - `PUT /users/profile` - Update user brand voice settings
@@ -144,6 +159,18 @@ Your job:
 Brand Voice Guidelines:
 - Tone: {tone from tenant settings}
 - Writing Style: {writingStyle from tenant settings}
+- Perspective: {perspective from tenant settings}
+
+Writing Perspective:
+{if perspective is first_person}
+- Write using first-person pronouns: "I", "we", "my", "our"
+- Speak directly as the author/creator
+- Example: "In my experience, I've found that..."
+{if perspective is third_person}
+- Write using third-person pronouns: "they", "the team", "the author"
+- Avoid first-person pronouns
+- Write from an outside perspective
+- Example: "The team discovered that..."
 
 Content Requirements:
 - Introduction that hooks the reader
@@ -327,6 +354,18 @@ Content-Type: application/json
 
 ### 7. User Interface Components
 
+#### Brand Voice Configuration UI
+**Location**: User profile settings and team settings pages
+
+**Components**:
+- `BrandVoiceForm`: Form for configuring tone, writing style, and perspective
+- `PerspectiveSelector`: Radio buttons or dropdown for first_person/third_person selection
+- `PerspectiveExplanation`: Help text explaining the difference between perspectives
+
+**Perspective UI Text**:
+- **First Person**: "Write as if you're speaking directly (I, we, my, our). Best for personal blogs and direct engagement."
+- **Third Person**: "Write from an outside perspective (they, the team, the author). Best for company blogs and professional content."
+
 #### Blog Management Page
 **Route**: `/episodes/{episodeId}/blog`
 
@@ -354,7 +393,7 @@ interface BlogData {
   updatedAt: string;
 }
 
-type BlogStatus = 
+type BlogStatus =
   | 'outline_created'
   | 'content_generating'
   | 'content_generated'

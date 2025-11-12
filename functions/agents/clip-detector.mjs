@@ -53,13 +53,14 @@ export const handler = async (event) => {
       throw new Error('Could not find transcript');
     }
 
-    let episodeMeta;
+    let episodeMeta, userId;
     try {
       const episodeResponse = await ddb.send(new GetItemCommand({
         TableName: process.env.TABLE_NAME,
         Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
       }));
       episodeMeta = episodeResponse?.Item ? unmarshall(episodeResponse.Item) : undefined;
+      userId = episodeMeta?.userId;
     } catch (e) {
       logger.warn('Failed to load episode metadata for prompt enrichment', {
         error: e.message,
@@ -146,36 +147,43 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 
 ### Blog outline generation
 
-After creating clips, you must also create a blog post outline using the **buildBlogOutline** tool. The outline should:
+After creating clips, you must also create a blog post outline using the **buildBlogOutline** tool.
 
-* Be formatted in markdown with clear heading hierarchy (# for title, ## for main sections, ### for subsections)
-* Include an engaging title that captures the episode's main theme
-* Start with an introduction section that hooks the reader
-* Organize content into 4-6 main sections based on the episode's key topics and discussions
-* Include bullet points under each section highlighting specific points, insights, or quotes from the episode
-* End with a conclusion section that summarizes key takeaways
-* Be 200-500 words in outline form (not full prose)
-* Focus on the most valuable and engaging content from the transcript
-* Align with the episode's description and themes when provided
+**Critical: This is NOT a summary or recap of the episode.** The blog post should take 1-2 key ideas from the episode and expand on them with depth and new perspective. Think of it as using the episode as a jumping-off point to explore a concept more thoroughly.
+
+The outline should:
+
+* Pick 1-2 core insights or takeaways from the episode that deserve deeper exploration
+* Structure the post to expand on these ideas, not just recap what was said
+* Include sections that go beyond the episode: implications, related concepts, practical applications, contrarian viewpoints
+* Use episode quotes and moments as supporting evidence, not as the main content
+* Be formatted in markdown with natural section headings (not "Introduction", "Conclusion", etc.)
+* Be 200-400 words in outline form
+* Feel like new content that adds value beyond just listening to the episode
+
+**What this means in practice:**
+- If the episode discussed a technical pattern, the blog explores when to use it, when not to, and what alternatives exist
+- If the episode had a debate, the blog examines the underlying principles and broader context
+- If the episode shared an experience, the blog extracts the lesson and applies it to different scenarios
 
 Example outline structure:
 
-# [Engaging Blog Post Title]
+# [Title that promises insight, not recap]
 
-## Introduction
-- Hook that draws readers in
-- Brief context about the episode topic
-- What readers will learn
+## [Natural section heading about the core idea]
+- The key insight from the episode
+- Why this matters more than people realize
+- A deeper angle not fully explored in the episode
 
-## [Main Topic 1]
-- Key point or insight
-- Supporting detail or quote
-- Practical application or example
+## [Section expanding on implications]
+- What this means for [specific audience/use case]
+- Related concepts or patterns
+- Common misconceptions
 
-## [Main Topic 2]
-- Key point or insight
-- Supporting detail or quote
-- Practical application or example
+## [Section with practical application]
+- How to apply this in real scenarios
+- What to watch out for
+- When this approach breaks down
 
 ## [Additional sections as needed]
 
@@ -275,7 +283,7 @@ ${episodeContextForUser ? `episodeContext:\n${episodeContextForUser}\n` : ''}
 transcript:
 ${transcript}
 `;
-    const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId });
+    const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId, userId });
 
     const now = new Date().toISOString();
     const newStatus = 'analyzed';

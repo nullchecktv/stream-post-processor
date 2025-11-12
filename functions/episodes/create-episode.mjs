@@ -17,7 +17,7 @@ export const handler = async (event) => {
       return validation.error;
     }
 
-    const { tenantId, data } = validation;
+    const { tenantId, userId, data } = validation;
     const { title, episodeNumber, description, airDate, platforms, themes, seriesName } = data;
 
     const now = new Date().toISOString();
@@ -35,6 +35,7 @@ export const handler = async (event) => {
       episodeNumber,
       status: initialStatus,
       statusHistory,
+      userId,
       ...(description && { description }),
       ...(airDate && { airDate }),
       ...(platforms?.length && { platforms }),

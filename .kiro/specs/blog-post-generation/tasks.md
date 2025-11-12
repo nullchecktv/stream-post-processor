@@ -1,17 +1,20 @@
 # Implementation Plan
 
-- [x] 1. Extend data models for brand voice configuration
-  - Add voice object under branding in user profile schema with tone and writingStyle fields
-  - Add voice object under branding in team metadata schema with tone and writingStyle fields
+- [ ] 1. Extend data models for brand voice configuration
+  - Add voice object under branding in user profile schema with tone, writingStyle, and perspective fields
+  - Add voice object under branding in team metadata schema with tone, writingStyle, and perspective fields
   - Update DynamoDB item structures to include new fields
-  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+  - Add perspective enum validation (first_person, third_person)
+  - Set default perspective value to first_person
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.9, 2.1_
 
-- [x] 2. Create brand voice API endpoints
-  - Implement PUT /users/profile endpoint to update user brand voice settings
-  - Implement PUT /teams/{teamId} endpoint to update team brand voice settings
-  - Add validation for tone and writingStyle fields using Zod schemas
-  - Update existing GET endpoints to return brand voice data
-  - _Requirements: 1.1, 1.2, 1.4_
+- [ ] 2. Create brand voice API endpoints
+  - Implement PUT /users/profile endpoint to update user brand voice settings including perspective
+  - Implement PUT /teams/{teamId} endpoint to update team brand voice settings including perspective
+  - Add validation for tone, writingStyle, and perspective fields using Zod schemas
+  - Add enum validation for perspective field (first_person, third_person)
+  - Update existing GET endpoints to return brand voice data with perspective
+  - _Requirements: 1.1, 1.2, 1.4, 1.5_
 
 - [x] 3. Implement buildBlogOutline tool
   - Create tool definition with Zod schema for episodeId and outline parameters
@@ -35,21 +38,24 @@
   - Configure search result limits and filtering
   - _Requirements: 3.2, 3.3_
 
-- [x] 6. Implement Blog Generator Agent Lambda function
+- [ ] 6. Implement Blog Generator Agent Lambda function
   - Create new Lambda function at functions/agents/blog-generator.mjs
   - Configure EventBridge trigger for BlogOutlineCreated events
   - Implement agent initialization with amazon.nova-pro-v1:0 model
   - Add web search tool to agent's tool array
   - Load blog outline from DynamoDB
   - Load episode metadata and transcript context
-  - Load tenant brand voice settings from user/team profile
+  - Load tenant brand voice settings from user/team profile including perspective
+  - Build system prompt with perspective-specific instructions
+  - Add conditional logic for first_person vs third_person perspective in prompt
+  - Default to first_person perspective if not configured
   - Update blog status to content_generating before generation
   - Invoke Bedrock converse with system prompt and context
   - Store generated content in DynamoDB with correct pk/sk structure
   - Update status to content_generated on success
   - Update status to failed on error with error details
   - Add comprehensive error handling and logging
-  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+  - _Requirements: 2.2, 2.3, 2.5, 2.6, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
 - [x] 7. Create GET /episodes/{episodeId}/blog endpoint
   - Create Lambda function at functions/episodes/get-blog.mjs
@@ -164,14 +170,18 @@
   - Store brand voice settings when provided during onboarding
   - _Requirements: 1.1, 1.6, 1.7_
 
-- [x] 19. Add brand voice configuration UI to settings
+- [ ] 19. Add brand voice configuration UI to settings
   - Add brand voice fields to user profile settings page
   - Add brand voice fields to team settings page
-  - Create form inputs for tone and writingStyle
+  - Create form inputs for tone, writingStyle, and perspective
+  - Add perspective selector with radio buttons or dropdown (first_person, third_person)
+  - Add clear explanation text for each perspective option
+  - Display help text: "First Person: Write as if you're speaking directly (I, we, my, our). Best for personal blogs and direct engagement."
+  - Display help text: "Third Person: Write from an outside perspective (they, the team, the author). Best for company blogs and professional content."
   - Add validation for required fields
-  - Send PUT requests to update brand voice settings
+  - Send PUT requests to update brand voice settings including perspective
   - Display success/error messages after save
-  - _Requirements: 1.1, 1.2_
+  - _Requirements: 1.1, 1.2, 2.4_
 
 - [x] 20. Implement error handling and user feedback
   - Add error boundary for blog page

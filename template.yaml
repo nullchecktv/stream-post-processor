@@ -34,6 +34,10 @@ Parameters:
     Type: String
     Default: ""
     Description: Momento cache name for Topics
+  SerpApiKey:
+    Type: String
+    Default: ""
+    Description: API Key for Serp (web search API)
 
 Metadata:
   esbuild-properties: &esbuild-properties
@@ -466,6 +470,7 @@ Resources:
           TABLE_NAME: !Ref StreamPostProcessingTable
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
+          SERPAPI_KEY: !Ref SerpApiKey
       Events:
         BlogOutlineCreated:
           Type: EventBridgeRule
