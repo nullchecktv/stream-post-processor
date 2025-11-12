@@ -36,6 +36,7 @@ const TeamsListPage = lazy(() => import('./pages/TeamsListPage'))
 const TeamDetailPage = lazy(() => import('./pages/TeamDetailPage'))
 const TeamGeneralSettingsPage = lazy(() => import('./pages/TeamGeneralSettingsPage'))
 const TeamBrandingSettingsPage = lazy(() => import('./pages/TeamBrandingSettingsPage'))
+const TeamWritingSettingsPage = lazy(() => import('./pages/TeamWritingSettingsPage'))
 const TeamMembersPage = lazy(() => import('./pages/TeamMembersPage'))
 const ActivityPage = lazy(() => import('./pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
@@ -83,6 +84,7 @@ function App() {
                                 <Route path="/teams/:teamId/settings" element={<TeamLayout />}>
                                   <Route path="general" element={<TeamGeneralSettingsPage />} />
                                   <Route path="branding" element={<TeamBrandingSettingsPage />} />
+                                  <Route path="writing" element={<TeamWritingSettingsPage />} />
                                 </Route>
                                 <Route path="/teams/:teamId/members" element={<TeamMembersPage />} />
                               </Route>
