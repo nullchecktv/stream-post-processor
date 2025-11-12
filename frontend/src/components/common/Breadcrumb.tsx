@@ -56,6 +56,8 @@ export function Breadcrumb() {
         breadcrumbs.push({ label: 'General' })
       } else if (segment === 'branding' && pathSegments[i - 1] === 'settings') {
         breadcrumbs.push({ label: 'Branding' })
+      } else if (segment === 'writing' && pathSegments[i - 1] === 'settings') {
+        breadcrumbs.push({ label: 'Writing' })
       } else if (segment === 'members' && pathSegments[i - 1]) {
         breadcrumbs.push({ label: 'Members' })
       } else if (pathSegments[i - 1] === 'teams' && segment !== 'settings' && segment !== 'members') {
