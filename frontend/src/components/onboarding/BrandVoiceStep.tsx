@@ -31,11 +31,8 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
     try {
       await usersApi.updateProfile({
         branding: {
-          voice: {
-            tone: data.tone,
-            writingStyle: data.writingStyle
-          }
-        }
+          voice: data
+        } as any
       })
       onComplete()
     } catch (err) {
