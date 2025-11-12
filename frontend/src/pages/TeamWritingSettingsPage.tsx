@@ -95,7 +95,13 @@ function TeamWritingSettingsPage() {
 
       await updateTeam(team.id, {
         branding: {
-          ...team.branding,
+          colors: team.branding?.colors || {
+            primary: '#3B82F6',
+            secondary: '#8B5CF6',
+            background: '#1F2937',
+            text: '#F9FAFB',
+          },
+          fontFamily: team.branding?.fontFamily || 'Inter',
           voice: {
             tone: validated.tone,
             writingStyle: validated.writingStyle,
