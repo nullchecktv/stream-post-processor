@@ -2,6 +2,7 @@ import { DynamoDBClient, QueryCommand, BatchGetItemCommand } from '@aws-sdk/clie
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
+import { MEMBERSHIP_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'teams' });
@@ -9,7 +10,6 @@ const logger = new Logger({ serviceName: 'teams' });
 export const handler = async (event) => {
   try {
     const { userId } = event.requestContext.authorizer;
-
     if (!userId) {
       logger.error('Missing userId in authorizer context');
       return formatResponse(401, { error: 'Unauthorized' });
@@ -34,7 +34,7 @@ export const handler = async (event) => {
 
     const memberships = membershipsResponse.Items.map(item => unmarshall(item));
     const activeTeamIds = memberships
-      .filter(membership => membership.status === 'active')
+      .filter(membership => membership.status === MEMBERSHIP_STATUS.ACTIVE)
       .map(membership => membership.teamId);
 
     if (activeTeamIds.length === 0) {

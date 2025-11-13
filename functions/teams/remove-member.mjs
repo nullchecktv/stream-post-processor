@@ -4,7 +4,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 import { validatePathParameters, validateQueryParameters, requireTeamMember, requireTeamExists, checkExists } from '../utils/validation.mjs';
-import { TeamSchemas } from '../utils/schemas.mjs';
+import { TeamPathParamsWithUserSchema, TeamRemoveMemberQuerySchema, MEMBERSHIP_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
@@ -19,12 +19,12 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParametersWithUser);
+    const pathValidation = await validatePathParameters(event, TeamPathParamsWithUserSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const queryValidation = await validateQueryParameters(event, TeamSchemas.removeMemberQuery);
+    const queryValidation = await validateQueryParameters(event, TeamRemoveMemberQuerySchema);
     if (!queryValidation.success) {
       return queryValidation.error;
     }
@@ -69,7 +69,7 @@ export const handler = async (event) => {
           '#status': 'status'
         },
         ExpressionAttributeValues: marshall({
-          ':status': 'inactive',
+          ':status': MEMBERSHIP_STATUS.REMOVED,
           ':updatedAt': new Date().toISOString()
         }),
         ConditionExpression: 'attribute_exists(pk)'

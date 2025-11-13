@@ -4,6 +4,7 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { removeNotificationsByInvitation } from '../utils/notifications.mjs';
+import { MEMBERSHIP_STATUS, INVITATION_STATUS } from '../../schemas/index.mjs';
 import { randomUUID } from 'crypto';
 
 const ddb = new DynamoDBClient();
@@ -68,7 +69,7 @@ export const handler = async (event) => {
     }
 
     // Check if invitation is still valid
-    if (invitation.status !== 'pending') {
+    if (invitation.status !== INVITATION_STATUS.PENDING) {
       return formatResponse(409, { message: `Invitation has already been ${invitation.status}` });
     }
 
@@ -76,6 +77,30 @@ export const handler = async (event) => {
     const now = new Date();
     const expiresAt = new Date(invitation.expiresAt);
     if (now > expiresAt) {
+      // Update invitation status to expired
+      try {
+        await ddb.send(new UpdateItemCommand({
+          TableName: process.env.TABLE_NAME,
+          Key: marshall({
+            pk: `invitation#${invitationId}`,
+            sk: 'metadata'
+          }),
+          UpdateExpression: 'SET #status = :status',
+          ExpressionAttributeNames: {
+            '#status': 'status'
+          },
+          ExpressionAttributeValues: marshall({
+            ':status': INVITATION_STATUS.EXPIRED
+          })
+        }));
+      } catch (error) {
+        logger.error('Failed to update invitation status to expired', {
+          error: error.message,
+          stack: error.stack,
+          invitationId
+        });
+      }
+
       // Clean up expired invitation notifications
       if (invitation.notificationId && invitation.invitedUserId) {
         try {
@@ -119,9 +144,9 @@ export const handler = async (event) => {
           '#status': 'status'
         },
         ExpressionAttributeValues: marshall({
-          ':status': 'accepted',
+          ':status': INVITATION_STATUS.ACCEPTED,
           ':acceptedAt': updateTime,
-          ':pendingStatus': 'pending'
+          ':pendingStatus': INVITATION_STATUS.PENDING
         }),
         ConditionExpression: '#status = :pendingStatus'
       }));
@@ -139,7 +164,7 @@ export const handler = async (event) => {
         email: userProfile?.email || invitation.email,
         name: userProfile?.name,
         role: invitation.role,
-        status: 'active',
+        status: MEMBERSHIP_STATUS.ACTIVE,
         joinedAt: updateTime,
         createdAt: updateTime
       };
@@ -193,9 +218,9 @@ export const handler = async (event) => {
           '#status': 'status'
         },
         ExpressionAttributeValues: marshall({
-          ':status': 'rejected',
+          ':status': INVITATION_STATUS.DECLINED,
           ':rejectedAt': updateTime,
-          ':pendingStatus': 'pending'
+          ':pendingStatus': INVITATION_STATUS.PENDING
         }),
         ConditionExpression: '#status = :pendingStatus'
       }));

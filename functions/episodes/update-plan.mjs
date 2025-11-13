@@ -4,7 +4,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
-import { PlanSchemas } from '../utils/schemas.mjs';
+import { PlanUpdateSchema, PlanPathParamsSchema } from '../../schemas/index.mjs';
 import { addStatusEntry } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
@@ -13,12 +13,12 @@ const logger = new Logger({ serviceName: 'episodes' });
 
 export const handler = async (event) => {
   try {
-    const validation = validateRequest(event, PlanSchemas.update);
+    const validation = validateRequest(event, PlanUpdateSchema);
     if (!validation.success) {
       return validation.error;
     }
 
-    const pathValidation = await validatePathParameters(event, PlanSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, PlanPathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }

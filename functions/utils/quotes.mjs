@@ -1,10 +1,6 @@
-export const QUOTE_STATUS = {
-  PROPOSED: 'proposed',
-  CREATED: 'created',
-  FAILED: 'failed',
-  APPROVED: 'approved',
-  REJECTED: 'rejected'
-};
+import { QUOTE_STATUS } from '../../schemas/quotes.mjs';
+
+export { QUOTE_STATUS };
 
 export const createQuoteKey = (tenantId, episodeId, quoteId) => ({
   pk: `${tenantId}#${episodeId}`,

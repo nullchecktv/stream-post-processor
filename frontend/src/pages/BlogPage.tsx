@@ -136,7 +136,7 @@ function BlogPage() {
   useEffect(() => {
     if (!blogData) return
 
-    const isGenerating = blogData.status === 'content_generating' || blogData.status === 'regenerating'
+    const isGenerating = blogData.status === 'Processing'
 
     if (isGenerating && !pollingIntervalRef.current) {
       pollingIntervalRef.current = setInterval(async () => {
@@ -145,7 +145,7 @@ function BlogPage() {
           setBlogData(data)
           setEditedOutline(data.outline || '')
 
-          if (data.status === 'content_generated') {
+          if (data.status === 'Created') {
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current)
               pollingIntervalRef.current = null
@@ -345,7 +345,7 @@ function BlogPage() {
 
   const currentContent = viewMode === 'outline' ? editedOutline : blogData.content
   const hasContent = viewMode === 'outline' ? !!blogData.outline : !!blogData.content
-  const isGenerating = blogData.status === 'content_generating' || blogData.status === 'regenerating'
+  const isGenerating = blogData.status === 'Processing'
 
   return (
     <div className="space-y-6">

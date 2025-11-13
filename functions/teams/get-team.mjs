@@ -3,7 +3,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validatePathParameters } from '../utils/validation.mjs';
-import { TeamSchemas } from '../utils/schemas.mjs';
+import { TeamPathParamsSchema } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'teams' });
@@ -17,7 +17,7 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, TeamPathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
@@ -38,7 +38,7 @@ export const handler = async (event) => {
 
     const membership = unmarshall(membershipResponse.Item);
 
-    if (membership.status !== 'active') {
+    if (membership.status !== 'Active') {
       return formatResponse(403, { message: 'Access denied' });
     }
 

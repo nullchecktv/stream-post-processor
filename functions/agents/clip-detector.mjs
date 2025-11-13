@@ -8,6 +8,7 @@ import { converse } from "../utils/agents.mjs";
 import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
+import { EPISODE_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 
@@ -286,7 +287,7 @@ ${transcript}
     const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId, userId });
 
     const now = new Date().toISOString();
-    const newStatus = 'analyzed';
+    const newStatus = EPISODE_STATUS.READY;
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,

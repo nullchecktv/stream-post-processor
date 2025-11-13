@@ -72,7 +72,7 @@ describe('Regenerate Blog Function', () => {
 
       expect(result.statusCode).toBe(202);
       expect(result.body.episodeId).toBe('episode-123');
-      expect(result.body.status).toBe('regenerating');
+      expect(result.body.status).toBe('Processing');
       expect(result.body.message).toBe('Blog content regeneration started');
 
       expect(ddbMock.calls()).toHaveLength(2);
@@ -80,7 +80,7 @@ describe('Regenerate Blog Function', () => {
 
       const putItemCall = ddbMock.commandCalls(PutItemCommand)[0];
       expect(putItemCall.args[0].input.Item.outline.S).toBe('Updated outline for regeneration');
-      expect(putItemCall.args[0].input.Item.status.S).toBe('regenerating');
+      expect(putItemCall.args[0].input.Item.status.S).toBe('Processing');
 
       const eventCall = eventBridgeMock.commandCalls(PutEventsCommand)[0];
       const eventDetail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);

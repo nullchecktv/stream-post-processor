@@ -39,7 +39,7 @@ describe('list-members function', () => {
         sk: { S: `user#${userId}` },
         userId: { S: userId },
         role: { S: role },
-        status: { S: 'active' }
+        status: { S: 'Active' }
       }
     });
   };
@@ -50,7 +50,7 @@ describe('list-members function', () => {
       sk: { S: `user#${member.userId}` },
       userId: { S: member.userId },
       role: { S: member.role },
-      status: { S: member.status || 'active' },
+      status: { S: member.status || 'Active' },
       joinedAt: { S: member.joinedAt || '2025-01-15T10:30:00Z' }
     }));
 
@@ -74,7 +74,7 @@ describe('list-members function', () => {
       GSI1SK: { S: `invitation#${invitation.email}` },
       email: { S: invitation.email },
       role: { S: invitation.role },
-      status: { S: invitation.status || 'pending' },
+      status: { S: invitation.status || 'Pending' },
       invitedBy: { S: invitation.invitedBy || '123e4567-e89b-12d3-a456-426614174000' },
       expiresAt: { S: invitation.expiresAt || '2025-02-15T10:30:00Z' },
       createdAt: { S: invitation.createdAt || '2025-01-15T10:30:00Z' }
@@ -206,7 +206,7 @@ describe('list-members function', () => {
             sk: { S: 'user#456e7890-e89b-12d3-a456-426614174003' },
             userId: { S: '456e7890-e89b-12d3-a456-426614174003' },
             role: { S: 'member' },
-            status: { S: 'active' },
+            status: { S: 'Active' },
             joinedAt: { S: '2025-01-15T10:30:00Z' }
           }
         ],
@@ -335,7 +335,7 @@ describe('list-members function', () => {
         {
           userId: '123e4567-e89b-12d3-a456-426614174000',
           role: 'owner',
-          status: 'active',
+          status: 'Active',
           joinedAt: '2025-01-15T10:30:00Z'
         }
       ]);
@@ -348,8 +348,10 @@ describe('list-members function', () => {
       expect(body.members[0]).toEqual({
         userId: '123e4567-e89b-12d3-a456-426614174000',
         role: 'owner',
-        status: 'active',
-        joinedAt: '2025-01-15T10:30:00Z'
+        status: 'Active',
+        joinedAt: '2025-01-15T10:30:00Z',
+        email: undefined,
+        name: undefined
       });
     });
 
@@ -362,7 +364,7 @@ describe('list-members function', () => {
         {
           email: 'pending@example.com',
           role: 'member',
-          status: 'pending',
+          status: 'Pending',
           invitedBy: '123e4567-e89b-12d3-a456-426614174000',
           expiresAt: '2025-02-15T10:30:00Z',
           createdAt: '2025-01-15T10:30:00Z'
@@ -376,7 +378,7 @@ describe('list-members function', () => {
       expect(body.pendingInvitations[0]).toEqual({
         email: 'pending@example.com',
         role: 'member',
-        status: 'pending',
+        status: 'Pending',
         invitedBy: '123e4567-e89b-12d3-a456-426614174000',
         expiresAt: '2025-02-15T10:30:00Z',
         createdAt: '2025-01-15T10:30:00Z'
@@ -384,3 +386,8 @@ describe('list-members function', () => {
     });
   });
 });
+
+
+
+
+

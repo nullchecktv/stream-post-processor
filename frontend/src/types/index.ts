@@ -1,8 +1,26 @@
-export type Platform = 'linkedin live' | 'X' | 'twitch' | 'youtube'
+import type {
+  PlatformType,
+  Branding,
+  StatusHistoryEntry
+} from '@schemas/common'
+import type { EpisodeStatusType } from '@schemas/episodes'
+import type { ClipStatusType, ClipOrientationType } from '@schemas/clips'
+import type { QuoteStatusType } from '@schemas/quotes'
+import type { TeamStatusType, MembershipStatusType, MemberRoleType } from '@schemas/teams'
+import type { BlogStatusType } from '@schemas/blogs'
 
-export type EpisodeStatus = 'draft' | 'processing' | 'published' | 'archived' | 'Ready for Clip Gen' | 'plan_added' | 'plan_updated' | 'recommendations_generated' | 'recommendations_failed'
+export type Platform = PlatformType
+export type EpisodeStatus = EpisodeStatusType
+export type ClipOrientation = ClipOrientationType
+export type ClipStatus = ClipStatusType
+export type QuoteStatus = QuoteStatusType
+export type TeamStatus = TeamStatusType
+export type MembershipStatus = MembershipStatusType
+export type MemberRole = MemberRoleType
+export type BlogStatus = BlogStatusType
+export type BrandingConfig = Branding
 
-export type ClipOrientation = 'landscape' | 'portrait'
+export type { StatusHistoryEntry }
 
 export interface EpisodeListView {
   id: string
@@ -14,13 +32,6 @@ export interface EpisodeListView {
   themes?: string[]
   createdAt: string
   updatedAt: string
-}
-
-export interface StatusHistoryEntry {
-  status: string
-  timestamp: string
-  duration?: number
-  metadata?: Record<string, unknown>
 }
 
 export interface TrackInfo {
@@ -41,7 +52,7 @@ export interface ClipListView {
   id: string
   episodeId: string
   title: string
-  status: 'detected' | 'processing' | 'created' | 'approved' | 'rejected' | 'published' | 'failed'
+  status: ClipStatus
   duration: number
   transcript: string
   segmentCount: number
@@ -138,27 +149,12 @@ export interface EpisodePlan {
   recommendations: Recommendations | null
 }
 
-export interface BrandingConfig {
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    text: string
-  }
-  fontFamily: string
-  voice?: {
-    tone: string
-    writingStyle: string
-    perspective?: 'first_person' | 'third_person'
-  }
-}
-
 export interface Team {
   id: string
   name: string
   description?: string
   ownerId: string
-  status: 'active' | 'archived'
+  status: TeamStatus
   settings?: {
     defaultPlatforms?: Platform[]
     timezone?: string
@@ -172,8 +168,8 @@ export interface TeamMembership {
   teamId: string
   name: string
   description?: string
-  role: 'owner' | 'administrator' | 'member'
-  status: 'active' | 'pending'
+  role: MemberRole
+  status: MembershipStatus
   joinedAt: string
   teamStatus: string
 }
@@ -198,8 +194,8 @@ export interface TeamMember {
   userId: string
   email: string
   name?: string
-  role: 'owner' | 'administrator' | 'member'
-  status: 'active' | 'pending'
+  role: MemberRole
+  status: MembershipStatus
   joinedAt: string
   invitedBy?: string
   inviterName?: string
@@ -207,7 +203,7 @@ export interface TeamMember {
 
 export interface PendingInvitation {
   email: string
-  role: 'administrator' | 'member'
+  role: Exclude<MemberRole, 'owner'>
   invitedBy: string
   inviterName: string
   invitedAt: string
@@ -236,7 +232,7 @@ export interface Quote {
   speaker: string
   timestamp: string
   relevanceScore?: number
-  status: 'proposed' | 'created' | 'approved' | 'rejected' | 'failed'
+  status: QuoteStatus
   imageUrl?: string
   createdAt: string
 }
@@ -252,15 +248,6 @@ export interface ApiError {
   message: string
   details?: Record<string, unknown>
 }
-
-export type BlogStatus =
-  | 'outline_created'
-  | 'content_generating'
-  | 'content_generated'
-  | 'outline_edited'
-  | 'content_edited'
-  | 'regenerating'
-  | 'failed'
 
 export interface BlogData {
   episodeId: string

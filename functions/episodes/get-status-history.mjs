@@ -3,7 +3,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validatePathParameters } from '../utils/validation.mjs';
-import { EpisodeSchemas } from '../utils/schemas.mjs';
+import { EpisodePathParamsSchema } from '../../schemas/index.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
 
 const ddb = new DynamoDBClient();
@@ -18,7 +18,7 @@ export const handler = async (event) => {
       return formatResponse(401, { message: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, EpisodePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
@@ -40,7 +40,7 @@ export const handler = async (event) => {
     const episode = unmarshall(result.Item);
 
     const statusHistory = episode.statusHistory || [];
-    const currentStatus = getCurrentStatus(statusHistory) || episode.status || 'draft';
+    const currentStatus = getCurrentStatus(statusHistory) || episode.status;
 
     const response = {
       episodeId,

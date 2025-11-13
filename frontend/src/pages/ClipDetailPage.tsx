@@ -46,7 +46,7 @@ function ClipDetailPage() {
       setEpisode(episodeData)
       setError(null)
 
-      if (clipData.status === 'created') {
+      if (clipData.status === 'Created') {
         try {
           const playData = await episodesApi.playClip(episodeId, clipId)
           setPlaybackUrl(playData.url)
@@ -118,16 +118,14 @@ function ClipDetailPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      detected: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Proposed' },
-      processing: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Processing' },
-      created: { bg: 'bg-green-100', text: 'text-green-800', label: 'Created' },
-      failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
-      approved: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Approved' },
-      rejected: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Rejected' },
+    const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
+      Proposed: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Proposed' },
+      Processing: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Processing' },
+      Created: { bg: 'bg-green-100', text: 'text-green-800', label: 'Created' },
+      Failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' }
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.detected
+    const config = statusConfig[status] || statusConfig.Proposed
 
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
@@ -206,7 +204,7 @@ function ClipDetailPage() {
             </button>
           </div>
 
-          {clip.status === 'created' && playbackUrl && !videoError && (
+          {clip.status === 'Created' && playbackUrl && !videoError && (
             <div className="mb-6">
               <video
                 src={playbackUrl}
@@ -219,7 +217,7 @@ function ClipDetailPage() {
             </div>
           )}
 
-          {clip.status === 'created' && videoError && (
+          {clip.status === 'Created' && videoError && (
             <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-yellow-800">
                 Unable to load video. The playback URL may have expired. Please refresh the page.
@@ -227,7 +225,7 @@ function ClipDetailPage() {
             </div>
           )}
 
-          {clip.status === 'processing' && (
+          {clip.status === 'Processing' && (
             <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
               <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -239,7 +237,7 @@ function ClipDetailPage() {
             </div>
           )}
 
-          {clip.status === 'failed' && (
+          {clip.status === 'Failed' && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-800">
                 Clip generation failed. Please try generating it again.
@@ -247,7 +245,7 @@ function ClipDetailPage() {
             </div>
           )}
 
-          {clip.status === 'detected' && (
+          {clip.status === 'Proposed' && (
             <div className="mb-6">
               <button
                 onClick={handleGenerate}

@@ -23,14 +23,14 @@
         },
         "ExpressionAttributeValues": {
           ":status": {
-            "S": "processing"
+            "S": "Processing"
           },
           ":newStatus": {
             "L": [
               {
                 "M": {
                   "status": {
-                    "S": "processing"
+                    "S": "Processing"
                   },
                   "timestamp": {
                     "S.$": "$$.State.EnteredTime"
@@ -171,7 +171,7 @@
                   "S.$": "$.endTime"
                 },
                 "status": {
-                  "S": "processing"
+                  "S": "Processing"
                 },
                 "createdAt": {
                   "S.$": "$$.State.EnteredTime"
@@ -326,7 +326,7 @@
           "Segment Error Handler": {
             "Type": "Pass",
             "Parameters": {
-              "status": "failed",
+              "status": "Failed",
               "error": {
                 "message": "Segment extraction failed",
                 "timestamp.$": "$$.State.EnteredTime",
@@ -373,7 +373,7 @@
               {
                 "M": {
                   "status": {
-                    "S": "processing"
+                    "S": "Processing"
                   },
                   "timestamp": {
                     "S.$": "$$.State.EnteredTime"
@@ -477,14 +477,14 @@
         },
         "ExpressionAttributeValues": {
           ":status": {
-            "S": "processed"
+            "S": "Created"
           },
           ":newStatus": {
             "L": [
               {
                 "M": {
                   "status": {
-                    "S": "processed"
+                    "S": "Created"
                   },
                   "timestamp": {
                     "S.$": "$$.State.EnteredTime"
@@ -548,14 +548,14 @@
         },
         "ExpressionAttributeValues": {
           ":status": {
-            "S": "failed"
+            "S": "Failed"
           },
           ":failureStatus": {
             "L": [
               {
                 "M": {
                   "status": {
-                    "S": "failed"
+                    "S": "Failed"
                   },
                   "timestamp": {
                     "S.$": "$$.State.EnteredTime"
@@ -598,7 +598,7 @@
     "Final Error State": {
       "Type": "Pass",
       "Parameters": {
-        "status": "failed",
+        "status": "Failed",
         "message": "Critical error: Unable to update clip status in database",
         "timestamp.$": "$$.State.EnteredTime"
       },

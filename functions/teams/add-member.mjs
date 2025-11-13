@@ -4,7 +4,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters, requireTeamMember, requireTeamExists, checkExists } from '../utils/validation.mjs';
-import { TeamSchemas } from '../utils/schemas.mjs';
+import { TeamPathParamsSchema, TeamAddMemberSchema, MEMBERSHIP_STATUS, INVITATION_STATUS } from '../../schemas/index.mjs';
 import { createTeamInvitationNotification } from '../utils/notifications.mjs';
 import { randomUUID } from 'crypto';
 
@@ -49,7 +49,7 @@ const checkExistingInvitation = async (email, teamId) => {
       ExpressionAttributeValues: marshall({
         ':pk': `team#${teamId}`,
         ':email': email.toLowerCase(),
-        ':status': 'pending'
+        ':status': INVITATION_STATUS.PENDING
       })
     }));
 
@@ -67,12 +67,12 @@ const checkExistingInvitation = async (email, teamId) => {
 
 export const handler = async (event) => {
   try {
-    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, TeamPathParamsSchema);
     if (!pathValidation.success) return pathValidation.error;
 
     const { teamId } = pathValidation.data;
 
-    const bodyValidation = await validateRequest(event, TeamSchemas.addMember);
+    const bodyValidation = await validateRequest(event, TeamAddMemberSchema);
     if (!bodyValidation.success) return bodyValidation.error;
 
     const { tenantId, userId, data } = bodyValidation;
@@ -118,7 +118,7 @@ export const handler = async (event) => {
       role,
       invitedBy: userId,
       inviterName,
-      status: 'pending',
+      status: INVITATION_STATUS.PENDING,
       type: invitationType,
       expiresAt,
       ttl,

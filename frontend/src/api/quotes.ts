@@ -1,16 +1,7 @@
 import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
 import type { Quote, QuoteDetail } from '../types'
-
-interface CreateQuoteData {
-  text: string
-  speaker: string
-  timestamp: string
-  relevanceScore?: number
-  context?: string
-  showSpeaker?: boolean
-  showEpisodeTitle?: boolean
-}
+import type { QuoteCreate, QuoteUpdate } from '@schemas/quotes'
 
 interface CreateQuoteResponse {
   id: string
@@ -26,21 +17,13 @@ interface ListQuotesResponse {
   nextToken?: string
 }
 
-interface UpdateQuoteData {
-  text?: string
-  speaker?: string
-  showSpeaker?: boolean
-  showEpisodeTitle?: boolean
-  status?: 'approved' | 'rejected'
-}
-
 interface GenerateQuoteGraphicResponse {
   quoteId: string
   status: string
 }
 
 export const quotesApi = {
-  create: async (episodeId: string, data: CreateQuoteData) => {
+  create: async (episodeId: string, data: QuoteCreate) => {
     const result = await apiRequest<CreateQuoteResponse>(`/episodes/${episodeId}/quotes`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -61,7 +44,7 @@ export const quotesApi = {
     return apiRequest<ListQuotesResponse>(`/episodes/${episodeId}/quotes${queryString ? `?${queryString}` : ''}`)
   },
 
-  update: async (episodeId: string, quoteId: string, data: UpdateQuoteData) => {
+  update: async (episodeId: string, quoteId: string, data: QuoteUpdate) => {
     await apiRequest<void>(`/episodes/${episodeId}/quotes/${quoteId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

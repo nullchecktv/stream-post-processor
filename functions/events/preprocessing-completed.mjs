@@ -3,6 +3,7 @@ import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { publishNotification } from '../utils/notifications.mjs';
+import { TRACK_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
@@ -70,7 +71,7 @@ export const handler = async (event) => {
       }
     }
 
-    const newStatus = 'processed';
+    const newStatus = TRACK_STATUS.PROCESSED;
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,

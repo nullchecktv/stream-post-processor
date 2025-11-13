@@ -4,7 +4,7 @@ import { APIGatewayClient, FlushStageAuthorizersCacheCommand } from '@aws-sdk/cl
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 import { validateRequest } from '../utils/validation.mjs';
-import { UserSchemas } from '../utils/schemas.mjs';
+import { UserSetActiveTeamSchema } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'users' });
 
@@ -13,7 +13,7 @@ const apiGateway = new APIGatewayClient();
 
 export const handler = async (event) => {
   try {
-    const validation = await validateRequest(event, UserSchemas.setActiveTeam);
+    const validation = await validateRequest(event, UserSetActiveTeamSchema);
     if (!validation.success) {
       return validation.error;
     }

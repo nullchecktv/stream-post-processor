@@ -8,26 +8,26 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { ChevronRight, Home, Download, Trash2 } from 'lucide-react'
 import type { QuoteDetail, Episode } from '../types'
 
-const statusConfig = {
-  proposed: {
+const statusConfig: Record<string, { colors: string; label: string }> = {
+  Proposed: {
     colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     label: 'Proposed'
   },
-  created: {
+  Processing: {
+    colors: 'bg-blue-50 text-blue-700 border-blue-200',
+    label: 'Processing'
+  },
+  Created: {
     colors: 'bg-green-50 text-green-700 border-green-200',
     label: 'Created'
   },
-  approved: {
-    colors: 'bg-primary/10 text-primary border-primary/20',
-    label: 'Approved'
-  },
-  rejected: {
-    colors: 'bg-red-50 text-red-700 border-red-200',
-    label: 'Rejected'
-  },
-  failed: {
+  Failed: {
     colors: 'bg-red-50 text-red-700 border-red-200',
     label: 'Failed'
+  },
+  Edited: {
+    colors: 'bg-purple-50 text-purple-700 border-purple-200',
+    label: 'Edited'
   }
 }
 
@@ -140,13 +140,13 @@ function QuoteDetailPage() {
       try {
         const updatedQuote = await quotesApi.get(episodeId, quoteId)
 
-        if (updatedQuote.updatedAt !== previousUpdatedAt && updatedQuote.status === 'created') {
+        if (updatedQuote.updatedAt !== previousUpdatedAt && updatedQuote.status === 'Created') {
           setQuote(updatedQuote)
           setRegenerating(false)
           return
         }
 
-        if (updatedQuote.status === 'failed') {
+        if (updatedQuote.status === 'Failed') {
           setQuote(updatedQuote)
           setRegenerating(false)
           return
@@ -205,7 +205,7 @@ function QuoteDetailPage() {
     )
   }
 
-  const config = statusConfig[quote.status] || statusConfig.proposed
+  const config = statusConfig[quote.status] || statusConfig.Proposed
   // Display the graphic whenever an imageUrl exists, regardless of status
   const hasImage = !!quote.imageUrl
 

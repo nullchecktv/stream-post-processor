@@ -115,7 +115,7 @@ describe('Invitation System Integration Tests', () => {
         role: 'member',
         invitedBy: 'admin-456',
         inviterName: 'Admin User',
-        status: 'pending',
+        status: 'Pending',
         type: 'existing_user',
         invitedUserId: 'existing-789'
       });
@@ -152,7 +152,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'existing_user',
           invitedUserId: 'existing-789',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-123',
           teamName: 'Test Team',
           role: 'member',
@@ -192,7 +192,7 @@ describe('Invitation System Integration Tests', () => {
         teamId: 'team-123',
         userId: 'existing-789',
         role: 'member',
-        status: 'active'
+        status: 'Active'
       });
 
       // Verify notification cleanup
@@ -284,7 +284,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'existing_user',
           invitedUserId: 'target-999',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-456',
           teamName: 'Another Team',
           role: 'administrator',
@@ -405,7 +405,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'new_user',
           email: 'newuser@example.com',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-789',
           teamName: 'New Team',
           role: 'member',
@@ -435,7 +435,7 @@ describe('Invitation System Integration Tests', () => {
         teamId: 'team-789',
         userId: 'newuser-222',
         role: 'member',
-        status: 'active'
+        status: 'Active'
       });
 
       // Verify no notification cleanup for new users
@@ -465,7 +465,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'existing_user',
           invitedUserId: 'user-456',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-123',
           notificationId: 'notif-123',
           expiresAt: new Date(Date.now() - 86400000).toISOString() // Expired
@@ -508,7 +508,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'existing_user',
           invitedUserId: 'user-456',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-123',
           teamName: 'Test Team',
           role: 'member',
@@ -555,7 +555,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'existing_user',
           invitedUserId: 'correct-user-456',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-123',
           expiresAt: new Date(Date.now() + 86400000).toISOString()
         })
@@ -708,7 +708,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'existing_user',
           invitedUserId: 'target-789',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-123',
           teamName: 'Test Team',
           role: 'member',
@@ -754,7 +754,7 @@ describe('Invitation System Integration Tests', () => {
           sk: 'metadata',
           type: 'existing_user',
           invitedUserId: 'user-456',
-          status: 'pending',
+          status: 'Pending',
           teamId: 'team-123',
           notificationId: 'notif-123',
           expiresAt: new Date(Date.now() + 86400000).toISOString()
@@ -777,3 +777,4 @@ describe('Invitation System Integration Tests', () => {
     });
   });
 });
+

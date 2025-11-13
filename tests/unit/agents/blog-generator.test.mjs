@@ -250,7 +250,7 @@ describe('Blog Generator Agent', () => {
 
     const updateCalls = ddbMock.commandCalls(UpdateItemCommand);
     const firstUpdate = unmarshall(updateCalls[0].args[0].input.ExpressionAttributeValues);
-    expect(firstUpdate[':status']).toBe('content_generating');
+    expect(firstUpdate[':status']).toBe('Processing');
   });
 
   it('should save generated content with word count', async () => {
@@ -283,7 +283,7 @@ describe('Blog Generator Agent', () => {
     const savedItem = unmarshall(putCalls[0].args[0].input.Item);
 
     expect(savedItem.content).toBe(generatedContent);
-    expect(savedItem.status).toBe('content_generated');
+    expect(savedItem.status).toBe('Created');
     expect(savedItem.wordCount).toBe(11);
     expect(savedItem.generatedAt).toBeDefined();
   });
@@ -315,7 +315,7 @@ describe('Blog Generator Agent', () => {
 
     const updateCalls = ddbMock.commandCalls(UpdateItemCommand);
     const lastUpdate = unmarshall(updateCalls[updateCalls.length - 1].args[0].input.ExpressionAttributeValues);
-    expect(lastUpdate[':status']).toBe('content_generated');
+    expect(lastUpdate[':status']).toBe('Created');
   });
 
   it('should update status to failed on error', async () => {
@@ -345,7 +345,7 @@ describe('Blog Generator Agent', () => {
 
     const updateCalls = ddbMock.commandCalls(UpdateItemCommand);
     const errorUpdate = unmarshall(updateCalls[updateCalls.length - 1].args[0].input.ExpressionAttributeValues);
-    expect(errorUpdate[':status']).toBe('failed');
+    expect(errorUpdate[':status']).toBe('Failed');
     expect(errorUpdate[':errorMessage']).toBe('AI generation failed');
   });
 
@@ -420,3 +420,6 @@ describe('Blog Generator Agent', () => {
     expect(callArgs[1]).toContain('Write using third-person pronouns');
   });
 });
+
+
+

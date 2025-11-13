@@ -4,7 +4,8 @@ import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { validatePathParameters, validateBody } from '../utils/validation.mjs';
-import { ClipSchemas } from '../utils/schemas.mjs';
+import { ClipPathParamsSchema, ClipGenerateSchema, CLIP_STATUS } from '../../schemas/index.mjs';
+import { getCurrentClipStatus } from '../utils/clips.mjs';
 
 const logger = new Logger({ serviceName: 'clips' });
 const ddb = new DynamoDBClient();
@@ -19,12 +20,12 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, ClipSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, ClipPathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const bodyValidation = await validateBody(event, ClipSchemas.generate);
+    const bodyValidation = await validateBody(event, ClipGenerateSchema);
     if (!bodyValidation.success) {
       return bodyValidation.error;
     }
@@ -49,15 +50,12 @@ export const handler = async (event) => {
 
     const clip = unmarshall(result.Item);
 
-    const statusHistory = clip.statusHistory || [];
-    const currentStatus = statusHistory.length > 0
-      ? statusHistory[statusHistory.length - 1].status
-      : 'unknown';
+    const currentStatus = getCurrentClipStatus(clip);
 
-    if (!['detected', 'failed'].includes(currentStatus)) {
+    if (![CLIP_STATUS.PROPOSED, CLIP_STATUS.FAILED].includes(currentStatus)) {
       return formatResponse(400, {
         error: 'InvalidState',
-        message: `Clip must be in detected or failed status to generate. Current status: ${currentStatus}`
+        message: `Clip must be in ${CLIP_STATUS.PROPOSED} or ${CLIP_STATUS.FAILED} status to generate. Current status: ${currentStatus}`
       });
     }
 

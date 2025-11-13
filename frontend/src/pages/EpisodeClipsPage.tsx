@@ -56,7 +56,7 @@ function EpisodeClipsPage() {
     try {
       setGenerating(true)
       await episodesApi.updateStatus(id, 'Ready for Clip Gen')
-      showToast('Clip generation started! Clips will appear as they are detected.', 'success')
+      showToast('Clip generation started! Clips will appear as they are proposed.', 'success')
       await fetchEpisode()
     } catch (err) {
       console.error('Failed to start clip generation:', err)
@@ -69,7 +69,7 @@ function EpisodeClipsPage() {
   const handleGenerateAll = async () => {
     if (!id) return
 
-    const proposedClips = clips.filter(c => c.status === 'detected')
+    const proposedClips = clips.filter(c => c.status === 'Proposed')
 
     if (proposedClips.length === 0) {
       showToast('No proposed clips to generate', 'info')

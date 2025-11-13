@@ -3,6 +3,7 @@ import { loadHlsManifest, calculateChunkMapping, validateSegmentTiming, generate
 import { extractVideoSegment, createTempDir, cleanup, checkFFmpegAvailability, execFFmpeg } from '../utils/ffmpeg.mjs';
 import { downloadVideoFile, uploadSegmentFile, objectExists, verifySegmentIntegrity, getS3FileSize } from '../utils/s3-video.mjs';
 import { selectTrackForSpeaker } from '../utils/track-selection.mjs';
+import { CLIP_STATUS } from '../../schemas/clips.mjs';
 import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { join, dirname } from 'path';
 import { promises as fs } from 'fs';
@@ -106,7 +107,7 @@ export const handler = async (event) => {
         clipId,
         segmentFile: segmentS3Key,
         order,
-        status: 'completed',
+        status: CLIP_STATUS.CREATED,
         metadata
       };
     }
@@ -123,7 +124,7 @@ export const handler = async (event) => {
       clipId,
       segmentFile: segmentS3Key,
       order,
-      status: 'completed',
+      status: CLIP_STATUS.CREATED,
       metadata
     };
 

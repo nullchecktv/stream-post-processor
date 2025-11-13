@@ -5,14 +5,14 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { validateRequest } from '../utils/validation.mjs';
-import { EpisodeSchemas } from '../utils/schemas.mjs';
+import { EpisodeCreateSchema, EPISODE_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'episodes' });
 
 export const handler = async (event) => {
   try {
-    const validation = validateRequest(event, EpisodeSchemas.create);
+    const validation = validateRequest(event, EpisodeCreateSchema);
     if (!validation.success) {
       return validation.error;
     }
@@ -23,7 +23,7 @@ export const handler = async (event) => {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
 
-    const initialStatus = 'draft';
+    const initialStatus = EPISODE_STATUS.DRAFT;
     const statusHistory = initializeStatusHistory(initialStatus, now);
 
     const item = {

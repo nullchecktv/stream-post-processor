@@ -67,7 +67,7 @@ export const handler = async (event) => {
         const teamId = membership.pk.replace('team#', '');
         const teamDetail = teamDetailsMap.get(teamId);
 
-        if (teamDetail && membership.status === 'active') {
+        if (teamDetail && membership.status === 'Active') {
           const teamInfo = {
             teamId,
             name: teamDetail.name,

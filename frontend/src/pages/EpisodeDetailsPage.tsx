@@ -55,7 +55,8 @@ function EpisodeDetailsPage() {
         // Convert local datetime string to ISO when provided; otherwise omit
         airDate: data.airDate ? new Date(data.airDate).toISOString() : undefined,
       }
-      const updatedEpisode = await episodesApi.update(id, payload)
+      await episodesApi.update(id, payload)
+      const updatedEpisode = await episodesApi.get(id)
       setEpisode(updatedEpisode)
       showToast('Episode updated successfully', 'success')
       navigate(`/episodes/${id}/overview`)

@@ -9,36 +9,20 @@ interface ClipCardProps {
   onReject: (clipId: string) => void
 }
 
-const statusConfig = {
-  detected: {
+const statusConfig: Record<string, { colors: string; label: string }> = {
+  Proposed: {
     colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     label: 'Proposed'
   },
-  proposed: {
-    colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    label: 'Proposed'
-  },
-  processing: {
+  Processing: {
     colors: 'bg-blue-50 text-blue-700 border-blue-200',
     label: 'Processing'
   },
-  created: {
+  Created: {
     colors: 'bg-green-50 text-green-700 border-green-200',
     label: 'Created'
   },
-  approved: {
-    colors: 'bg-primary/10 text-primary border-primary/20',
-    label: 'Approved'
-  },
-  rejected: {
-    colors: 'bg-red-50 text-red-700 border-red-200',
-    label: 'Rejected'
-  },
-  published: {
-    colors: 'bg-purple-50 text-purple-700 border-purple-200',
-    label: 'Published'
-  },
-  failed: {
+  Failed: {
     colors: 'bg-red-50 text-red-700 border-red-200',
     label: 'Failed'
   }
@@ -53,10 +37,10 @@ function formatDuration(seconds?: number): string {
 
 export function ClipCard({ clip, episodeId, onPlay, onApprove, onReject }: ClipCardProps) {
   const navigate = useNavigate()
-  const config = statusConfig[clip.status] || statusConfig.proposed
-  const canPlay = clip.status === 'created' || clip.status === 'approved' || clip.status === 'rejected' || clip.status === 'published'
-  const canApprove = clip.status === 'created'
-  const canReject = clip.status === 'created'
+  const config = statusConfig[clip.status] || statusConfig.Proposed
+  const canPlay = clip.status === 'Created'
+  const canApprove = clip.status === 'Created'
+  const canReject = clip.status === 'Created'
 
   const handleCardClick = () => {
     navigate(`/episodes/${episodeId}/clips/${clip.id}`)

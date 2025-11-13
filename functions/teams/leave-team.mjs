@@ -12,11 +12,12 @@ const logger = new Logger({ serviceName: 'teams' });
 export const handler = async (event) => {
   try {
     const { teamId } = event.pathParameters;
+    const { userId } = event.requestContext.authorizer;
 
-    const validation = validateRequest(event, {});
-    if (validation.error) return validation.error;
-
-    const { userId } = validation;
+    if (!userId) {
+      logger.error('Missing userId in authorizer context');
+      return formatResponse(401, { error: 'Unauthorized' });
+    }
 
     const teamCheck = await requireTeamExists(teamId);
     if (teamCheck.error) return teamCheck.error;
@@ -41,7 +42,7 @@ export const handler = async (event) => {
           '#status': 'status'
         },
         ExpressionAttributeValues: marshall({
-          ':status': 'inactive',
+          ':status': 'Removed',
           ':updatedAt': new Date().toISOString()
         }),
         ConditionExpression: 'attribute_exists(pk)'

@@ -5,6 +5,7 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import crypto, { randomUUID } from 'crypto';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
+import { CLIP_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -73,7 +74,7 @@ export const createClipTool = {
             .digest('hex')
             .slice(0, 16);
 
-          const initialStatus = 'detected';
+          const initialStatus = CLIP_STATUS.PROPOSED;
           const statusHistory = initializeStatusHistory(initialStatus, now);
 
           await ddb.send(

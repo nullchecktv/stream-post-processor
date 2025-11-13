@@ -306,11 +306,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
             <p className="mt-1 text-xs text-gray-500">
               MP4, MOV, AVI, MKV, or WebM format
             </p>
-            {selectedFile && selectedFile.size > MULTIPART_THRESHOLD && (
-              <p className="mt-1 text-xs text-blue-600">
-                Large file detected - will use multipart upload
-              </p>
-            )}
           </label>
         </div>
       </HelpTip>

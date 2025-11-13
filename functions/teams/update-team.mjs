@@ -3,19 +3,19 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
-import { TeamSchemas } from '../utils/schemas.mjs';
+import { TeamUpdateSchema, TeamPathParamsSchema, TEAM_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
-    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, TeamPathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const bodyValidation = await validateRequest(event, TeamSchemas.update);
+    const bodyValidation = await validateRequest(event, TeamUpdateSchema);
     if (!bodyValidation.success) {
       return bodyValidation.error;
     }

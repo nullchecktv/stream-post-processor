@@ -4,19 +4,19 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { validateStatusUpdate, createStatusUpdateParams } from '../utils/clips.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
-import { ClipSchemas } from '../utils/schemas.mjs';
+import { ClipPathParamsSchema, ClipStatusUpdateSchema } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'clips' });
 const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
   try {
-    const pathValidation = await validatePathParameters(event, ClipSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, ClipPathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const requestValidation = await validateRequest(event, ClipSchemas.statusUpdate);
+    const requestValidation = await validateRequest(event, ClipStatusUpdateSchema);
     if (!requestValidation.success) {
       return requestValidation.error;
     }
