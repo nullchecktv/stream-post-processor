@@ -49,7 +49,7 @@ function ClipDetailPage() {
       if (clipData.status === 'Created') {
         try {
           const playData = await episodesApi.playClip(episodeId, clipId)
-          setPlaybackUrl(playData.url)
+          setPlaybackUrl(playData.downloadUrl)
           setVideoError(false)
         } catch (err) {
           console.error('Failed to fetch playback URL:', err)
