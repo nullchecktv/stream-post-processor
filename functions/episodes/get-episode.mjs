@@ -53,7 +53,7 @@ export const handler = async (event) => {
     const relatedItems = relatedDataResult.Items?.map(item => unmarshall(item)) || [];
 
     const tracksCount = relatedItems.filter(item => item.sk.startsWith('data#track#')).length;
-    const hasTranscript = episode.transcriptKey ? true : false;
+    const hasTranscript = Boolean(episode.transcriptKey && episode.transcriptKey.trim());
     const clipsCount = relatedItems.filter(item => item.sk.startsWith('data#clip#')).length;
 
     const currentStatus = getCurrentStatus(episode.statusHistory) || episode.status;
