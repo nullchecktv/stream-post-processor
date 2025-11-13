@@ -35,7 +35,7 @@ export function ClipPlayer({
       setLoading(true)
       setError(null)
       const response = await episodesApi.playClip(episodeId, clipId)
-      setVideoUrl(response.url)
+      setVideoUrl(response.downloadUrl)
     } catch (err) {
       console.error('Failed to fetch video URL:', err)
       setError('Failed to load video. Please try again.')

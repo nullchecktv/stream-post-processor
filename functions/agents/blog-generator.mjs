@@ -112,6 +112,13 @@ Content Requirements:
 - 1500-2500 words total length
 - Proper markdown formatting
 
+IMPORTANT - Content Independence:
+- Write the blog post as a standalone article that can be read independently
+- DO NOT reference "the video", "this episode", "in the stream", or "watch the full episode"
+- DO NOT include phrases like "as mentioned in the video" or "check out the episode"
+- The blog should be self-contained and not require watching any video content
+- Present information directly without meta-references to the source material
+
 Use web search to:
 - Verify technical details
 - Find relevant examples

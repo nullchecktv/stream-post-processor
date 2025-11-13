@@ -86,7 +86,11 @@ const icons = {
 }
 
 export function StatusIndicator({ status, size = 'md', showIcon = true }: StatusIndicatorProps) {
-  const config = statusConfig[status]
+  const config = statusConfig[status] || {
+    label: status || 'Unknown',
+    colors: 'bg-gray-100 text-gray-800 border-gray-200',
+    icon: 'info' as const
+  }
   const sizes = sizeConfig[size]
 
   return (

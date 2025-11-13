@@ -67,8 +67,14 @@ interface UpdateClipStatusRequest {
 }
 
 interface PlayClipResponse {
-  url: string
+  clipId: string
+  episodeId: string
+  title: string
+  downloadUrl: string
   expiresAt: string
+  duration?: string
+  fileSize?: number
+  viewCount: number
 }
 
 export const episodesApi = {

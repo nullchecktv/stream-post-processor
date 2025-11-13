@@ -68,7 +68,7 @@ export const handler = async (event) => {
 
     await ddb.send(new PutItemCommand({
       TableName: process.env.TABLE_NAME,
-      Item: marshall(updatedTeam),
+      Item: marshall(updatedTeam, { removeUndefinedValues: true }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)'
     }));
 
