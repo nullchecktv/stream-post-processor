@@ -11,11 +11,11 @@ import {
 describe('Quote Utilities', () => {
   describe('QUOTE_STATUS constants', () => {
     it('should have correct status values matching data model', () => {
-      expect(QUOTE_STATUS.PROPOSED).toBe('proposed');
-      expect(QUOTE_STATUS.CREATED).toBe('created');
-      expect(QUOTE_STATUS.FAILED).toBe('failed');
-      expect(QUOTE_STATUS.APPROVED).toBe('approved');
-      expect(QUOTE_STATUS.REJECTED).toBe('rejected');
+      expect(QUOTE_STATUS.PROPOSED).toBe('Proposed');
+      expect(QUOTE_STATUS.PROCESSING).toBe('Processing');
+      expect(QUOTE_STATUS.CREATED).toBe('Created');
+      expect(QUOTE_STATUS.FAILED).toBe('Failed');
+      expect(QUOTE_STATUS.EDITED).toBe('Edited');
     });
   });
 
@@ -60,15 +60,16 @@ describe('Quote Utilities', () => {
 
   describe('validateQuoteStatus', () => {
     it('should validate correct status values', () => {
-      expect(() => validateQuoteStatus('proposed')).not.toThrow();
-      expect(() => validateQuoteStatus('created')).not.toThrow();
-      expect(() => validateQuoteStatus('failed')).not.toThrow();
-      expect(() => validateQuoteStatus('approved')).not.toThrow();
-      expect(() => validateQuoteStatus('rejected')).not.toThrow();
+      expect(() => validateQuoteStatus('Proposed')).not.toThrow();
+      expect(() => validateQuoteStatus('Processing')).not.toThrow();
+      expect(() => validateQuoteStatus('Created')).not.toThrow();
+      expect(() => validateQuoteStatus('Failed')).not.toThrow();
+      expect(() => validateQuoteStatus('Edited')).not.toThrow();
     });
 
     it('should reject invalid status values', () => {
       expect(() => validateQuoteStatus('invalid')).toThrow('Invalid quote status');
+      expect(() => validateQuoteStatus('proposed')).toThrow('Invalid quote status');
       expect(() => validateQuoteStatus(null)).toThrow('Invalid quote status');
       expect(() => validateQuoteStatus('')).toThrow('Invalid quote status');
     });

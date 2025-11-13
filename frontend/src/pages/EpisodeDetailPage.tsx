@@ -168,7 +168,8 @@ function EpisodeDetailPage() {
     setSuccessMessage(null)
 
     try {
-      const updatedEpisode = await episodesApi.update(id, data)
+      await episodesApi.update(id, data)
+      const updatedEpisode = await episodesApi.get(id)
       setEpisode(updatedEpisode)
       setHasUnsavedChanges(false)
       showToast('Episode updated successfully!', 'success')
@@ -357,7 +358,7 @@ function EpisodeDetailPage() {
               </svg>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No quotes yet</h3>
               <p className="text-gray-600">
-                Quotes will appear here once they are detected from the episode transcript.
+                Quotes will appear here once they are created from the episode transcript.
               </p>
             </div>
           ) : (

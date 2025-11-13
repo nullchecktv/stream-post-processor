@@ -4,7 +4,8 @@ import { DynamoDBClient, PutItemCommand, GetItemCommand } from '@aws-sdk/client-
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
-import { createQuoteKey, createQuoteGSIKey, QUOTE_STATUS } from '../utils/quotes.mjs';
+import { createQuoteKey, createQuoteGSIKey } from '../utils/quotes.mjs';
+import { QUOTE_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 

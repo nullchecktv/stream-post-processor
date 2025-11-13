@@ -3,6 +3,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { validateRequest, requireTeamMember } from '../utils/validation.mjs';
+import { z } from 'zod';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'teams' });
@@ -11,8 +12,8 @@ export const handler = async (event) => {
   try {
     const { teamId } = event.pathParameters;
 
-    const validation = validateRequest(event, {});
-    if (validation.error) return validation.error;
+    const validation = await validateRequest(event, z.object({}));
+    if (!validation.success) return validation.error;
 
     const { userId } = validation;
 
@@ -35,17 +36,19 @@ export const handler = async (event) => {
 
     const membersResponse = await ddb.send(new QueryCommand(queryParams));
 
-    const members = membersResponse.Items?.map(item => {
-      const member = unmarshall(item);
-      return {
-        userId: member.userId,
-        email: member.email,
-        name: member.name,
-        role: member.role,
-        status: member.status,
-        joinedAt: member.joinedAt
-      };
-    }).filter(member => member.status === 'active') || [];
+    const members = (membersResponse.Items || [])
+      .map(item => {
+        const member = unmarshall(item);
+        return {
+          userId: member.userId,
+          email: member.email,
+          name: member.name,
+          role: member.role,
+          status: member.status,
+          joinedAt: member.joinedAt
+        };
+      })
+      .filter(member => member.status === 'Active');
 
     let pendingInvitations = [];
 

@@ -1,6 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
+import { TRACK_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
@@ -34,7 +35,7 @@ export const handler = async (event) => {
     }
 
     const now = new Date().toISOString();
-    const newStatus = 'failed';
+    const newStatus = TRACK_STATUS.FAILED;
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,

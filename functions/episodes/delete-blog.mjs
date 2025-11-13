@@ -3,7 +3,7 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validatePathParameters } from '../utils/validation.mjs';
-import { EpisodeSchemas } from '../utils/schemas.mjs';
+import { EpisodePathParamsSchema } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'episodes' });
@@ -17,7 +17,7 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, EpisodePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }

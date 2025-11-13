@@ -5,7 +5,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { validatePathParameters } from '../utils/validation.mjs';
-import { QuoteSchemas } from '../utils/schemas.mjs';
+import { QuotePathParamsSchema } from '../../schemas/index.mjs';
 import { QUOTE_STATUS } from '../utils/quotes.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
@@ -21,7 +21,7 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, QuoteSchemas.pathParametersWithQuote);
+    const pathValidation = await validatePathParameters(event, QuotePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }

@@ -4,6 +4,8 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
+import { CLIP_STATUS } from '../../schemas/index.mjs';
+import { getCurrentClipStatus } from '../utils/clips.mjs';
 
 const logger = new Logger({ serviceName: 'clips' });
 
@@ -51,7 +53,8 @@ export const handler = async (event) => {
       });
     }
 
-    if (clip.status !== 'created' && clip.status !== 'approved' && clip.status !== 'published') {
+    const currentStatus = getCurrentClipStatus(clip);
+    if (currentStatus !== CLIP_STATUS.CREATED) {
       return formatResponse(400, {
         error: 'BadRequest',
         message: 'Clip is not ready for playback'

@@ -4,14 +4,14 @@ import { randomUUID } from 'crypto';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest } from '../utils/validation.mjs';
-import { TeamSchemas } from '../utils/schemas.mjs';
+import { TeamCreateSchema, TEAM_STATUS, MEMBERSHIP_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
-    const validation = await validateRequest(event, TeamSchemas.create);
+    const validation = await validateRequest(event, TeamCreateSchema);
     if (!validation.success) return validation.error;
 
     const { userId, data } = validation;
@@ -54,7 +54,7 @@ export const handler = async (event) => {
       name,
       ...(description && { description }),
       ownerId: userId,
-      status: 'active',
+      status: TEAM_STATUS.ACTIVE,
       settings: teamSettings,
       ...(teamBranding && { branding: teamBranding }),
       createdAt: now,
@@ -71,7 +71,7 @@ export const handler = async (event) => {
       email: userProfile?.email,
       name: userProfile?.name,
       role: 'owner',
-      status: 'active',
+      status: MEMBERSHIP_STATUS.ACTIVE,
       joinedAt: now,
       createdAt: now,
       updatedAt: now

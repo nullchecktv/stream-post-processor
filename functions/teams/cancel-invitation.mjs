@@ -4,6 +4,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 import { validateRequest, requireTeamMember, requireTeamExists } from '../utils/validation.mjs';
+import { INVITATION_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
@@ -39,7 +40,7 @@ export const handler = async (event) => {
 
     const invitation = unmarshall(invitationResponse.Item);
 
-    if (invitation.status !== 'pending') {
+    if (invitation.status !== INVITATION_STATUS.PENDING) {
       return formatResponse(400, { message: 'Only pending invitations can be cancelled' });
     }
 
@@ -55,7 +56,7 @@ export const handler = async (event) => {
           '#status': 'status'
         },
         ExpressionAttributeValues: marshall({
-          ':status': 'pending'
+          ':status': INVITATION_STATUS.PENDING
         })
       }));
 

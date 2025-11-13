@@ -3,6 +3,7 @@ import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconve
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { parseTenantIdFromKey } from '../utils/clips.mjs';
+import { TRACK_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
@@ -65,10 +66,10 @@ export const handler = async (event) => {
           '#updatedAt': 'updatedAt',
         },
         ExpressionAttributeValues: marshall({
-          ':processing': 'processing',
+          ':processing': TRACK_STATUS.PROCESSING,
           ':emptyList': [],
           ':newStatusEntry': [{
-            status: 'processing',
+            status: TRACK_STATUS.PROCESSING,
             timestamp: now
           }],
           ':chunkDuration': CHUNK_SECONDS,

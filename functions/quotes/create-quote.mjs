@@ -5,7 +5,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
-import { QuoteSchemas } from '../utils/schemas.mjs';
+import { QuotePathParamsSchema, QuoteCreateSchema } from '../../schemas/index.mjs';
 import { createQuoteKey, createQuoteGSIKey, QUOTE_STATUS } from '../utils/quotes.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
@@ -14,12 +14,12 @@ const eventBridge = new EventBridgeClient();
 
 export const handler = async (event) => {
   try {
-    const pathValidation = await validatePathParameters(event, QuoteSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, QuotePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const requestValidation = validateRequest(event, QuoteSchemas.create);
+    const requestValidation = validateRequest(event, QuoteCreateSchema);
     if (!requestValidation.success) {
       return requestValidation.error;
     }

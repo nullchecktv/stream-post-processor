@@ -1,6 +1,6 @@
-/**
- * Clip utilities - S3 key parsing, status management, and data operations
- */
+import { CLIP_STATUS, CLIP_STATUS_TRANSITIONS } from '../../schemas/clips.mjs';
+
+export { CLIP_STATUS, CLIP_STATUS_TRANSITIONS };
 
 export const parseEpisodeIdFromKey = (key) => {
   const cleaned = key.replace(/^\/+/, '');
@@ -21,28 +21,6 @@ export const parseTenantIdFromKey = (key) => {
     throw new Error(`Invalid S3 key format: ${key}`);
   }
   return keyParts[0];
-};
-
-export const CLIP_STATUS = {
-  DETECTED: 'detected',
-  PROCESSING: 'processing',
-  CREATED: 'created',
-  FAILED: 'failed',
-  REVIEWED: 'reviewed',
-  APPROVED: 'approved',
-  REJECTED: 'rejected',
-  PUBLISHED: 'published'
-};
-
-const CLIP_STATUS_TRANSITIONS = {
-  [CLIP_STATUS.DETECTED]: [CLIP_STATUS.PROCESSING],
-  [CLIP_STATUS.PROCESSING]: [CLIP_STATUS.CREATED, CLIP_STATUS.FAILED],
-  [CLIP_STATUS.CREATED]: [CLIP_STATUS.REVIEWED, CLIP_STATUS.APPROVED, CLIP_STATUS.REJECTED],
-  [CLIP_STATUS.FAILED]: [CLIP_STATUS.PROCESSING], // Allow retry
-  [CLIP_STATUS.REVIEWED]: [CLIP_STATUS.APPROVED, CLIP_STATUS.REJECTED],
-  [CLIP_STATUS.APPROVED]: [CLIP_STATUS.PUBLISHED],
-  [CLIP_STATUS.REJECTED]: [], // Terminal state
-  [CLIP_STATUS.PUBLISHED]: [] // Terminal state
 };
 
 export const createClipKey = (episodeId, clipId) => ({
@@ -112,7 +90,7 @@ export const createStatusEntry = (status, timestamp = null, metadata = {}) => {
     entry.errorType = metadata.errorType || 'UnknownError';
   }
 
-  if (metadata.processingDuration && status === CLIP_STATUS.PROCESSED) {
+  if (metadata.processingDuration && status === CLIP_STATUS.CREATED) {
     entry.processingDuration = metadata.processingDuration;
   }
 

@@ -160,7 +160,7 @@ function EpisodeQuotesPage() {
           </svg>
           <h3 className="mt-4 text-lg font-medium text-gray-900">No quotes yet</h3>
           <p className="mt-2 text-sm text-gray-500">
-            Quotes will appear here once they are detected from the episode transcript.
+            Quotes will appear here once they are created from the episode transcript.
           </p>
         </div>
       ) : (

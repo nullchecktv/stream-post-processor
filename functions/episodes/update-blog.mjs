@@ -3,7 +3,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validatePathParameters, validateBody } from '../utils/validation.mjs';
-import { EpisodeSchemas, BlogSchemas } from '../utils/schemas.mjs';
+import { EpisodePathParamsSchema, BlogUpdateSchema, BLOG_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'episodes' });
@@ -17,12 +17,12 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, EpisodePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const bodyValidation = await validateBody(event, BlogSchemas.update);
+    const bodyValidation = await validateBody(event, BlogUpdateSchema);
     if (!bodyValidation.success) {
       return bodyValidation.error;
     }
@@ -66,7 +66,7 @@ export const handler = async (event) => {
         },
         ExpressionAttributeValues: marshall({
           ':outline': outline,
-          ':status': 'outline_edited',
+          ':status': BLOG_STATUS.EDITED,
           ':updatedAt': now
         })
       }));
@@ -101,7 +101,7 @@ export const handler = async (event) => {
         },
         ExpressionAttributeValues: marshall({
           ':content': content,
-          ':status': 'content_edited',
+          ':status': BLOG_STATUS.EDITED,
           ':wordCount': wordCount,
           ':updatedAt': now
         })
@@ -135,7 +135,7 @@ export const handler = async (event) => {
       episodeId,
       outline: updatedOutline || outlineRecord?.outline || null,
       content: updatedContent || contentRecord?.content || null,
-      status: contentRecord?.status || outlineRecord?.status || 'outline_created',
+      status: contentRecord?.status || outlineRecord?.status || null,
       wordCount: updatedWordCount || contentRecord?.wordCount || null,
       updatedAt: now
     };

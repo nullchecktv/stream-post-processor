@@ -5,6 +5,7 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
+import { TRACK_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -96,7 +97,7 @@ export const handler = async (event) => {
       })
     }));
 
-    const trackStatus = 'uploaded';
+    const trackStatus = TRACK_STATUS.UPLOADED;
     const trackStatusHistory = initializeStatusHistory(trackStatus, now);
 
     try {

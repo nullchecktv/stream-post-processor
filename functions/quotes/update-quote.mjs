@@ -4,7 +4,7 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
-import { QuoteSchemas } from '../utils/schemas.mjs';
+import { QuotePathParamsSchema, QuoteUpdateSchema, QUOTE_STATUS_TRANSITIONS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
 const ddb = new DynamoDBClient();
@@ -12,12 +12,12 @@ const eventBridge = new EventBridgeClient();
 
 export const handler = async (event) => {
   try {
-    const pathValidation = await validatePathParameters(event, QuoteSchemas.pathParametersWithQuote);
+    const pathValidation = await validatePathParameters(event, QuotePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const requestValidation = validateRequest(event, QuoteSchemas.update);
+    const requestValidation = validateRequest(event, QuoteUpdateSchema);
     if (!requestValidation.success) {
       return requestValidation.error;
     }
@@ -42,6 +42,16 @@ export const handler = async (event) => {
 
     const existingQuote = unmarshall(getResult.Item);
     const now = new Date().toISOString();
+
+    if (data.status && data.status !== existingQuote.status) {
+      const allowedTransitions = QUOTE_STATUS_TRANSITIONS[existingQuote.status] || [];
+      if (!allowedTransitions.includes(data.status)) {
+        return formatResponse(400, {
+          error: 'InvalidStatusTransition',
+          message: `Cannot transition from '${existingQuote.status}' to '${data.status}'`
+        });
+      }
+    }
 
     const updatedQuote = {
       ...existingQuote,

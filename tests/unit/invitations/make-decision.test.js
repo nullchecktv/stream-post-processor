@@ -29,6 +29,19 @@ describe('Make Invitation Decision Handler', () => {
     ddbMock.reset();
     jest.clearAllMocks();
     process.env.TABLE_NAME = 'test-table';
+
+    // Default successful validation mocks
+    validatePathParameters.mockResolvedValue({
+      success: true,
+      data: { invitationId: 'inv-123' }
+    });
+
+    validateRequest.mockResolvedValue({
+      success: true,
+      tenantId: 'tenant-123',
+      userId: 'user-456',
+      data: { action: 'accept' }
+    });
   });
 
   describe('Request validation', () => {
@@ -134,7 +147,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'different-user',
-        status: 'pending',
+        status: 'Pending',
         expiresAt: new Date(Date.now() + 86400000).toISOString() // 1 day from now
       };
 
@@ -159,7 +172,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         teamName: 'Test Team',
         role: 'member',
@@ -216,7 +229,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         expiresAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
         notificationId: 'notif-123'
       };
@@ -260,7 +273,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         teamName: 'Test Team',
         role: 'member',
@@ -303,7 +316,7 @@ describe('Make Invitation Decision Handler', () => {
       expect(membershipItem.teamId).toBe('team-789');
       expect(membershipItem.userId).toBe('user-456');
       expect(membershipItem.role).toBe('member');
-      expect(membershipItem.status).toBe('active');
+      expect(membershipItem.status).toBe('Active');
 
       // Verify notification cleanup
       expect(removeNotificationsByInvitation).toHaveBeenCalledWith('user-456', 'inv-123');
@@ -315,7 +328,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         teamName: 'Test Team',
         role: 'member',
@@ -349,7 +362,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         teamName: 'Test Team',
         role: 'member',
@@ -398,7 +411,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         notificationId: 'notif-123',
         expiresAt: new Date(Date.now() + 86400000).toISOString()
@@ -440,7 +453,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         expiresAt: new Date(Date.now() + 86400000).toISOString()
         // No notificationId
@@ -485,7 +498,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'new_user',
         email: 'newuser@example.com',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         teamName: 'Test Team',
         role: 'member',
@@ -554,7 +567,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         teamName: 'Test Team',
         role: 'member',
@@ -613,7 +626,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         teamName: 'Test Team',
         role: 'member',
@@ -664,7 +677,7 @@ describe('Make Invitation Decision Handler', () => {
         sk: 'metadata',
         type: 'existing_user',
         invitedUserId: 'user-456',
-        status: 'pending',
+        status: 'Pending',
         teamId: 'team-789',
         expiresAt: new Date(Date.now() + 86400000).toISOString()
       };
@@ -689,3 +702,4 @@ describe('Make Invitation Decision Handler', () => {
     });
   });
 });
+

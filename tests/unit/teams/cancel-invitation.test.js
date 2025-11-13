@@ -56,7 +56,7 @@ describe('cancel-invitation function', () => {
         email: { S: 'test@example.com' },
         teamId: { S: 'team-123' },
         role: { S: 'member' },
-        status: { S: 'pending' },
+        status: { S: 'Pending' },
         inviterName: { S: 'Admin User' }
       };
 
@@ -195,7 +195,7 @@ describe('cancel-invitation function', () => {
         email: { S: 'test@example.com' },
         teamId: { S: 'team-123' },
         role: { S: 'member' },
-        status: { S: 'pending' },
+        status: { S: 'Pending' },
         inviterName: { S: 'Admin User' }
       };
 
@@ -254,7 +254,7 @@ describe('cancel-invitation function', () => {
         email: { S: 'test@example.com' },
         teamId: { S: 'team-123' },
         role: { S: 'member' },
-        status: { S: 'pending' },
+        status: { S: 'Pending' },
         inviterName: { S: 'Admin User' }
       };
 
@@ -271,3 +271,4 @@ describe('cancel-invitation function', () => {
     });
   });
 });
+

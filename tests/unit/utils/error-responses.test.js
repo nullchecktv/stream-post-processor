@@ -215,12 +215,12 @@ describe('Error Response Utilities', () => {
 
       const response = createConflictErrorResponse('Duplicate invitation', {
         type: 'duplicate_invitation',
-        existingResource: { email: 'test@example.com', status: 'pending' }
+        existingResource: { email: 'test@example.com', status: 'Pending' }
       });
 
       expect(response.error).toBe('ConflictError');
       expect(response.message).toBe('Duplicate invitation');
-      expect(response.existingResource).toEqual({ email: 'test@example.com', status: 'pending' });
+      expect(response.existingResource).toEqual({ email: 'test@example.com', status: 'Pending' });
       expect(response.details).toContain('The user already has a pending invitation to this team.');
     });
   });
@@ -380,3 +380,4 @@ describe('Error Response Utilities', () => {
     });
   });
 });
+

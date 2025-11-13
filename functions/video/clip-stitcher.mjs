@@ -2,6 +2,7 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { createConcatFileContent, secondsToTime } from '../utils/video-processing.mjs';
 import { downloadSegmentFiles, uploadFinalClip, cleanupSegmentFiles, verifyFinalClipIntegrity, cleanupEmptyFolders } from '../utils/s3-video.mjs';
 import { execFFmpeg, getVideoInfo, createTempDir, cleanup, checkFFmpegAvailability } from '../utils/ffmpeg.mjs';
+import { CLIP_STATUS } from '../../schemas/clips.mjs';
 import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { join } from 'path';
 import { promises as fs } from 'fs';
@@ -85,7 +86,7 @@ export const handler = async (event) => {
         processedAt: new Date().toISOString(),
         uploadedAt: uploadResult.uploadedAt
       },
-      status: 'completed'
+      status: CLIP_STATUS.CREATED
     };
 
   } catch (error) {

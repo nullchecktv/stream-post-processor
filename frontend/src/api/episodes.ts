@@ -1,6 +1,7 @@
 import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
 import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView, EpisodePlan, ClipOrientation, BlogData } from '../types'
+import type { EpisodeCreate, EpisodeUpdate } from '@schemas/episodes'
 
 interface ListEpisodesParams {
   nextToken?: string
@@ -12,28 +13,8 @@ interface ListEpisodesResponse {
   nextToken?: string
 }
 
-interface CreateEpisodeData {
-  title: string
-  episodeNumber: number
-  description?: string
-  airDate?: string
-  platforms?: string[]
-  themes?: string[]
-  seriesName?: string
-}
-
 interface CreateEpisodeResponse {
   id: string
-}
-
-interface UpdateEpisodeData {
-  title?: string
-  episodeNumber?: number
-  description?: string
-  airDate?: string
-  platforms?: string[]
-  themes?: string[]
-  seriesName?: string
 }
 
 interface EpisodeStatusResponse {
@@ -105,7 +86,7 @@ export const episodesApi = {
 
   getStatus: (id: string) => apiRequest<EpisodeStatusResponse>(`/episodes/${id}/statuses`),
 
-  create: async (data: CreateEpisodeData) => {
+  create: async (data: EpisodeCreate) => {
     const result = await apiRequest<CreateEpisodeResponse>('/episodes', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -114,14 +95,13 @@ export const episodesApi = {
     return result
   },
 
-  update: async (id: string, data: UpdateEpisodeData) => {
-    const result = await apiRequest<Episode>(`/episodes/${id}`, {
+  update: async (id: string, data: EpisodeUpdate) => {
+    await apiRequest<void>(`/episodes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
     apiCache.invalidate(`GET:/episodes/${id}`)
     apiCache.invalidatePattern('/episodes?')
-    return result
   },
 
   uploadTranscript: async (id: string, filename: string) => {

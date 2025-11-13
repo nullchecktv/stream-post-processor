@@ -4,7 +4,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validatePathParameters, validateBody } from '../utils/validation.mjs';
-import { EpisodeSchemas, BlogSchemas } from '../utils/schemas.mjs';
+import { EpisodePathParamsSchema, BlogRegenerateSchema, BLOG_STATUS } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
@@ -19,12 +19,12 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, EpisodePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const bodyValidation = await validateBody(event, BlogSchemas.regenerate);
+    const bodyValidation = await validateBody(event, BlogRegenerateSchema);
     if (!bodyValidation.success) {
       return bodyValidation.error;
     }
@@ -52,7 +52,7 @@ export const handler = async (event) => {
         pk,
         sk: 'data#blog#outline',
         outline,
-        status: 'regenerating',
+        status: BLOG_STATUS.PROCESSING,
         createdAt: existingOutline.Item ? unmarshall(existingOutline.Item).createdAt : now,
         updatedAt: now
       })
@@ -80,7 +80,7 @@ export const handler = async (event) => {
 
     return formatResponse(202, {
       episodeId,
-      status: 'regenerating',
+      status: BLOG_STATUS.PROCESSING,
       message: 'Blog content regeneration started'
     });
 

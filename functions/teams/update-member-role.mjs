@@ -4,7 +4,7 @@ import { marshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters, requireTeamMember, requireTeamExists, checkExists } from '../utils/validation.mjs';
-import { TeamSchemas } from '../utils/schemas.mjs';
+import { TeamPathParamsWithUserSchema, TeamUpdateMemberRoleSchema } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
@@ -12,12 +12,12 @@ const logger = new Logger({ serviceName: 'teams' });
 
 export const handler = async (event) => {
   try {
-    const pathValidation = await validatePathParameters(event, TeamSchemas.pathParametersWithUser);
+    const pathValidation = await validatePathParameters(event, TeamPathParamsWithUserSchema);
     if (!pathValidation.success) return pathValidation.error;
 
     const { teamId, userId: targetUserId } = pathValidation.data;
 
-    const bodyValidation = await validateRequest(event, TeamSchemas.updateMemberRole);
+    const bodyValidation = await validateRequest(event, TeamUpdateMemberRoleSchema);
     if (!bodyValidation.success) return bodyValidation.error;
 
     const { tenantId, userId, data } = bodyValidation;

@@ -218,7 +218,7 @@ function EpisodeOverviewPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{clipsCount}</p>
-                  <p className="text-sm text-gray-600">Clip{clipsCount !== 1 ? 's' : ''} detected</p>
+                  <p className="text-sm text-gray-600">Clip{clipsCount !== 1 ? 's' : ''}</p>
                 </div>
               </button>
             </div>

@@ -1,9 +1,8 @@
-import { validate } from '@aws-lambda-powertools/validation';
-import { SchemaValidationError } from '@aws-lambda-powertools/validation/errors';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse, parseBody } from './api.mjs';
+import { ZodError } from 'zod';
 
 const logger = new Logger({ serviceName: 'utils' });
 const ddb = new DynamoDBClient();
@@ -11,18 +10,24 @@ const ddb = new DynamoDBClient();
 const formatValidationErrors = (error) => {
   const errors = [];
 
-  if (error.cause && Array.isArray(error.cause)) {
-    for (const issue of error.cause) {
+  if (error instanceof ZodError && Array.isArray(error.errors)) {
+    for (const issue of error.errors) {
       errors.push({
         field: issue.path?.join('.') || 'unknown',
         message: issue.message,
         code: issue.code
       });
     }
-  } else {
+  } else if (error && error.message) {
     errors.push({
       field: 'body',
       message: error.message,
+      code: 'validation_error'
+    });
+  } else {
+    errors.push({
+      field: 'unknown',
+      message: 'Validation error',
       code: 'validation_error'
     });
   }
@@ -50,19 +55,16 @@ export const validateRequest = (event, schema) => {
       };
     }
 
-    validate({
-      payload,
-      schema
-    });
+    const validatedData = schema.parse ? schema.parse(payload) : payload;
 
     return {
       success: true,
       tenantId,
       userId,
-      data: payload
+      data: validatedData
     };
   } catch (error) {
-    if (error instanceof SchemaValidationError) {
+    if (error instanceof ZodError) {
       const validationErrors = formatValidationErrors(error);
       return {
         success: false,
@@ -85,17 +87,14 @@ export const validatePathParameters = async (event, schema) => {
   }
 
   try {
-    await validate({
-      payload: event.pathParameters,
-      schema
-    });
+    const validatedData = schema.parse ? schema.parse(event.pathParameters) : event.pathParameters;
 
     return {
       success: true,
-      data: event.pathParameters
+      data: validatedData
     };
   } catch (error) {
-    if (error instanceof SchemaValidationError) {
+    if (error instanceof ZodError) {
       const validationErrors = formatValidationErrors(error);
       return {
         success: false,
@@ -113,17 +112,14 @@ export const validateQueryParameters = async (event, schema) => {
   const queryParams = event.queryStringParameters || {};
 
   try {
-    await validate({
-      payload: queryParams,
-      schema
-    });
+    const validatedData = schema.parse ? schema.parse(queryParams) : queryParams;
 
     return {
       success: true,
-      data: queryParams
+      data: validatedData
     };
   } catch (error) {
-    if (error instanceof SchemaValidationError) {
+    if (error instanceof ZodError) {
       const validationErrors = formatValidationErrors(error);
       return {
         success: false,
@@ -154,17 +150,14 @@ export const validateBody = async (event, schema) => {
       };
     }
 
-    await validate({
-      payload: body,
-      schema
-    });
+    const validatedData = schema.parse ? schema.parse(body) : body;
 
     return {
       success: true,
-      data: body
+      data: validatedData
     };
   } catch (error) {
-    if (error instanceof SchemaValidationError) {
+    if (error instanceof ZodError) {
       const validationErrors = formatValidationErrors(error);
       return {
         success: false,
@@ -203,7 +196,7 @@ export const requireTeamMember = async (teamId, userId, requiredRole = null) => 
     return { error: formatResponse(403, { message: 'Not a team member' }) };
   }
 
-  if (membership.status !== 'active') {
+  if (membership.status !== 'Active') {
     return { error: formatResponse(403, { message: 'Membership not active' }) };
   }
 

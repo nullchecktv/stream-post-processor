@@ -59,7 +59,7 @@ describe('remove-member function', () => {
         sk: { S: `user#${userId}` },
         userId: { S: userId },
         role: { S: role },
-        status: { S: 'active' }
+        status: { S: 'Active' }
       }
     });
   };
@@ -77,7 +77,7 @@ describe('remove-member function', () => {
         sk: { S: `user#${targetUserId}` },
         userId: { S: targetUserId },
         role: { S: role },
-        status: { S: 'active' }
+        status: { S: 'Active' }
       }
     });
   };
@@ -250,7 +250,7 @@ describe('remove-member function', () => {
         pk: { S: 'team#456e7890-e89b-12d3-a456-426614174001' },
         sk: { S: 'user#user-123' },
         role: { S: 'owner' },
-        status: { S: 'active' }
+        status: { S: 'Active' }
       };
 
       ddbMock.on(GetItemCommand)
@@ -488,3 +488,4 @@ describe('remove-member function', () => {
     });
   });
 });
+

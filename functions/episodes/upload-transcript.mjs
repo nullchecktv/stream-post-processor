@@ -5,7 +5,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
-import { EpisodeSchemas, TranscriptSchemas } from '../utils/schemas.mjs';
+import { EpisodePathParamsSchema, TranscriptUploadSchema } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -17,12 +17,12 @@ const TTL_SECONDS = 15 * 60;
 
 export const handler = async (event) => {
   try {
-    const pathValidation = await validatePathParameters(event, EpisodeSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, EpisodePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
 
-    const requestValidation = await validateRequest(event, TranscriptSchemas.upload);
+    const requestValidation = await validateRequest(event, TranscriptUploadSchema);
     if (!requestValidation.success) {
       return requestValidation.error;
     }

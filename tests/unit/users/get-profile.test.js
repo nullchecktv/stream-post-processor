@@ -113,7 +113,7 @@ describe('Get Profile Function', () => {
         {
           teamId: 'team-456',
           role: 'member',
-          status: 'pending',
+          status: 'Pending',
           joinedAt: '2025-01-16T14:20:00Z'
         }
       ];
@@ -395,7 +395,7 @@ describe('Get Profile Function', () => {
       const membership = {
         teamId: 'team-123',
         role: 'member',
-        status: 'pending',
+        status: 'Pending',
         joinedAt: '2025-01-15T10:30:00Z'
       };
 
@@ -424,3 +424,4 @@ describe('Get Profile Function', () => {
     });
   });
 });
+

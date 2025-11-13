@@ -387,7 +387,7 @@ describe('Enhanced Team Add Member Handler', () => {
         role: 'administrator',
         invitedBy: 'user-456',
         inviterName: 'John Doe',
-        status: 'pending',
+        status: 'Pending',
         type: 'new_user'
       });
 

@@ -58,7 +58,7 @@ describe('leave-team function', () => {
         sk: { S: `user#${userId}` },
         userId: { S: userId },
         role: { S: role },
-        status: { S: 'active' }
+        status: { S: 'Active' }
       }
     });
   };
@@ -355,3 +355,4 @@ describe('leave-team function', () => {
     });
   });
 });
+

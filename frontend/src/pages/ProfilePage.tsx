@@ -186,10 +186,10 @@ function ProfilePage() {
         },
       },
     }))
-    if (errors[`branding.colors.${colorKey}`]) {
+    if (errors[`branding.colors.${String(colorKey)}`]) {
       setErrors(prev => {
         const newErrors = { ...prev }
-        delete newErrors[`branding.colors.${colorKey}`]
+        delete newErrors[`branding.colors.${String(colorKey)}`]
         return newErrors
       })
     }

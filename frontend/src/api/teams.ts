@@ -1,33 +1,15 @@
 import { apiRequest } from './client'
 import { apiCache } from '../utils/cache'
-import type { Team, TeamMember, PendingInvitation, BrandingConfig } from '../types'
+import type { Team, TeamMember, PendingInvitation } from '../types'
+import type { TeamCreate, TeamUpdate } from '@schemas/teams'
 
 interface ListTeamsResponse {
   items: Team[]
   count: number
 }
 
-interface CreateTeamData {
-  name: string
-  description?: string
-  settings?: {
-    defaultPlatforms?: string[]
-    timezone?: string
-  }
-}
-
 interface CreateTeamResponse {
   id: string
-}
-
-interface UpdateTeamData {
-  name?: string
-  description?: string
-  settings?: {
-    defaultPlatforms?: string[]
-    timezone?: string
-  }
-  branding?: BrandingConfig
 }
 
 interface ListMembersParams {
@@ -69,7 +51,7 @@ interface UpdateMemberRoleResponse {
 export const teamsApi = {
   listTeams: () => apiRequest<ListTeamsResponse>('/teams'),
 
-  createTeam: async (data: CreateTeamData) => {
+  createTeam: async (data: TeamCreate) => {
     const result = await apiRequest<CreateTeamResponse>('/teams', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -80,7 +62,7 @@ export const teamsApi = {
 
   getTeam: (teamId: string) => apiRequest<Team>(`/teams/${teamId}`),
 
-  updateTeam: async (teamId: string, data: UpdateTeamData) => {
+  updateTeam: async (teamId: string, data: TeamUpdate) => {
     await apiRequest<void>(`/teams/${teamId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

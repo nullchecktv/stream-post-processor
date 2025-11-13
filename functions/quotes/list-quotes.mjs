@@ -3,7 +3,7 @@ import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse, getPagingParams, buildPagingParams } from '../utils/api.mjs';
 import { validatePathParameters } from '../utils/validation.mjs';
-import { QuoteSchemas } from '../utils/schemas.mjs';
+import { EpisodePathParamsSchema } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
 const ddb = new DynamoDBClient();
@@ -17,7 +17,7 @@ export const handler = async (event) => {
       return formatResponse(401, { error: 'Unauthorized' });
     }
 
-    const pathValidation = await validatePathParameters(event, QuoteSchemas.pathParameters);
+    const pathValidation = await validatePathParameters(event, EpisodePathParamsSchema);
     if (!pathValidation.success) {
       return pathValidation.error;
     }
@@ -46,7 +46,12 @@ export const handler = async (event) => {
       return {
         id: quote.quoteId,
         text: quote.text,
-        speaker: quote.speaker
+        speaker: quote.speaker,
+        status: quote.status,
+        timestamp: quote.timestamp,
+        relevanceScore: quote.relevanceScore || 0,
+        createdAt: quote.createdAt,
+        updatedAt: quote.updatedAt
       };
     });
 

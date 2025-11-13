@@ -4,6 +4,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { converse } from '../utils/agents.mjs';
 import { convertToBedrockTools } from '../utils/tools.mjs';
 import { webSearchTool } from '../tools/web-search.mjs';
+import { BLOG_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 const ddb = new DynamoDBClient();
@@ -152,7 +153,7 @@ Write the complete blog post now following the outline and brand voice guideline
         '#updatedAt': 'updatedAt'
       },
       ExpressionAttributeValues: marshall({
-        ':status': 'content_generating',
+        ':status': BLOG_STATUS.PROCESSING,
         ':updatedAt': new Date().toISOString()
       })
     }));
@@ -181,7 +182,7 @@ Write the complete blog post now following the outline and brand voice guideline
         pk: `${tenantId}#${episodeId}`,
         sk: 'data#blog#content',
         content,
-        status: 'content_generated',
+        status: BLOG_STATUS.CREATED,
         wordCount,
         generatedAt: now,
         updatedAt: now
@@ -200,7 +201,7 @@ Write the complete blog post now following the outline and brand voice guideline
         '#updatedAt': 'updatedAt'
       },
       ExpressionAttributeValues: marshall({
-        ':status': 'content_generated',
+        ':status': BLOG_STATUS.CREATED,
         ':updatedAt': now
       })
     }));
@@ -239,7 +240,7 @@ Write the complete blog post now following the outline and brand voice guideline
             '#errorMessage': 'errorMessage'
           },
           ExpressionAttributeValues: marshall({
-            ':status': 'failed',
+            ':status': BLOG_STATUS.FAILED,
             ':updatedAt': new Date().toISOString(),
             ':errorMessage': err.message
           })

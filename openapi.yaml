@@ -184,6 +184,75 @@ paths:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEpisodeFunction.Arn}/invocations
         httpMethod: POST
         type: aws_proxy
+    put:
+      summary: Update episode
+      description: Updates an existing episode's metadata
+      tags: [Episodes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                episodeNumber:
+                  type: integer
+                  minimum: 1
+                description:
+                  type: string
+                  maxLength: 1000
+                airDate:
+                  type: string
+                  format: date-time
+                platforms:
+                  type: array
+                  items:
+                    type: string
+                    enum: [linkedin live, X, twitch, youtube]
+                themes:
+                  type: array
+                  items:
+                    type: string
+                seriesName:
+                  type: string
+                  maxLength: 100
+      responses:
+        204:
+          description: Episode updated successfully
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        404:
+          description: Episode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        409:
+          description: Conflict - episode was modified by another request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-request-validator: Validate All
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateEpisodeFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
 
   /episodes/{episodeId}/transcripts:
     parameters:
@@ -512,7 +581,7 @@ paths:
                   currentStatus:
                     type: string
                     description: Current episode status
-                    example: "processing"
+                    example: "Processing"
                   statusHistory:
                     type: array
                     description: Chronological history of status changes
@@ -521,7 +590,7 @@ paths:
                       properties:
                         status:
                           type: string
-                          example: "draft"
+                          example: "Draft"
                         timestamp:
                           type: string
                           format: date-time
@@ -582,14 +651,14 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: ["Ready for Clip Gen"]
+                  enum: ["Draft", "Planning", "Ready", "Processing", "Published", "Archived"]
                   description: The new status to set for the episode
               required: [status]
             examples:
               ready_for_clip_gen:
                 summary: Mark episode ready for clip generation
                 value:
-                  status: "Ready for Clip Gen"
+                  status: "Ready"
       responses:
         204:
           description: Status updated successfully
@@ -702,7 +771,7 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: ["reviewed", "approved", "rejected", "published"]
+                  enum: ["Proposed", "Processing", "Created", "Failed"]
                   description: New status for the clip
               required:
                 - status
@@ -739,7 +808,7 @@ paths:
                     example: "ValidationError"
                   message:
                     type: string
-                    example: "Invalid status. Must be one of: reviewed, approved, rejected, published"
+                    example: "Invalid status. Must be one of: Proposed, Processing, Created, Failed"
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
@@ -1396,7 +1465,7 @@ paths:
                   description: Display episode title in graphic
                 status:
                   type: string
-                  enum: ["proposed", "created", "approved", "rejected"]
+                  enum: ["Proposed", "Processing", "Created", "Failed", "Edited"]
                   description: Quote status
       responses:
         204:
@@ -1935,8 +2004,8 @@ paths:
                     description: Role assigned to the member
                   status:
                     type: string
-                    enum: ["active", "pending"]
-                    description: Member status (active if user exists, pending if invitation sent)
+                    enum: ["Active", "Pending"]
+                    description: Member status (Active if user exists, Pending if invitation sent)
                   invitationSent:
                     type: boolean
                     description: Whether an invitation email was sent
@@ -2610,14 +2679,10 @@ components:
           description: Current clip status computed from status history
           enum:
             [
-              "detected",
-              "processing",
-              "processed",
-              "failed",
-              "reviewed",
-              "approved",
-              "rejected",
-              "published",
+              "Proposed",
+              "Processing",
+              "Created",
+              "Failed",
             ]
         duration:
           type: string
@@ -2647,7 +2712,7 @@ components:
         status:
           type: string
           description: Current episode status
-          example: "Ready for Clip Gen"
+          example: "Ready"
         episodeNumber:
           type: integer
           description: Episode number in the series
@@ -2780,16 +2845,12 @@ components:
           description: Current clip status computed from the most recent entry in the status history array. This field is maintained for backward compatibility while the complete status history is stored internally.
           enum:
             [
-              "detected",
-              "processing",
-              "processed",
-              "failed",
-              "reviewed",
-              "approved",
-              "rejected",
-              "published",
+              "Proposed",
+              "Processing",
+              "Created",
+              "Failed",
             ]
-          example: "processed"
+          example: "Created"
         segments:
           type: array
           description: Segments that make up this clip
@@ -2964,8 +3025,8 @@ components:
         status:
           type: string
           description: Quote status
-          enum: ["proposed", "created", "failed", "approved", "rejected"]
-          example: "created"
+          enum: ["Proposed", "Processing", "Created", "Failed", "Edited"]
+          example: "Created"
         showSpeaker:
           type: boolean
           description: Display speaker name in graphic
@@ -3042,8 +3103,8 @@ components:
         status:
           type: string
           description: Quote status
-          enum: ["proposed", "created", "approved", "rejected"]
-          example: "generated"
+          enum: ["Proposed", "Processing", "Created", "Failed", "Edited"]
+          example: "Created"
         s3Key:
           type: string
           description: S3 key for generated graphic (only present if generated)
@@ -3097,8 +3158,8 @@ components:
         status:
           type: string
           description: Team status
-          enum: ["active", "archived"]
-          example: "active"
+          enum: ["Active", "Archived"]
+          example: "Active"
         joinedAt:
           type: string
           format: date-time
@@ -3139,8 +3200,8 @@ components:
         status:
           type: string
           description: Team status
-          enum: ["active", "archived"]
-          example: "active"
+          enum: ["Active", "Archived"]
+          example: "Active"
         settings:
           type: object
           description: Team settings
@@ -3262,9 +3323,9 @@ components:
           example: "owner"
         status:
           type: string
-          enum: ["active", "pending"]
+          enum: ["Active", "Pending", "Removed"]
           description: Membership status
-          example: "active"
+          example: "Active"
         joinedAt:
           type: string
           format: date-time
@@ -3288,7 +3349,7 @@ components:
         status:
           type: string
           description: The status value
-          example: "Ready for Clip Gen"
+          example: "Ready"
         timestamp:
           type: string
           format: date-time
@@ -3350,9 +3411,9 @@ components:
           example: "member"
         status:
           type: string
-          enum: ["active", "pending"]
+          enum: ["Active", "Pending", "Removed"]
           description: Membership status
-          example: "active"
+          example: "Active"
         joinedAt:
           type: string
           format: date-time
@@ -3681,15 +3742,13 @@ components:
         status:
           type: string
           enum:
-            - outline_created
-            - content_generating
-            - content_generated
-            - outline_edited
-            - content_edited
-            - regenerating
-            - failed
+            - Proposed
+            - Processing
+            - Created
+            - Failed
+            - Edited
           description: Current status of the blog
-          example: "content_generated"
+          example: "Created"
         wordCount:
           type: integer
           nullable: true

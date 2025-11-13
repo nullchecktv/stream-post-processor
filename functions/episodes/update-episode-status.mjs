@@ -4,12 +4,11 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { Logger } from '@aws-lambda-powertools/logger';
 import { parseBody, formatResponse, formatEmptyResponse } from '../utils/api.mjs';
 import { getCurrentStatus } from '../utils/status-history.mjs';
+import { EPISODE_STATUS, EPISODE_STATUS_TRANSITIONS, EpisodeStatusUpdateSchema } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const eb = new EventBridgeClient();
 const logger = new Logger({ serviceName: 'episodes' });
-
-const VALID_STATUSES = new Set(['Ready for Clip Gen']);
 
 export const handler = async (event) => {
   try {
@@ -27,11 +26,15 @@ export const handler = async (event) => {
       return formatResponse(400, { error: 'ValidationError', message: 'Invalid request body' });
     }
 
-    const status = body?.status?.toString().trim();
-    if (!status || !VALID_STATUSES.has(status)) {
+    let status;
+    try {
+      const validated = EpisodeStatusUpdateSchema.parse(body);
+      status = validated.status;
+    } catch (error) {
       return formatResponse(400, {
         error: 'ValidationError',
-        message: 'Status is required and must be one of: Ready for Clip Gen'
+        message: 'Invalid status value',
+        details: error.errors
       });
     }
 
@@ -52,13 +55,23 @@ export const handler = async (event) => {
 
     const episode = unmarshall(episodeResponse.Item);
 
-    if (status === 'Ready for Clip Gen') {
-      const missingPrerequisites = [];
+    const currentStatus = getCurrentStatus(episode.statusHistory) || episode.status;
 
-      const currentEpisodeStatus = getCurrentStatus(episode.statusHistory) || episode.status;
-      if (currentEpisodeStatus !== 'tracks uploaded') {
-        missingPrerequisites.push(`Episode has status '${currentEpisodeStatus}', expected 'tracks uploaded'`);
-      }
+    const allowedTransitions = EPISODE_STATUS_TRANSITIONS[currentStatus] || [];
+    if (!allowedTransitions.includes(status)) {
+      return formatResponse(400, {
+        error: 'InvalidStatusTransition',
+        message: `Cannot transition from '${currentStatus}' to '${status}'`,
+        details: {
+          currentStatus,
+          requestedStatus: status,
+          allowedTransitions
+        }
+      });
+    }
+
+    if (status === EPISODE_STATUS.READY) {
+      const missingPrerequisites = [];
 
       const tracksResponse = await ddb.send(new QueryCommand({
         TableName: process.env.TABLE_NAME,
@@ -71,10 +84,14 @@ export const handler = async (event) => {
 
       const tracks = (tracksResponse.Items || []).map(item => unmarshall(item));
 
+      if (tracks.length === 0) {
+        missingPrerequisites.push('No tracks uploaded');
+      }
+
       for (const track of tracks) {
         const currentTrackStatus = getCurrentStatus(track.statusHistory) || track.status;
-        if (currentTrackStatus !== 'processed') {
-          missingPrerequisites.push(`Track '${track.trackName}' has status '${currentTrackStatus}', expected 'processed'`);
+        if (currentTrackStatus !== 'Processed') {
+          missingPrerequisites.push(`Track '${track.trackName}' has status '${currentTrackStatus}', expected 'Processed'`);
         }
       }
 
@@ -113,7 +130,7 @@ export const handler = async (event) => {
       })
     }));
 
-    if (status === 'Ready for Clip Gen') {
+    if (status === EPISODE_STATUS.READY) {
       try {
         await eb.send(new PutEventsCommand({
           Entries: [
