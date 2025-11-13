@@ -74,7 +74,7 @@ export const handler = async (event) => {
 
     await ddb.send(new PutItemCommand({
       TableName: process.env.TABLE_NAME,
-      Item: marshall(updatedProfile)
+      Item: marshall(updatedProfile, { removeUndefinedValues: true })
     }));
 
     return formatEmptyResponse();

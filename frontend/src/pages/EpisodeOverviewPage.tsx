@@ -202,7 +202,9 @@ function EpisodeOverviewPage() {
                       </span>
                     )}
                   </p>
-                  <p className="text-sm text-gray-600">Transcript uploaded</p>
+                  <p className="text-sm text-gray-600">
+                    Transcript {hasTranscript ? 'uploaded' : 'not uploaded'}
+                  </p>
                 </div>
               </button>
 

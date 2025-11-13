@@ -17,9 +17,12 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
     return stored === 'true'
   })
 
-  if (uploads.length === 0) {
-    return null
-  }
+  useEffect(() => {
+    if (activeUploadsCount > 0 && isMinimized) {
+      setIsMinimized(false)
+      localStorage.setItem(MINIMIZED_KEY, 'false')
+    }
+  }, [activeUploadsCount, isMinimized])
 
   const positionClasses = position === 'bottom-right'
     ? 'right-4 bottom-4'
@@ -37,12 +40,9 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
     localStorage.setItem(MINIMIZED_KEY, String(newMinimized))
   }
 
-  useEffect(() => {
-    if (activeUploadsCount > 0 && isMinimized) {
-      setIsMinimized(false)
-      localStorage.setItem(MINIMIZED_KEY, 'false')
-    }
-  }, [activeUploadsCount, isMinimized])
+  if (uploads.length === 0) {
+    return null
+  }
 
   const handleRemove = (uploadId: string) => {
     removeUpload(uploadId)
