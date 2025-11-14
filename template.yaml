@@ -338,7 +338,10 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
-              Resource: !GetAtt StreamPostProcessingTable.Arn
+                - dynamodb:Query
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+                - !Sub '${StreamPostProcessingTable.Arn}/index/GSI1'
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -467,6 +470,10 @@ Resources:
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
                 - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -1311,6 +1318,10 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
               Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -1991,6 +2002,10 @@ Resources:
               Resource:
                 - !GetAtt TranscriptBucket.Arn
                 - !Sub "${TranscriptBucket.Arn}/*"
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -2026,6 +2041,10 @@ Resources:
               Action:
                 - dynamodb:UpdateItem
               Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -2079,6 +2098,25 @@ Resources:
               detail-type:
                 - Begin Clip Generation
 
+  ClipGenerationFailedFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/clip-generation-failed.mjs
+    Properties:
+      Handler: events/clip-generation-failed.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+
   VideoClipProcessingStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -2088,6 +2126,7 @@ Resources:
         TableName: !Ref StreamPostProcessingTable
         SegmentExtractor: !GetAtt SegmentExtractorFunction.Arn
         ClipStitcher: !GetAtt ClipStitcherFunction.Arn
+        ClipGenerationFailedFunctionArn: !GetAtt ClipGenerationFailedFunction.Arn
       Policies:
         Version: "2012-10-17"
         Statement:
@@ -2097,12 +2136,17 @@ Resources:
             Resource:
               - !GetAtt SegmentExtractorFunction.Arn
               - !GetAtt ClipStitcherFunction.Arn
+              - !GetAtt ClipGenerationFailedFunction.Arn
           - Effect: Allow
             Action:
               - dynamodb:UpdateItem
               - dynamodb:GetItem
               - dynamodb:PutItem
             Resource: !GetAtt StreamPostProcessingTable.Arn
+          - Effect: Allow
+            Action:
+              - events:PutEvents
+            Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 
   SegmentExtractorFunction:
     Type: AWS::Serverless::Function
@@ -2291,7 +2335,7 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:Query
-              Resource: !Sub "${StreamPostProcessingTable.Arn}/index/GSI1"
+              Resource: !GetAtt StreamPostProcessingTable.Arn
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -2333,6 +2377,69 @@ Resources:
             RestApiId: !Ref Api
             Path: /notifications/{notificationId}
             Method: DELETE
+
+  RefreshTokenFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - tokens/refresh-token.mjs
+    Properties:
+      Handler: tokens/refresh-token.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+                - !Sub '${StreamPostProcessingTable.Arn}/index/GSI1'
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        Refresh:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /tokens/refresh
+            Method: POST
+
+  NotificationHandlerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - events/notification-handler.mjs
+    Properties:
+      Handler: events/notification-handler.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+      Events:
+        NotificationEvent:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - nullcheck
+              detail-type:
+                - Notification
 
   CreateQuoteFunction:
     Type: AWS::Serverless::Function
@@ -2528,6 +2635,10 @@ Resources:
               Action:
                 - s3:PutObject
               Resource: !Sub "${TranscriptBucket.Arn}/*"
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable

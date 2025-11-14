@@ -2,9 +2,9 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { TRACK_STATUS } from '../../schemas/index.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
-
 const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
@@ -66,6 +66,22 @@ export const handler = async (event) => {
       jobId: jobId || 'n/a',
       reason
     });
+
+    await publishNotificationEvent({
+      type: 'track_processing_failed',
+      tenantId,
+      title: 'Track Processing Failed',
+      message: `Failed to process track "${trackName}": ${reason}`,
+      url: `/episodes/${episodeId}`,
+      persist: true,
+      topic: 'tenant',
+      metadata: {
+        episodeId,
+        trackName,
+        reason
+      }
+    });
+
     return { statusCode: 200 };
   } catch (err) {
     logger.error('Error handling MediaConvert failure', { error: err.message, stack: err.stack });

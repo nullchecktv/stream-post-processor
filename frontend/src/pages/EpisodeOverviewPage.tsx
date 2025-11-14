@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
-import { quotesApi } from '../api/quotes'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useWorkflowState } from '../hooks/useWorkflowState'
 import { ErrorBoundary } from '../components/common/ErrorBoundary'

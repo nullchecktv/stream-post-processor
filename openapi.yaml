@@ -40,6 +40,7 @@ tags:
   - name: Users
   - name: Notifications
   - name: Invitations
+  - name: Tokens
 paths:
   /episodes:
     get:
@@ -2505,6 +2506,39 @@ paths:
       x-amazon-apigateway-integration:
         uri:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteNotificationFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
+  /tokens/refresh:
+    post:
+      summary: Refresh Momento token
+      description: Generates a new Momento auth token with updated permissions based on current team memberships
+      tags: [Tokens]
+      responses:
+        200:
+          description: New Momento token generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  momentoToken:
+                    type: string
+                    description: New Momento authentication token
+                  expiresAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 timestamp when the token expires
+                required:
+                  - momentoToken
+                  - expiresAt
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RefreshTokenFunction.Arn}/invocations
         httpMethod: POST
         type: aws_proxy
 

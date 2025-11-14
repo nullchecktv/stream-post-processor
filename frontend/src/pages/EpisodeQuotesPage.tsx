@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { quotesApi } from '../api/quotes'
@@ -68,11 +68,28 @@ function EpisodeQuotesPage() {
     fetchEpisode()
   }, [id])
 
+  const fetchQuotesRef = useRef(fetchQuotes)
+
+  useEffect(() => {
+    fetchQuotesRef.current = fetchQuotes
+  })
+
   useEffect(() => {
     if (id) {
       fetchQuotes()
     }
   }, [id])
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (id) {
+        fetchQuotesRef.current()
+      }
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [])
 
   const handleDelete = async (quoteId: string) => {
     if (!id) return

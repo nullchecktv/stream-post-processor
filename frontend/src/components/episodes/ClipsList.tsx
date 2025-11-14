@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ClipListView } from '../../types'
 import { episodesApi } from '../../api/episodes'
 import { ClipCard } from './ClipCard'
@@ -23,9 +23,7 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
   const [showModal, setShowModal] = useState(false)
   const { showToast } = useToast()
 
-  useEffect(() => {
-    fetchClips()
-  }, [episodeId])
+  const fetchClipsRef = useRef<(() => Promise<void>) | null>(null)
 
   const fetchClips = async () => {
     try {
@@ -50,6 +48,23 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchClipsRef.current = fetchClips
+  })
+
+  useEffect(() => {
+    fetchClips()
+  }, [episodeId])
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchClipsRef.current?.()
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [])
 
   const handlePlay = (clipId: string) => {
     setSelectedClipId(clipId)

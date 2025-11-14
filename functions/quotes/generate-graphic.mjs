@@ -7,6 +7,7 @@ import { FONTS } from './fonts/index.mjs';
 import { readFileSync } from 'node:fs';
 import { resolveBranding } from '../utils/branding.mjs';
 import { createQuoteKey, QUOTE_STATUS, generateQuoteS3Key } from '../utils/quotes.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
 const ddb = new DynamoDBClient();
@@ -135,6 +136,24 @@ export const handler = async (event) => {
           ':updatedAt': new Date().toISOString()
         })
       }));
+
+      const episodeTitle = episode.title || `Episode ${episode.episodeNumber || ''}`;
+
+      await publishNotificationEvent({
+        type: 'quote_graphic_ready',
+        tenantId,
+        userId: null,
+        title: 'Quote Graphic Ready',
+        message: `Your quote graphic from ${episodeTitle} has been generated`,
+        url: `/episodes/${episodeId}/quotes/${quoteId}`,
+        persist: false,
+        topic: 'tasks',
+        metadata: {
+          episodeId,
+          quoteId,
+          quoteText: quote.text
+        }
+      });
 
       return {
         statusCode: 200,

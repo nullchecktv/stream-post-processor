@@ -100,8 +100,8 @@ export interface Episode {
 }
 
 export interface Plan {
-  objectives: string[] | string
-  concepts: string[] | string
+  objectives: string[]
+  concepts: string[]
   notes?: string
   createdAt: string
   updatedAt: string

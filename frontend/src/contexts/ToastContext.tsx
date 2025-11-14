@@ -3,7 +3,7 @@ import { ToastContainer, type ToastMessage } from '../components/common/ToastCon
 import { type ToastType } from '../components/common/Toast'
 
 interface ToastContextType {
-  showToast: (message: string, type: ToastType) => void
+  showToast: (message: string, type: ToastType, onAction?: () => void) => void
   showSuccess: (message: string) => void
   showError: (message: string) => void
   showInfo: (message: string) => void
@@ -15,9 +15,9 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined)
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
 
-  const showToast = useCallback((message: string, type: ToastType) => {
+  const showToast = useCallback((message: string, type: ToastType, onAction?: () => void) => {
     const id = `${Date.now()}-${Math.random()}`
-    setToasts((prev) => [...prev, { id, message, type }])
+    setToasts((prev) => [...prev, { id, message, type, onAction }])
   }, [])
 
   const showSuccess = useCallback((message: string) => {

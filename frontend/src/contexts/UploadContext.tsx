@@ -38,12 +38,12 @@ export function UploadProvider({ children }: UploadProviderProps) {
       if (stored) {
         const parsedUploads = JSON.parse(stored) as UploadState[]
         const now = new Date().getTime()
-        const oneDayAgo = now - 24 * 60 * 60 * 1000
+        const fiveMinutesAgo = now - 5 * 60 * 1000
 
         const validUploads = parsedUploads.filter(upload => {
           if (upload.status === 'completed' || upload.status === 'failed') {
             const completedAt = upload.completedAt ? new Date(upload.completedAt).getTime() : 0
-            return completedAt > oneDayAgo
+            return completedAt > fiveMinutesAgo
           }
           return true
         })
@@ -70,6 +70,28 @@ export function UploadProvider({ children }: UploadProviderProps) {
     }
   }, [uploads, isAuthenticated, storageKey])
 
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const cleanupInterval = setInterval(() => {
+      const now = new Date().getTime()
+      const fiveMinutesAgo = now - 5 * 60 * 1000
+
+      setUploads(prev => {
+        const filtered = prev.filter(upload => {
+          if (upload.status === 'completed' || upload.status === 'failed') {
+            const completedAt = upload.completedAt ? new Date(upload.completedAt).getTime() : 0
+            return completedAt > fiveMinutesAgo
+          }
+          return true
+        })
+        return filtered.length !== prev.length ? filtered : prev
+      })
+    }, 60000)
+
+    return () => clearInterval(cleanupInterval)
+  }, [isAuthenticated])
+
   const addUpload = useCallback((upload: Omit<UploadState, 'id' | 'startedAt'>): string => {
     const id = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const newUpload: UploadState = {
@@ -77,7 +99,7 @@ export function UploadProvider({ children }: UploadProviderProps) {
       id,
       startedAt: new Date().toISOString(),
     }
-    setUploads(prev => [...prev, newUpload])
+    setUploads(prev => [newUpload, ...prev])
     return id
   }, [])
 

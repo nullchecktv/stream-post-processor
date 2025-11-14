@@ -133,31 +133,25 @@ function EpisodePlanPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Objectives</h3>
-                  <div className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {Array.isArray(episodePlan.plan.objectives) ? (
-                      <ul className="list-disc list-inside space-y-1">
-                        {episodePlan.plan.objectives.map((obj, idx) => (
-                          <li key={idx}>{obj}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="whitespace-pre-wrap">{episodePlan.plan.objectives}</p>
-                    )}
-                  </div>
+                  <ul className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3 space-y-1">
+                    {episodePlan.plan.objectives.map((objective, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-primary mr-2">•</span>
+                        <span>{objective}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Concepts</h3>
-                  <div className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {Array.isArray(episodePlan.plan.concepts) ? (
-                      <ul className="list-disc list-inside space-y-1">
-                        {episodePlan.plan.concepts.map((concept, idx) => (
-                          <li key={idx}>{concept}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="whitespace-pre-wrap">{episodePlan.plan.concepts}</p>
-                    )}
-                  </div>
+                  <ul className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3 space-y-1">
+                    {episodePlan.plan.concepts.map((concept, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-primary mr-2">•</span>
+                        <span>{concept}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 {episodePlan.plan.notes && (
                   <div>
