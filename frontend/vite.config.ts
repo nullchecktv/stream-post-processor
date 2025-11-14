@@ -31,7 +31,6 @@ export default defineConfig({
               return 'react-router';
             }
             if (id.includes('aws-amplify')) {
-              if (id.includes('auth')) return 'aws-auth';
               return 'aws-amplify';
             }
             if (id.includes('@aws-sdk')) {
