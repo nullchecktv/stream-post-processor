@@ -6,6 +6,7 @@ import { formatResponse } from '../utils/api.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { validateRequest } from '../utils/validation.mjs';
 import { EpisodeCreateSchema, EPISODE_STATUS } from '../../schemas/index.mjs';
+import { initializeWorkflowSteps } from '../utils/workflow-state.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'episodes' });
@@ -50,6 +51,17 @@ export const handler = async (event) => {
       ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
       Item: marshall(item),
     }));
+
+    try {
+      await initializeWorkflowSteps(tenantId, id);
+    } catch (workflowErr) {
+      logger.error('Error initializing workflow steps', {
+        error: workflowErr.message,
+        stack: workflowErr.stack,
+        episodeId: id,
+        tenantId
+      });
+    }
 
     return formatResponse(201, { id });
   } catch (err) {

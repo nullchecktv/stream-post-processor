@@ -345,6 +345,7 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
+          MOMENTO_API_KEY: !Ref MomentoApiKey
 
   PreTokenGenerationTriggerPermission:
     Type: AWS::Lambda::Permission
@@ -2431,6 +2432,7 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
+          MOMENTO_API_KEY: !Ref MomentoApiKey
       Events:
         NotificationEvent:
           Type: EventBridgeRule

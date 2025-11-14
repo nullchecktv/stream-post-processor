@@ -1,8 +1,8 @@
 # Implementation Plan
 
-- [-] 1. Create Workflow State Schema and Utilities
+- [ ] 1. Create Workflow State Schema and Utilities
 
-- [ ] 1.1 Create workflow state schema definitions
+- [x] 1.1 Create workflow state schema definitions
   - Create schemas/workflow.mjs with Zod schemas
   - Define WorkflowStepStatus enum (Locked, Ready, In Progress, Complete, Skipped, Failed)
   - Define ContentGenerationStatus enum (Pending, Processing, Complete, Failed)
@@ -10,7 +10,7 @@
   - Export status constants and transition maps
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 1.2 Create workflow state utility functions
+- [x] 1.2 Create workflow state utility functions
   - Create functions/utils/workflow-state.mjs
   - Implement initializeWorkflowSteps() to create initial workflow records
   - Implement updateWorkflowStep() to update step status and history
@@ -21,9 +21,9 @@
   - Implement checkUploadTranscriptCompletion() to check if all content is complete
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8_
 
-- [ ] 2. Update Episode Creation to Initialize Workflow
+- [x] 2. Update Episode Creation to Initialize Workflow
 
-- [ ] 2.1 Update create-episode Lambda to initialize workflow steps
+- [x] 2.1 Update create-episode Lambda to initialize workflow steps
   - Import initializeWorkflowSteps from workflow-state utility
   - Call initializeWorkflowSteps after episode creation
   - Set generate-plan to Ready, upload-transcript and upload-tracks to Locked
