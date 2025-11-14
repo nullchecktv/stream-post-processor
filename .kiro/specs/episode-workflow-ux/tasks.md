@@ -99,36 +99,36 @@ This implementation plan breaks down the episode workflow UX redesign into discr
   - Ensure mobile-responsive stacking
   - _Requirements: 4.1, 4.4, 4.5, 9.3, 10.2_
 
-- [ ] 5. Build Episode Creation Wizard
-- [ ] 5.1 Create wizard modal structure and navigation
+- [x] 5. Build Episode Creation Wizard
+- [x] 5.1 Create wizard modal structure and navigation
   - Implement modal container with close functionality
   - Create wizard progress indicator showing current step
   - Implement step navigation (next, back, close)
   - Add form state management across steps
   - _Requirements: 1.1, 1.2, 1.3, 8.3_
 
-- [ ] 5.2 Create BasicInfoStep component
+- [x] 5.2 Create BasicInfoStep component
   - Implement form fields for title, episode number, air date, series name
   - Add field validation for required fields
   - Implement error display for validation failures
   - Add auto-save draft functionality
   - _Requirements: 1.1, 1.3, 1.5_
 
-- [ ] 5.3 Create PlatformsStep component
+- [x] 5.3 Create PlatformsStep component
   - Implement multi-select checkbox interface for platforms
   - Add platform icons and labels
   - Implement selection state management
   - Add "Select All" and "Clear All" options
   - _Requirements: 1.1, 1.3_
 
-- [ ] 5.4 Create ThemesStep component
+- [x] 5.4 Create ThemesStep component
   - Implement tag input interface for themes
   - Add theme suggestions based on team history
   - Implement add/remove theme functionality
   - Add validation for theme format
   - _Requirements: 1.1, 1.3_
 
-- [ ] 5.5 Create ReviewStep component
+- [x] 5.5 Create ReviewStep component
   - Display summary of all entered information
   - Add edit buttons for each section to return to specific steps
   - Implement final validation before submission
@@ -136,7 +136,7 @@ This implementation plan breaks down the episode workflow UX redesign into discr
   - _Requirements: 1.1, 1.3, 1.4_
 
 
-- [ ] 5.6 Implement wizard form persistence
+- [x] 5.6 Implement wizard form persistence
   - Save wizard state to localStorage on each step
   - Restore wizard state when reopening
   - Clear saved state after successful creation
