@@ -30,9 +30,9 @@
   - Handle errors gracefully
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 3. Implement Workflow State API Endpoints
+- [x] 3. Implement Workflow State API Endpoints
 
-- [ ] 3.1 Create get-workflow-state Lambda function
+- [x] 3.1 Create get-workflow-state Lambda function
   - Create functions/episodes/get-workflow-state.mjs
   - Implement GET /episodes/{episodeId}/workflow endpoint
   - Query all workflow steps and content generation states
@@ -40,13 +40,13 @@
   - Add error handling and logging
   - _Requirements: 8.1, 8.5_
 
-- [ ] 3.2 Add get-workflow-state endpoint to OpenAPI spec
+- [x] 3.2 Add get-workflow-state endpoint to OpenAPI spec
   - Add GET /episodes/{episodeId}/workflow to openapi.yaml
   - Define request parameters and response schema
   - Add authentication requirements
   - _Requirements: 8.1_
 
-- [ ] 3.3 Add get-workflow-state function to SAM template
+- [x] 3.3 Add get-workflow-state function to SAM template
   - Add GetWorkflowStateFunction to template.yaml
   - Configure API Gateway integration
   - Set appropriate IAM permissions (dynamodb:Query)

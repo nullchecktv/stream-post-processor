@@ -682,6 +682,114 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/workflow:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    get:
+      summary: Get workflow state
+      description: Retrieves the current workflow state including all workflow steps and content generation states for an episode
+      tags: [Episodes]
+      responses:
+        200:
+          description: Workflow state details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  steps:
+                    type: array
+                    description: Workflow step states
+                    items:
+                      type: object
+                      properties:
+                        stepName:
+                          type: string
+                          enum: ["generate-plan", "upload-transcript", "upload-tracks"]
+                          description: Name of the workflow step
+                          example: "generate-plan"
+                        status:
+                          type: string
+                          enum: ["Locked", "Ready", "In Progress", "Complete", "Skipped", "Failed"]
+                          description: Current status of the workflow step
+                          example: "Complete"
+                        startedAt:
+                          type: string
+                          format: date-time
+                          description: When the step was started
+                          example: "2025-01-15T10:30:00Z"
+                        completedAt:
+                          type: string
+                          format: date-time
+                          description: When the step was completed
+                          example: "2025-01-15T10:32:00Z"
+                        errorMessage:
+                          type: string
+                          description: Error message if step failed
+                          example: "Failed to generate plan"
+                      required:
+                        - stepName
+                        - status
+                  contentGeneration:
+                    type: array
+                    description: Content generation states
+                    items:
+                      type: object
+                      properties:
+                        contentType:
+                          type: string
+                          enum: ["blog", "quotes", "clips"]
+                          description: Type of content being generated
+                          example: "blog"
+                        status:
+                          type: string
+                          enum: ["Pending", "Processing", "Complete", "Failed"]
+                          description: Current status of content generation
+                          example: "Processing"
+                        startedAt:
+                          type: string
+                          format: date-time
+                          description: When content generation started
+                          example: "2025-01-15T10:35:00Z"
+                        completedAt:
+                          type: string
+                          format: date-time
+                          description: When content generation completed
+                          example: "2025-01-15T10:37:00Z"
+                        itemCount:
+                          type: integer
+                          description: Number of items generated
+                          example: 3
+                        errorMessage:
+                          type: string
+                          description: Error message if generation failed
+                          example: "Failed to generate blog post"
+                      required:
+                        - contentType
+                        - status
+                required:
+                  - steps
+                  - contentGeneration
+        404:
+          description: Episode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetWorkflowStateFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
   /episodes/{episodeId}/clips:
     parameters:
       - $ref: "#/components/parameters/EpisodeId"
