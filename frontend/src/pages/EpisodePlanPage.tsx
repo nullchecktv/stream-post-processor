@@ -133,15 +133,31 @@ function EpisodePlanPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Objectives</h3>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
-                    {episodePlan.plan.objectives}
-                  </p>
+                  <div className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3">
+                    {Array.isArray(episodePlan.plan.objectives) ? (
+                      <ul className="list-disc list-inside space-y-1">
+                        {episodePlan.plan.objectives.map((obj, idx) => (
+                          <li key={idx}>{obj}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="whitespace-pre-wrap">{episodePlan.plan.objectives}</p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Concepts</h3>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
-                    {episodePlan.plan.concepts}
-                  </p>
+                  <div className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3">
+                    {Array.isArray(episodePlan.plan.concepts) ? (
+                      <ul className="list-disc list-inside space-y-1">
+                        {episodePlan.plan.concepts.map((concept, idx) => (
+                          <li key={idx}>{concept}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="whitespace-pre-wrap">{episodePlan.plan.concepts}</p>
+                    )}
+                  </div>
                 </div>
                 {episodePlan.plan.notes && (
                   <div>

@@ -32,6 +32,11 @@ export interface EpisodeListView {
   themes?: string[]
   createdAt: string
   updatedAt: string
+  metrics?: {
+    hasTranscript: boolean
+    hasPlan: boolean
+    tracksCount: number
+  }
 }
 
 export interface TrackInfo {
@@ -95,8 +100,8 @@ export interface Episode {
 }
 
 export interface Plan {
-  objectives: string
-  concepts: string
+  objectives: string[] | string
+  concepts: string[] | string
   notes?: string
   createdAt: string
   updatedAt: string

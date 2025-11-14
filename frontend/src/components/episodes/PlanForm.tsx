@@ -12,20 +12,33 @@ const PlanSchema = z.object({
 export type PlanFormData = z.infer<typeof PlanSchema>
 
 interface PlanFormProps {
-  plan?: PlanFormData
+  plan?: {
+    objectives: string | string[]
+    concepts: string | string[]
+    notes?: string
+  }
   onSubmit: (data: PlanFormData) => Promise<void>
   onCancel?: () => void
   isSubmitting?: boolean
 }
 
 export function PlanForm({ plan, onSubmit, onCancel, isSubmitting = false }: PlanFormProps) {
+  const normalizeToString = (value: string | string[] | undefined): string => {
+    if (!value) return ''
+    return Array.isArray(value) ? value.join('\n') : value
+  }
+
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
   } = useForm<PlanFormData>({
     resolver: zodResolver(PlanSchema),
-    defaultValues: plan || {
+    defaultValues: plan ? {
+      objectives: normalizeToString(plan.objectives),
+      concepts: normalizeToString(plan.concepts),
+      notes: plan.notes || '',
+    } : {
       objectives: '',
       concepts: '',
       notes: '',

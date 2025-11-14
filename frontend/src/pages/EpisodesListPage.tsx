@@ -6,7 +6,7 @@ import { EpisodeCardSkeleton } from '../components/common/EpisodeCardSkeleton'
 import { EmptyState } from '../components/common/EmptyState'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
-import { CreateEpisodeModal } from '../components/dashboard/CreateEpisodeModal'
+import { EpisodeCreationWizard } from '../components/episodes/EpisodeCreationWizard'
 import { EpisodeCard } from '../components/episodes/EpisodeCard'
 
 function EpisodesListPage() {
@@ -14,7 +14,7 @@ function EpisodesListPage() {
   const { episodes, loading, loadingMore, hasMore, loadMore } = useEpisodes()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isWizardOpen, setIsWizardOpen] = useState(false)
 
   const filteredEpisodes = useMemo(() => {
     if (!debouncedSearchQuery.trim()) return episodes
@@ -27,11 +27,15 @@ function EpisodesListPage() {
   }, [episodes, debouncedSearchQuery])
 
   const handleCreateEpisode = () => {
-    setIsCreateModalOpen(true)
+    setIsWizardOpen(true)
   }
 
-  const handleCloseModal = () => {
-    setIsCreateModalOpen(false)
+  const handleCloseWizard = () => {
+    setIsWizardOpen(false)
+  }
+
+  const handleWizardComplete = () => {
+    setIsWizardOpen(false)
   }
 
   return (
@@ -101,9 +105,10 @@ function EpisodesListPage() {
         )}
       </div>
 
-      <CreateEpisodeModal
-        isOpen={isCreateModalOpen}
-        onClose={handleCloseModal}
+      <EpisodeCreationWizard
+        isOpen={isWizardOpen}
+        onClose={handleCloseWizard}
+        onComplete={handleWizardComplete}
       />
     </div>
   )

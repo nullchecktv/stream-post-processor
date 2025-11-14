@@ -71,9 +71,13 @@ export function PlanCard({ episodeId, plan, isLoading = false, error = null }: P
     )
   }
 
-  const objectivesPreview = plan.objectives.length > 120
-    ? `${plan.objectives.substring(0, 120)}...`
+  const objectivesText = Array.isArray(plan.objectives)
+    ? plan.objectives.join(', ')
     : plan.objectives
+
+  const objectivesPreview = objectivesText.length > 120
+    ? `${objectivesText.substring(0, 120)}...`
+    : objectivesText
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">

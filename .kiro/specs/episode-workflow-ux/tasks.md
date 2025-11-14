@@ -174,15 +174,15 @@ This implementation plan breaks down the episode workflow UX redesign into discr
   - _Requirements: 4.5, 10.3, 10.4_
 
 
-- [ ] 7. Update Episodes List Page
-- [ ] 7.1 Replace create button with wizard trigger
+- [x] 7. Update Episodes List Page
+- [x] 7.1 Replace create button with wizard trigger
   - Remove existing "Create Episode" button
   - Add new button that opens EpisodeCreationWizard modal
   - Implement modal state management
   - Handle successful creation with redirect to new episode
   - _Requirements: 1.1, 1.4_
 
-- [ ] 7.2 Add workflow progress indicators to episode cards
+- [x] 7.2 Add workflow progress indicators to episode cards
   - Add mini workflow progress indicator to each episode card
   - Show current step and completion status
   - Update card styling to accommodate progress indicator

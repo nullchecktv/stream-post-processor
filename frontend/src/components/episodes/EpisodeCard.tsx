@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import type { EpisodeListView } from '../../types'
 import { formatDate } from '../../utils/date'
 import { EpisodeStatusChip } from './EpisodeStatusChip'
+import { MiniWorkflowProgress } from './MiniWorkflowProgress'
 
 interface EpisodeCardProps {
   episode: EpisodeListView
@@ -9,6 +10,17 @@ interface EpisodeCardProps {
   tracksCount?: number
   transcriptCount?: number
   clipsCount?: number
+}
+
+function computeCurrentStep(episode: EpisodeListView): number {
+  if (!episode.metrics) return 1
+
+  const { hasPlan, hasTranscript, tracksCount } = episode.metrics
+
+  if (tracksCount > 0) return 4
+  if (hasTranscript) return 3
+  if (hasPlan) return 2
+  return 1
 }
 
 export function EpisodeCard({
@@ -19,6 +31,7 @@ export function EpisodeCard({
   clipsCount = 0
 }: EpisodeCardProps) {
   const navigate = useNavigate()
+  const currentStep = computeCurrentStep(episode)
 
   const handleClick = () => {
     navigate(`/episodes/${episode.id}/overview`)
@@ -59,6 +72,9 @@ export function EpisodeCard({
                 {formatDate(episode.airDate)}
               </p>
             )}
+            <div className="mt-2 w-24">
+              <MiniWorkflowProgress currentStep={currentStep} />
+            </div>
           </div>
         </div>
         {episode.status && (
@@ -87,6 +103,9 @@ export function EpisodeCard({
             <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-2 line-clamp-2">
               {episode.title}
             </h3>
+            <div className="mt-3">
+              <MiniWorkflowProgress currentStep={currentStep} />
+            </div>
           </div>
           {episode.status && (
             <EpisodeStatusChip status={episode.status as any} size="md" showIcon />

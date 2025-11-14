@@ -176,18 +176,28 @@ export const episodesApi = {
   getPlan: (id: string) => apiRequest<EpisodePlan>(`/episodes/${id}/plan`),
 
   createPlan: async (id: string, data: { objectives: string; concepts: string; notes?: string }) => {
+    const planData = {
+      objectives: data.objectives.split('\n').filter(line => line.trim()),
+      concepts: data.concepts.split('\n').filter(line => line.trim()),
+      ...(data.notes && { notes: data.notes })
+    }
     const result = await apiRequest<EpisodePlan>(`/episodes/${id}/plan`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(planData),
     })
     apiCache.invalidate(`GET:/episodes/${id}/plan`)
     return result
   },
 
   updatePlan: async (id: string, data: { objectives: string; concepts: string; notes?: string }) => {
+    const planData = {
+      objectives: data.objectives.split('\n').filter(line => line.trim()),
+      concepts: data.concepts.split('\n').filter(line => line.trim()),
+      ...(data.notes && { notes: data.notes })
+    }
     const result = await apiRequest<EpisodePlan>(`/episodes/${id}/plan`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(planData),
     })
     apiCache.invalidate(`GET:/episodes/${id}/plan`)
     return result
