@@ -7,14 +7,23 @@ interface PlanCardProps {
   readonly plan: Plan | null
   readonly isLoading?: boolean
   readonly error?: string | null
+  readonly onGeneratePlan?: () => void
 }
 
-function PlanCardComponent({ episodeId, plan, isLoading = false, error = null }: PlanCardProps) {
+function PlanCardComponent({ episodeId, plan, isLoading = false, error = null, onGeneratePlan }: PlanCardProps) {
   const navigate = useNavigate()
 
   const handleViewPlan = useCallback(() => {
     navigate(`/episodes/${episodeId}/plan`)
   }, [navigate, episodeId])
+
+  const handleGeneratePlan = useCallback(() => {
+    if (onGeneratePlan) {
+      onGeneratePlan()
+    } else {
+      navigate(`/episodes/${episodeId}/plan`)
+    }
+  }, [onGeneratePlan, navigate, episodeId])
 
   if (isLoading) {
     return (
@@ -51,7 +60,18 @@ function PlanCardComponent({ episodeId, plan, isLoading = false, error = null }:
 
   if (!plan) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div
+        className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 p-6 cursor-pointer"
+        onClick={handleGeneratePlan}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleGeneratePlan()
+          }
+        }}
+      >
         <div className="flex items-start space-x-3 mb-4">
           <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
             <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +84,7 @@ function PlanCardComponent({ episodeId, plan, isLoading = false, error = null }:
               No plan generated yet
             </p>
             <p className="text-sm text-gray-500">
-              Generate a plan to get started with content creation for this episode.
+              Click to generate a plan and get started with content creation for this episode.
             </p>
           </div>
         </div>

@@ -18,6 +18,7 @@ interface ContentCardsGridProps {
     clips?: string | null
     quotes?: string | null
   }
+  readonly onGeneratePlan?: () => void
 }
 
 function ContentCardsGridComponent({
@@ -27,7 +28,8 @@ function ContentCardsGridComponent({
   clips = [],
   quotes = [],
   isLoading = false,
-  errors = {}
+  errors = {},
+  onGeneratePlan
 }: ContentCardsGridProps) {
   if (isLoading) {
     return (
@@ -73,6 +75,7 @@ function ContentCardsGridComponent({
           episodeId={episodeId}
           plan={plan ?? null}
           error={errors.plan}
+          onGeneratePlan={onGeneratePlan}
         />
         <BlogPostCard
           episodeId={episodeId}

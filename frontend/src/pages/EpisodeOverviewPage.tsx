@@ -10,11 +10,12 @@ import { Breadcrumb } from '../components/common/Breadcrumb'
 import { Button } from '../components/common/Button'
 import { EpisodeHeader } from '../components/episodes/EpisodeHeader'
 import { WorkflowProgress } from '../components/episodes/WorkflowProgress'
-import { NextActionCard } from '../components/episodes/NextActionCard'
+import { PlanDialog } from '../components/episodes/PlanDialog'
 import { ContentCardsGrid } from '../components/episodes/ContentCardsGrid'
 import { EpisodeOverviewSkeleton } from '../components/episodes/EpisodeOverviewSkeleton'
 import type { EpisodeDetail, EpisodePlan, BlogData, ClipListView, Quote, EpisodeStatus, Episode } from '../types'
 import type { EpisodeUpdate } from '@schemas/episodes'
+import type { PlanFormData } from '../components/episodes/PlanForm'
 
 function EpisodeOverviewPage() {
   const { id } = useParams<{ id: string }>()
@@ -22,6 +23,7 @@ function EpisodeOverviewPage() {
   const { showToast } = useToast()
   const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
   const [plan, setPlan] = useState<EpisodePlan | null>(null)
+  const [planSkipped, setPlanSkipped] = useState(false)
   const [blog, setBlog] = useState<BlogData | null>(null)
   const [clips, setClips] = useState<ClipListView[]>([])
   const [quotes, setQuotes] = useState<Quote[]>([])
@@ -29,6 +31,8 @@ function EpisodeOverviewPage() {
   const [contentLoading, setContentLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [showPlanDialog, setShowPlanDialog] = useState(false)
+  const [isPlanSubmitting, setIsPlanSubmitting] = useState(false)
   const [contentErrors, setContentErrors] = useState<{
     plan?: string | null
     blog?: string | null
@@ -61,7 +65,7 @@ function EpisodeOverviewPage() {
     }
   }, [episode])
 
-  const workflowState = useWorkflowState(episodeForWorkflow, !!plan)
+  const workflowState = useWorkflowState(episodeForWorkflow, !!plan, planSkipped)
 
   const fetchEpisode = useCallback(async () => {
     if (!id) {
@@ -108,6 +112,41 @@ function EpisodeOverviewPage() {
   useEffect(() => {
     fetchEpisode()
   }, [fetchEpisode])
+
+  useEffect(() => {
+    const skipStatus = localStorage.getItem(`episode-${id}-plan-skipped`)
+    if (skipStatus === 'true') {
+      setPlanSkipped(true)
+    }
+  }, [id])
+
+  const handleSkipPlan = useCallback(() => {
+    if (!id) return
+    localStorage.setItem(`episode-${id}-plan-skipped`, 'true')
+    setPlanSkipped(true)
+    showToast('Plan generation skipped. You can upload content now.', 'success')
+  }, [id, showToast])
+
+  const handlePlanSubmit = async (data: PlanFormData) => {
+    if (!id) return
+
+    setIsPlanSubmitting(true)
+
+    try {
+      const result = plan?.plan
+        ? await episodesApi.updatePlan(id, data)
+        : await episodesApi.createPlan(id, data)
+
+      setPlan(result)
+      setShowPlanDialog(false)
+      showToast(plan?.plan ? 'Plan updated successfully!' : 'Plan created successfully!', 'success')
+    } catch (err) {
+      console.error('Failed to save plan:', err)
+      showToast('Failed to save plan. Please try again.', 'error')
+    } finally {
+      setIsPlanSubmitting(false)
+    }
+  }
 
   const fetchContent = useCallback(async () => {
     if (!id || !episode) return
@@ -225,24 +264,11 @@ function EpisodeOverviewPage() {
           isUpdating={isUpdating}
         />
 
-        {workflowState && workflowState.completedSteps.length < 4 && (
-          <NextActionCard
-            action={workflowState.nextAction}
-            isLoading={false}
-          />
-        )}
-
         {workflowState && (
           <WorkflowProgress
-            currentStep={workflowState.currentStep}
-            completedSteps={workflowState.completedSteps}
-            onStepClick={(step) => {
-              if (step === 1) {
-                navigate(`/episodes/${id}/plan`)
-              } else if (step === 2 || step === 3) {
-                navigate(`/episodes/${id}/uploads`)
-              }
-            }}
+            workflowState={workflowState}
+            onSkipPlan={handleSkipPlan}
+            onGeneratePlan={() => setShowPlanDialog(true)}
           />
         )}
 
@@ -253,6 +279,15 @@ function EpisodeOverviewPage() {
           clips={clips}
           quotes={quotes}
           errors={contentErrors}
+          onGeneratePlan={() => setShowPlanDialog(true)}
+        />
+
+        <PlanDialog
+          isOpen={showPlanDialog}
+          onClose={() => setShowPlanDialog(false)}
+          onSubmit={handlePlanSubmit}
+          plan={plan?.plan}
+          isSubmitting={isPlanSubmitting}
         />
       </div>
     </ErrorBoundary>
