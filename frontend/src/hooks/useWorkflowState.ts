@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { Episode } from '../types'
 
-export type WorkflowStep = 1 | 2 | 3 | 4
+export type WorkflowStep = 0 | 1 | 2 | 3
 
 export interface NextAction {
   title: string
@@ -9,6 +9,8 @@ export interface NextAction {
   buttonText: string
   route: string
   icon: string
+  skipRoute?: string
+  skipText?: string
 }
 
 export interface WorkflowState {
@@ -18,16 +20,16 @@ export interface WorkflowState {
 }
 
 export function computeWorkflowState(episode: Episode, hasPlan: boolean = false): WorkflowState {
-  const completedSteps: number[] = [1]
+  const completedSteps: number[] = []
 
   const hasTranscript = episode.metrics?.hasTranscript || false
   const hasTracks = (episode.metrics?.tracksCount || 0) > 0
 
-  if (hasPlan) completedSteps.push(2)
-  if (hasTranscript) completedSteps.push(3)
-  if (hasTracks) completedSteps.push(4)
+  if (hasPlan) completedSteps.push(1)
+  if (hasTranscript) completedSteps.push(2)
+  if (hasTracks) completedSteps.push(3)
 
-  const currentStep = Math.max(...completedSteps) as WorkflowStep
+  const currentStep = (completedSteps.length > 0 ? Math.max(...completedSteps) : 0) as WorkflowStep
 
   return {
     currentStep,
@@ -37,17 +39,23 @@ export function computeWorkflowState(episode: Episode, hasPlan: boolean = false)
 }
 
 export function determineNextAction(completedSteps: number[], episodeId: string): NextAction {
-  if (!completedSteps.includes(2)) {
+  const hasTranscript = completedSteps.includes(2)
+  const hasTracks = completedSteps.includes(3)
+  const hasPlan = completedSteps.includes(1)
+
+  if (!hasTranscript && !hasPlan) {
     return {
       title: 'Generate Content Plan',
       description: 'Create a structured plan with objectives and concepts for this episode',
       buttonText: 'Generate Plan',
       route: `/episodes/${episodeId}/plan`,
-      icon: 'lightbulb'
+      icon: 'lightbulb',
+      skipRoute: `/episodes/${episodeId}/uploads`,
+      skipText: 'Skip to Uploads'
     }
   }
 
-  if (!completedSteps.includes(3)) {
+  if (!hasTranscript) {
     return {
       title: 'Upload Transcript',
       description: 'Upload the SRT transcript file to enable AI-powered clip detection',
@@ -57,7 +65,7 @@ export function determineNextAction(completedSteps: number[], episodeId: string)
     }
   }
 
-  if (!completedSteps.includes(4)) {
+  if (!hasTracks) {
     return {
       title: 'Upload Video Tracks',
       description: 'Upload video tracks to generate clips from detected moments',
@@ -80,21 +88,19 @@ export function getWorkflowStepFromEpisode(episode: Episode, hasPlan: boolean = 
   const hasTranscript = episode.metrics?.hasTranscript || false
   const hasTracks = (episode.metrics?.tracksCount || 0) > 0
 
-  if (hasTracks) return 4
-  if (hasTranscript) return 3
-  if (hasPlan) return 2
+  if (hasTracks) return 3
+  if (hasTranscript) return 2
+  if (hasPlan) return 1
   return 1
 }
 
 export function isStepComplete(step: number, episode: Episode, hasPlan: boolean = false): boolean {
   switch (step) {
     case 1:
-      return true
-    case 2:
       return hasPlan
-    case 3:
+    case 2:
       return episode.metrics?.hasTranscript || false
-    case 4:
+    case 3:
       return (episode.metrics?.tracksCount || 0) > 0
     default:
       return false

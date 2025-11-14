@@ -130,6 +130,12 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
     navigate(action.route)
   }, [navigate, action.route])
 
+  const handleSkip = useCallback(() => {
+    if (action.skipRoute) {
+      navigate(action.skipRoute)
+    }
+  }, [navigate, action.skipRoute])
+
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
@@ -138,6 +144,7 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
   }, [handleAction])
 
   const isCompletionState = action.icon === 'check-circle'
+  const hasSkipOption = action.skipRoute && action.skipText
 
   return (
     <section
@@ -166,18 +173,34 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
             {action.description}
           </p>
 
-          <button
-            type="button"
-            onClick={handleAction}
-            onKeyDown={handleKeyDown}
-            className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white ${styles.button} focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200`}
-            aria-label={`${action.buttonText} - Navigate to ${action.title}`}
-          >
-            {action.buttonText}
-            <svg className="ml-2 -mr-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleAction}
+              onKeyDown={handleKeyDown}
+              className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white ${styles.button} focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200`}
+              aria-label={`${action.buttonText} - Navigate to ${action.title}`}
+            >
+              {action.buttonText}
+              <svg className="ml-2 -mr-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+
+            {hasSkipOption && (
+              <button
+                type="button"
+                onClick={handleSkip}
+                className={`inline-flex items-center px-6 py-3 border-2 ${styles.text} border-current text-base font-medium rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200`}
+                aria-label={action.skipText}
+              >
+                {action.skipText}
+                <svg className="ml-2 -mr-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>

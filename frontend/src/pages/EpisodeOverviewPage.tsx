@@ -237,9 +237,9 @@ function EpisodeOverviewPage() {
             currentStep={workflowState.currentStep}
             completedSteps={workflowState.completedSteps}
             onStepClick={(step) => {
-              if (step === 2) {
+              if (step === 1) {
                 navigate(`/episodes/${id}/plan`)
-              } else if (step === 3 || step === 4) {
+              } else if (step === 2 || step === 3) {
                 navigate(`/episodes/${id}/uploads`)
               }
             }}

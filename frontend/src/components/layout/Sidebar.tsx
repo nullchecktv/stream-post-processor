@@ -221,12 +221,6 @@ export function Sidebar() {
           <SidebarSection title="PAGES" isCollapsed={isCollapsed}>
             <SidebarItem
               to="/"
-              icon={Home}
-              label="Dashboard"
-              isCollapsed={isCollapsed}
-            />
-            <SidebarItem
-              to="/episodes"
               icon={Video}
               label="Episodes"
               isCollapsed={isCollapsed}

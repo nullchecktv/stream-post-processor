@@ -10,16 +10,6 @@ interface WorkflowProgressProps {
 const WORKFLOW_STEPS = [
   {
     number: 1,
-    label: 'Create Episode',
-    shortLabel: 'Create',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
-    )
-  },
-  {
-    number: 2,
     label: 'Generate Plan',
     shortLabel: 'Plan',
     icon: (
@@ -29,7 +19,7 @@ const WORKFLOW_STEPS = [
     )
   },
   {
-    number: 3,
+    number: 2,
     label: 'Upload Transcript',
     shortLabel: 'Transcript',
     icon: (
@@ -39,7 +29,7 @@ const WORKFLOW_STEPS = [
     )
   },
   {
-    number: 4,
+    number: 3,
     label: 'Upload Tracks',
     shortLabel: 'Tracks',
     icon: (
@@ -53,6 +43,7 @@ const WORKFLOW_STEPS = [
 function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }: WorkflowProgressProps) {
   const getStepState = (stepNumber: number): 'complete' | 'current' | 'locked' => {
     if (completedSteps.includes(stepNumber)) return 'complete'
+    if (currentStep === 0) return 'locked'
     if (stepNumber === currentStep) return 'current'
     return 'locked'
   }
@@ -90,9 +81,9 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
       return `${baseClasses} bg-gradient-to-br from-emerald-500 to-emerald-600 text-white ${clickable ? 'hover:shadow-md hover:scale-105 cursor-pointer' : ''}`
     }
     if (state === 'current') {
-      return `${baseClasses} bg-gradient-to-br from-blue-500 to-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 shadow-lg`
+      return `${baseClasses} bg-gradient-to-br from-blue-500 to-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 shadow-lg ${clickable ? 'hover:shadow-xl hover:scale-105 cursor-pointer' : ''}`
     }
-    return `${baseClasses} bg-gray-100 text-gray-400 border border-gray-200`
+    return `${baseClasses} bg-gray-100 text-gray-400 border border-gray-200 ${clickable ? 'hover:bg-gray-200 hover:border-gray-300 hover:scale-105 cursor-pointer' : ''}`
   }
 
   const getConnectorClasses = (stepNumber: number) => {
@@ -103,7 +94,7 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
   }
 
   const isClickable = (stepNumber: number) => {
-    return completedSteps.includes(stepNumber) && onStepClick !== undefined
+    return onStepClick !== undefined
   }
 
   const getLabelClasses = (stepNumber: number) => {
@@ -149,10 +140,90 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
         </div>
       </div>
 
-      <div className="hidden md:flex items-start justify-between">
-        {WORKFLOW_STEPS.map((step, index) => (
-          <div key={step.number} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center min-w-0">
+      <div className="hidden md:flex gap-4">
+        <div className="flex-1 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
+          <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Pre-Stream
+          </div>
+          <div className="flex items-center justify-center">
+            {WORKFLOW_STEPS.filter(s => s.number === 1).map((step) => (
+              <div key={step.number} className="flex flex-col items-center">
+                <button
+                  type="button"
+                  className={getStepClasses(step.number)}
+                  onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
+                  onKeyDown={(e) => handleKeyDown(e, step.number)}
+                  disabled={!isClickable(step.number)}
+                  aria-label={`${step.label}`}
+                  aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
+                  tabIndex={isClickable(step.number) ? 0 : -1}
+                >
+                  {getStepIcon(step.number)}
+                </button>
+                <div className="mt-3 text-center max-w-[120px]">
+                  <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                    {step.label}
+                  </div>
+                  {getStatusBadge(step.number)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-[2] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+          <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Post-Stream
+          </div>
+          <div className="flex items-center justify-between">
+            {WORKFLOW_STEPS.filter(s => s.number > 1).map((step, index, arr) => (
+              <div key={step.number} className="flex items-center flex-1 last:flex-none">
+                <div className="flex flex-col items-center min-w-0">
+                  <button
+                    type="button"
+                    className={getStepClasses(step.number)}
+                    onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
+                    onKeyDown={(e) => handleKeyDown(e, step.number)}
+                    disabled={!isClickable(step.number)}
+                    aria-label={`${step.label}`}
+                    aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
+                    tabIndex={isClickable(step.number) ? 0 : -1}
+                  >
+                    {getStepIcon(step.number)}
+                  </button>
+                  <div className="mt-3 text-center max-w-[120px]">
+                    <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                      {step.label}
+                    </div>
+                    {getStatusBadge(step.number)}
+                  </div>
+                </div>
+
+                {index < arr.length - 1 && (
+                  <div className={getConnectorClasses(step.number)} aria-hidden="true" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-3 border border-amber-200">
+          <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Pre-Stream
+          </div>
+          {WORKFLOW_STEPS.filter(s => s.number === 1).map((step) => (
+            <div key={step.number} className="flex items-start">
               <button
                 type="button"
                 className={getStepClasses(step.number)}
@@ -165,58 +236,62 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
               >
                 {getStepIcon(step.number)}
               </button>
-              <div className="mt-3 text-center max-w-[120px]">
+              <div className="flex-1 pt-2 ml-3">
                 <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
                   {step.label}
                 </div>
                 {getStatusBadge(step.number)}
               </div>
             </div>
+          ))}
+        </div>
 
-            {index < WORKFLOW_STEPS.length - 1 && (
-              <div className={getConnectorClasses(step.number)} aria-hidden="true" />
-            )}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+          <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Post-Stream
           </div>
-        ))}
-      </div>
+          <div className="space-y-2">
+            {WORKFLOW_STEPS.filter(s => s.number > 1).map((step, index, arr) => (
+              <div key={step.number} className="flex items-start">
+                <div className="flex flex-col items-center mr-3">
+                  <button
+                    type="button"
+                    className={getStepClasses(step.number)}
+                    onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
+                    onKeyDown={(e) => handleKeyDown(e, step.number)}
+                    disabled={!isClickable(step.number)}
+                    aria-label={`${step.label}`}
+                    aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
+                    tabIndex={isClickable(step.number) ? 0 : -1}
+                  >
+                    {getStepIcon(step.number)}
+                  </button>
 
-      <div className="md:hidden space-y-2">
-        {WORKFLOW_STEPS.map((step, index) => (
-          <div key={step.number} className="flex items-start">
-            <div className="flex flex-col items-center mr-4">
-              <button
-                type="button"
-                className={getStepClasses(step.number)}
-                onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
-                onKeyDown={(e) => handleKeyDown(e, step.number)}
-                disabled={!isClickable(step.number)}
-                aria-label={`${step.label}`}
-                aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                tabIndex={isClickable(step.number) ? 0 : -1}
-              >
-                {getStepIcon(step.number)}
-              </button>
+                  {index < arr.length - 1 && (
+                    <div
+                      className={`w-0.5 h-8 mt-2 transition-all duration-300 rounded-full ${
+                        completedSteps.includes(step.number + 1)
+                          ? 'bg-gradient-to-b from-emerald-500 to-emerald-600'
+                          : 'bg-gray-200'
+                      }`}
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
 
-              {index < WORKFLOW_STEPS.length - 1 && (
-                <div
-                  className={`w-0.5 h-8 mt-2 transition-all duration-300 rounded-full ${
-                    completedSteps.includes(step.number + 1)
-                      ? 'bg-gradient-to-b from-emerald-500 to-emerald-600'
-                      : 'bg-gray-200'
-                  }`}
-                  aria-hidden="true"
-                />
-              )}
-            </div>
-
-            <div className="flex-1 pt-2">
-              <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
-                {step.label}
+                <div className="flex-1 pt-2">
+                  <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                    {step.label}
+                  </div>
+                  {getStatusBadge(step.number)}
+                </div>
               </div>
-              {getStatusBadge(step.number)}
-            </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </section>
   )
