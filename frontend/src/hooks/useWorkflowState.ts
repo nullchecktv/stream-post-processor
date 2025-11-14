@@ -52,7 +52,7 @@ export function determineNextAction(completedSteps: number[], episodeId: string)
       title: 'Upload Transcript',
       description: 'Upload the SRT transcript file to enable AI-powered clip detection',
       buttonText: 'Upload Transcript',
-      route: `/episodes/${episodeId}/details`,
+      route: `/episodes/${episodeId}/uploads`,
       icon: 'document'
     }
   }
@@ -62,7 +62,7 @@ export function determineNextAction(completedSteps: number[], episodeId: string)
       title: 'Upload Video Tracks',
       description: 'Upload video tracks to generate clips from detected moments',
       buttonText: 'Upload Tracks',
-      route: `/episodes/${episodeId}/details`,
+      route: `/episodes/${episodeId}/uploads`,
       icon: 'video'
     }
   }

@@ -278,6 +278,13 @@ function EpisodeOverviewPage() {
           <WorkflowProgress
             currentStep={workflowState.currentStep}
             completedSteps={workflowState.completedSteps}
+            onStepClick={(step) => {
+              if (step === 2) {
+                navigate(`/episodes/${id}/plan`)
+              } else if (step === 3 || step === 4) {
+                navigate(`/episodes/${id}/uploads`)
+              }
+            }}
           />
         )}
 
