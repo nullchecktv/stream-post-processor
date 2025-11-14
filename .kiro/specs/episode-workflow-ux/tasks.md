@@ -143,8 +143,8 @@ This implementation plan breaks down the episode workflow UX redesign into discr
   - Add "Resume Draft" option if saved state exists
   - _Requirements: 1.5, 8.3_
 
-- [ ] 6. Integrate components into EpisodeOverviewPage
-- [ ] 6.1 Refactor EpisodeOverviewPage layout
+- [x] 6. Integrate components into EpisodeOverviewPage
+- [x] 6.1 Refactor EpisodeOverviewPage layout
   - Replace existing layout with new component structure
   - Add WorkflowProgress component at top of page
   - Add NextActionCard component below workflow progress
@@ -152,21 +152,21 @@ This implementation plan breaks down the episode workflow UX redesign into discr
   - Maintain existing episode header and breadcrumb
   - _Requirements: 2.1, 3.1, 4.1, 5.1_
 
-- [ ] 6.2 Implement data fetching for new components
+- [x] 6.2 Implement data fetching for new components
   - Fetch episode data with plan, transcript, tracks, clips, quotes, blog
   - Compute workflow state from fetched data
   - Pass appropriate data to each component
   - Handle loading states during data fetch
   - _Requirements: 8.1, 8.2, 10.1, 10.2_
 
-- [ ] 6.3 Add error handling and empty states
+- [x] 6.3 Add error handling and empty states
   - Implement error boundaries for component failures
   - Add error states for failed data fetches
   - Add empty states for missing content
   - Implement retry functionality for failed operations
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 10.5_
 
-- [ ] 6.4 Implement real-time updates for content generation
+- [x] 6.4 Implement real-time updates for content generation
   - Add polling or websocket connection for status updates
   - Update content cards when generation completes
   - Show progress indicators during generation
