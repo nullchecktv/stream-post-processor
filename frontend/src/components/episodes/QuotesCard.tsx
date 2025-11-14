@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Quote } from '../../types'
 
@@ -8,12 +9,12 @@ interface QuotesCardProps {
   readonly error?: string | null
 }
 
-export function QuotesCard({ episodeId, quotes, isLoading = false, error = null }: QuotesCardProps) {
+function QuotesCardComponent({ episodeId, quotes, isLoading = false, error = null }: QuotesCardProps) {
   const navigate = useNavigate()
 
-  const handleViewQuotes = () => {
+  const handleViewQuotes = useCallback(() => {
     navigate(`/episodes/${episodeId}/quotes`)
-  }
+  }, [navigate, episodeId])
 
   if (isLoading) {
     return (
@@ -72,49 +73,48 @@ export function QuotesCard({ episodeId, quotes, isLoading = false, error = null 
   }
 
   const totalQuotes = quotes.length
-  const sampleQuote = quotes[0]
-  const quotePreview = sampleQuote.text.length > 100
-    ? `${sampleQuote.text.substring(0, 100)}...`
-    : sampleQuote.text
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-start space-x-3 mb-4">
-        <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-          <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-base font-semibold text-gray-900">Quotes</h3>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-              {totalQuotes} {totalQuotes === 1 ? 'quote' : 'quotes'}
-            </span>
-          </div>
-
-          <div className="bg-gray-50 border-l-4 border-indigo-500 p-3 mb-4 rounded">
-            <p className="text-sm text-gray-700 italic line-clamp-2">
-              "{quotePreview}"
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              — {sampleQuote.speaker}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleViewQuotes}
-            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
-            aria-label="View all quotes"
-          >
-            View Quotes
-            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <div
+      className="bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-amber-500 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer h-[140px] flex relative group overflow-hidden"
+      onClick={handleViewQuotes}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleViewQuotes()
+        }
+      }}
+    >
+      <div className="flex-1 p-6 pr-4">
+        <div className="flex items-start space-x-3 h-full">
+          <div className="flex-shrink-0 w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-          </button>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-semibold text-gray-900">Quotes</h3>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                {totalQuotes} {totalQuotes === 1 ? 'quote' : 'quotes'}
+              </span>
+            </div>
+
+            <p className="text-sm text-gray-600">
+              {totalQuotes} {totalQuotes === 1 ? 'quote' : 'quotes'} ready to share
+            </p>
+          </div>
         </div>
+      </div>
+      <div className="w-6 border-l border-amber-200 flex items-center justify-center bg-amber-50 group-hover:bg-amber-100 transition-colors">
+        <svg className="w-4 h-4 text-amber-600 group-hover:text-amber-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </div>
   )
 }
+
+export const QuotesCard = memo(QuotesCardComponent)

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { type WorkflowStep } from '../../hooks/useWorkflowState'
 
 interface WorkflowProgressProps {
@@ -7,13 +8,49 @@ interface WorkflowProgressProps {
 }
 
 const WORKFLOW_STEPS = [
-  { number: 1, label: 'Create Episode', shortLabel: 'Create' },
-  { number: 2, label: 'Generate Plan', shortLabel: 'Plan' },
-  { number: 3, label: 'Upload Transcript', shortLabel: 'Transcript' },
-  { number: 4, label: 'Upload Tracks', shortLabel: 'Tracks' }
+  {
+    number: 1,
+    label: 'Create Episode',
+    shortLabel: 'Create',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      </svg>
+    )
+  },
+  {
+    number: 2,
+    label: 'Generate Plan',
+    shortLabel: 'Plan',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    )
+  },
+  {
+    number: 3,
+    label: 'Upload Transcript',
+    shortLabel: 'Transcript',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    )
+  },
+  {
+    number: 4,
+    label: 'Upload Tracks',
+    shortLabel: 'Tracks',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+      </svg>
+    )
+  }
 ]
 
-export function WorkflowProgress({ currentStep, completedSteps, onStepClick }: WorkflowProgressProps) {
+function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }: WorkflowProgressProps) {
   const getStepState = (stepNumber: number): 'complete' | 'current' | 'locked' => {
     if (completedSteps.includes(stepNumber)) return 'complete'
     if (stepNumber === currentStep) return 'current'
@@ -31,84 +68,108 @@ export function WorkflowProgress({ currentStep, completedSteps, onStepClick }: W
 
   const getStepIcon = (stepNumber: number) => {
     const state = getStepState(stepNumber)
+    const step = WORKFLOW_STEPS.find(s => s.number === stepNumber)
 
     if (state === 'complete') {
       return (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       )
     }
 
-    return <span className="text-sm font-semibold">{stepNumber}</span>
+    return step?.icon
   }
 
   const getStepClasses = (stepNumber: number) => {
     const state = getStepState(stepNumber)
-    const baseClasses = 'w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200'
+    const baseClasses = 'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm'
+    const clickable = isClickable(stepNumber)
 
     if (state === 'complete') {
-      return `${baseClasses} bg-green-600 text-white`
+      return `${baseClasses} bg-gradient-to-br from-emerald-500 to-emerald-600 text-white ${clickable ? 'hover:shadow-md hover:scale-105 cursor-pointer' : ''}`
     }
     if (state === 'current') {
-      return `${baseClasses} bg-blue-600 text-white ring-4 ring-blue-200`
+      return `${baseClasses} bg-gradient-to-br from-blue-500 to-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 shadow-lg`
     }
-    return `${baseClasses} bg-gray-300 text-gray-600`
+    return `${baseClasses} bg-gray-100 text-gray-400 border border-gray-200`
   }
 
   const getConnectorClasses = (stepNumber: number) => {
     const isComplete = completedSteps.includes(stepNumber + 1)
-    return `flex-1 h-1 mx-2 transition-all duration-200 ${
-      isComplete ? 'bg-green-600' : 'bg-gray-300'
+    return `flex-1 h-0.5 mx-3 transition-all duration-300 ${
+      isComplete ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gray-200'
     }`
-  }
-
-  const getStatusText = (stepNumber: number) => {
-    const state = getStepState(stepNumber)
-    if (state === 'complete') return 'Done'
-    if (state === 'current') return 'Next'
-    return 'Locked'
   }
 
   const isClickable = (stepNumber: number) => {
     return completedSteps.includes(stepNumber) && onStepClick !== undefined
   }
 
-  const getStatusColor = (stepNumber: number) => {
+  const getLabelClasses = (stepNumber: number) => {
     const state = getStepState(stepNumber)
-    if (state === 'complete') return 'text-green-600'
-    if (state === 'current') return 'text-blue-600'
+    if (state === 'complete') return 'text-gray-900 font-medium'
+    if (state === 'current') return 'text-gray-900 font-semibold'
     return 'text-gray-500'
+  }
+
+  const getStatusBadge = (stepNumber: number) => {
+    const state = getStepState(stepNumber)
+
+    if (state === 'complete') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+          Complete
+        </span>
+      )
+    }
+    if (state === 'current') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+          In Progress
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+        Pending
+      </span>
+    )
   }
 
   return (
     <section
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+      className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-sm border border-gray-200 p-5"
       aria-label="Episode workflow progress"
     >
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">Workflow Progress</h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Workflow Progress</h2>
+        <div className="text-xs text-gray-500">
+          {completedSteps.length} of {WORKFLOW_STEPS.length} complete
+        </div>
+      </div>
 
-      <div className="hidden md:flex items-center justify-between">
+      <div className="hidden md:flex items-start justify-between">
         {WORKFLOW_STEPS.map((step, index) => (
           <div key={step.number} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center min-w-0">
               <button
                 type="button"
                 className={getStepClasses(step.number)}
                 onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
                 onKeyDown={(e) => handleKeyDown(e, step.number)}
                 disabled={!isClickable(step.number)}
-                aria-label={`${step.label} - ${getStatusText(step.number)}`}
+                aria-label={`${step.label}`}
                 aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
                 tabIndex={isClickable(step.number) ? 0 : -1}
               >
                 {getStepIcon(step.number)}
               </button>
-              <div className="mt-3 text-center">
-                <div className="text-sm font-medium text-gray-900">{step.label}</div>
-                <div className={`text-xs mt-1 ${getStatusColor(step.number)}`}>
-                  {getStatusText(step.number)}
+              <div className="mt-3 text-center max-w-[120px]">
+                <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                  {step.label}
                 </div>
+                {getStatusBadge(step.number)}
               </div>
             </div>
 
@@ -119,7 +180,7 @@ export function WorkflowProgress({ currentStep, completedSteps, onStepClick }: W
         ))}
       </div>
 
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-2">
         {WORKFLOW_STEPS.map((step, index) => (
           <div key={step.number} className="flex items-start">
             <div className="flex flex-col items-center mr-4">
@@ -129,7 +190,7 @@ export function WorkflowProgress({ currentStep, completedSteps, onStepClick }: W
                 onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
                 onKeyDown={(e) => handleKeyDown(e, step.number)}
                 disabled={!isClickable(step.number)}
-                aria-label={`${step.label} - ${getStatusText(step.number)}`}
+                aria-label={`${step.label}`}
                 aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
                 tabIndex={isClickable(step.number) ? 0 : -1}
               >
@@ -138,8 +199,10 @@ export function WorkflowProgress({ currentStep, completedSteps, onStepClick }: W
 
               {index < WORKFLOW_STEPS.length - 1 && (
                 <div
-                  className={`w-1 h-12 mt-2 transition-all duration-200 ${
-                    completedSteps.includes(step.number + 1) ? 'bg-green-600' : 'bg-gray-300'
+                  className={`w-0.5 h-8 mt-2 transition-all duration-300 rounded-full ${
+                    completedSteps.includes(step.number + 1)
+                      ? 'bg-gradient-to-b from-emerald-500 to-emerald-600'
+                      : 'bg-gray-200'
                   }`}
                   aria-hidden="true"
                 />
@@ -147,10 +210,10 @@ export function WorkflowProgress({ currentStep, completedSteps, onStepClick }: W
             </div>
 
             <div className="flex-1 pt-2">
-              <div className="text-base font-medium text-gray-900">{step.label}</div>
-              <div className={`text-sm mt-1 ${getStatusColor(step.number)}`}>
-                {getStatusText(step.number)}
+              <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                {step.label}
               </div>
+              {getStatusBadge(step.number)}
             </div>
           </div>
         ))}
@@ -158,3 +221,5 @@ export function WorkflowProgress({ currentStep, completedSteps, onStepClick }: W
     </section>
   )
 }
+
+export const WorkflowProgress = memo(WorkflowProgressComponent)

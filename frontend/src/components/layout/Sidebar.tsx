@@ -5,7 +5,7 @@ import { useSidebar } from '../../hooks/useSidebar'
 import { useUser } from '../../hooks/useUser'
 import { SidebarItem } from './SidebarItem'
 import { SidebarSection } from './SidebarSection'
-import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film, MessageSquareQuote, Palette, Pencil, BookOpen, PenTool } from 'lucide-react'
+import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film, MessageSquareQuote, Palette, BookOpen, PenTool } from 'lucide-react'
 import { useNotifications } from '../../hooks/useNotifications'
 
 export function Sidebar() {
@@ -245,12 +245,6 @@ export function Sidebar() {
                 to={`/episodes/${episodeId}/overview`}
                 icon={BarChart3}
                 label="Overview"
-                isCollapsed={isCollapsed}
-              />
-              <SidebarItem
-                to={`/episodes/${episodeId}/details`}
-                icon={Pencil}
-                label="Details"
                 isCollapsed={isCollapsed}
               />
               <SidebarItem

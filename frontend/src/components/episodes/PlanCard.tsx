@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Plan } from '../../types'
 
@@ -8,12 +9,12 @@ interface PlanCardProps {
   readonly error?: string | null
 }
 
-export function PlanCard({ episodeId, plan, isLoading = false, error = null }: PlanCardProps) {
+function PlanCardComponent({ episodeId, plan, isLoading = false, error = null }: PlanCardProps) {
   const navigate = useNavigate()
 
-  const handleViewPlan = () => {
+  const handleViewPlan = useCallback(() => {
     navigate(`/episodes/${episodeId}/plan`)
-  }
+  }, [navigate, episodeId])
 
   if (isLoading) {
     return (
@@ -80,36 +81,45 @@ export function PlanCard({ episodeId, plan, isLoading = false, error = null }: P
     : objectivesText
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-start space-x-3 mb-4">
-        <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-base font-semibold text-gray-900">Plan</h3>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Ready
-            </span>
-          </div>
-          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-            {objectivesPreview}
-          </p>
-          <button
-            type="button"
-            onClick={handleViewPlan}
-            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
-            aria-label="View plan details"
-          >
-            View Plan
-            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <div
+      className="bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-blue-500 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer h-[140px] flex relative group overflow-hidden"
+      onClick={handleViewPlan}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleViewPlan()
+        }
+      }}
+    >
+      <div className="flex-1 p-6 pr-4">
+        <div className="flex items-start space-x-3 h-full">
+          <div className="flex-shrink-0 w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-          </button>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-semibold text-gray-900">Plan</h3>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Ready
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 line-clamp-3">
+              {objectivesPreview}
+            </p>
+          </div>
         </div>
+      </div>
+      <div className="w-6 border-l border-blue-200 flex items-center justify-center bg-blue-50 group-hover:bg-blue-100 transition-colors">
+        <svg className="w-4 h-4 text-blue-600 group-hover:text-blue-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </div>
   )
 }
+
+export const PlanCard = memo(PlanCardComponent)

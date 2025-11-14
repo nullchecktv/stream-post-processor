@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { NextAction } from '../../hooks/useWorkflowState'
 
@@ -57,7 +58,7 @@ const ACTION_STYLES: Record<string, { bg: string; text: string; icon: string; bu
   }
 }
 
-export function NextActionCard({ action, isLoading = false, error = null }: NextActionCardProps) {
+function NextActionCardComponent({ action, isLoading = false, error = null }: NextActionCardProps) {
   const navigate = useNavigate()
 
   if (isLoading) {
@@ -125,16 +126,16 @@ export function NextActionCard({ action, isLoading = false, error = null }: Next
   const styles = ACTION_STYLES[action.icon] || ACTION_STYLES.lightbulb
   const icon = ICON_MAP[action.icon] || ICON_MAP.lightbulb
 
-  const handleAction = () => {
+  const handleAction = useCallback(() => {
     navigate(action.route)
-  }
+  }, [navigate, action.route])
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       handleAction()
     }
-  }
+  }, [handleAction])
 
   const isCompletionState = action.icon === 'check-circle'
 
@@ -182,3 +183,5 @@ export function NextActionCard({ action, isLoading = false, error = null }: Next
     </section>
   )
 }
+
+export const NextActionCard = memo(NextActionCardComponent)

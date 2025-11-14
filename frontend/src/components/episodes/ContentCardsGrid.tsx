@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { PlanCard } from './PlanCard'
 import { BlogPostCard } from './BlogPostCard'
 import { ClipsCard } from './ClipsCard'
@@ -19,7 +20,7 @@ interface ContentCardsGridProps {
   }
 }
 
-export function ContentCardsGrid({
+function ContentCardsGridComponent({
   episodeId,
   plan,
   blog,
@@ -30,8 +31,8 @@ export function ContentCardsGrid({
 }: ContentCardsGridProps) {
   if (isLoading) {
     return (
-      <section aria-label="Generated content" aria-busy="true">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Content</h2>
+      <section aria-label="Created content" aria-busy="true">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Created Content</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <CardSkeleton />
           <CardSkeleton />
@@ -47,8 +48,8 @@ export function ContentCardsGrid({
 
   if (!hasAnyContent && !hasAnyErrors) {
     return (
-      <section aria-label="Generated content">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Content</h2>
+      <section aria-label="Created content">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Created Content</h2>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,8 +66,8 @@ export function ContentCardsGrid({
   }
 
   return (
-    <section aria-label="Generated content">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Content</h2>
+    <section aria-label="Created content">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Created Content</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <PlanCard
           episodeId={episodeId}
@@ -93,7 +94,9 @@ export function ContentCardsGrid({
   )
 }
 
-function CardSkeleton() {
+export const ContentCardsGrid = memo(ContentCardsGridComponent)
+
+const CardSkeleton = memo(function CardSkeleton() {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
       <div className="flex items-center space-x-3 mb-4">
@@ -109,4 +112,4 @@ function CardSkeleton() {
       </div>
     </div>
   )
-}
+})
