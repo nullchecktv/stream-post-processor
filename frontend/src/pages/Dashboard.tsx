@@ -5,14 +5,14 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { DashboardLayout } from '../components/dashboard/DashboardLayout'
 import { UpcomingEpisodes } from '../components/dashboard/UpcomingEpisodes'
 import { PreviousEpisodes } from '../components/dashboard/PreviousEpisodes'
-import { CreateEpisodeModal } from '../components/dashboard/CreateEpisodeModal'
+import { EpisodeCreationWizard } from '../components/episodes/EpisodeCreationWizard'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 
 function Dashboard() {
   usePageTitle('Dashboard')
   const navigate = useNavigate()
   const { profile, loading } = useUser()
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isWizardOpen, setIsWizardOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && !profile) {
@@ -24,20 +24,24 @@ function Dashboard() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault()
-        setIsCreateModalOpen(true)
+        setIsWizardOpen(true)
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    globalThis.addEventListener('keydown', handleKeyDown)
+    return () => globalThis.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const handleCreateEpisode = () => {
-    setIsCreateModalOpen(true)
+    setIsWizardOpen(true)
   }
 
-  const handleCloseModal = () => {
-    setIsCreateModalOpen(false)
+  const handleCloseWizard = () => {
+    setIsWizardOpen(false)
+  }
+
+  const handleWizardComplete = () => {
+    setIsWizardOpen(false)
   }
 
   if (!profile && !loading) {
@@ -70,9 +74,10 @@ function Dashboard() {
       )}
 
       {profile && (
-        <CreateEpisodeModal
-          isOpen={isCreateModalOpen}
-          onClose={handleCloseModal}
+        <EpisodeCreationWizard
+          isOpen={isWizardOpen}
+          onClose={handleCloseWizard}
+          onComplete={handleWizardComplete}
         />
       )}
     </div>

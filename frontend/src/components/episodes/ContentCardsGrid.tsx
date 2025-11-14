@@ -1,0 +1,115 @@
+import { memo } from 'react'
+import { PlanCard } from './PlanCard'
+import { BlogPostCard } from './BlogPostCard'
+import { ClipsCard } from './ClipsCard'
+import { QuotesCard } from './QuotesCard'
+import type { Plan, BlogData, ClipListView, Quote } from '../../types'
+
+interface ContentCardsGridProps {
+  readonly episodeId: string
+  readonly plan?: Plan | null
+  readonly blog?: BlogData | null
+  readonly clips?: ClipListView[]
+  readonly quotes?: Quote[]
+  readonly isLoading?: boolean
+  readonly errors?: {
+    plan?: string | null
+    blog?: string | null
+    clips?: string | null
+    quotes?: string | null
+  }
+}
+
+function ContentCardsGridComponent({
+  episodeId,
+  plan,
+  blog,
+  clips = [],
+  quotes = [],
+  isLoading = false,
+  errors = {}
+}: ContentCardsGridProps) {
+  if (isLoading) {
+    return (
+      <section aria-label="Created content" aria-busy="true">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Created Content</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </section>
+    )
+  }
+
+  const hasAnyContent = plan || blog?.content || clips.length > 0 || quotes.length > 0
+  const hasAnyErrors = Object.values(errors).some(error => error)
+
+  if (!hasAnyContent && !hasAnyErrors) {
+    return (
+      <section aria-label="Created content">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Created Content</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Content Yet</h3>
+          <p className="text-sm text-gray-600 max-w-md mx-auto">
+            Complete the workflow steps above to generate plans, blog posts, clips, and quotes for this episode.
+          </p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section aria-label="Created content">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Created Content</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <PlanCard
+          episodeId={episodeId}
+          plan={plan ?? null}
+          error={errors.plan}
+        />
+        <BlogPostCard
+          episodeId={episodeId}
+          blog={blog ?? null}
+          error={errors.blog}
+        />
+        <ClipsCard
+          episodeId={episodeId}
+          clips={clips}
+          error={errors.clips}
+        />
+        <QuotesCard
+          episodeId={episodeId}
+          quotes={quotes}
+          error={errors.quotes}
+        />
+      </div>
+    </section>
+  )
+}
+
+export const ContentCardsGrid = memo(ContentCardsGridComponent)
+
+const CardSkeleton = memo(function CardSkeleton() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="w-10 h-10 bg-gray-200 rounded-full" />
+        <div className="flex-1">
+          <div className="h-5 bg-gray-200 rounded w-24 mb-2" />
+          <div className="h-4 bg-gray-200 rounded w-16" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-full" />
+        <div className="h-4 bg-gray-200 rounded w-3/4" />
+      </div>
+    </div>
+  )
+})

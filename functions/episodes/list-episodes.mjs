@@ -36,12 +36,23 @@ export const handler = async (event) => {
       const item = unmarshall(i);
 
       const currentStatus = getCurrentStatus(item.statusHistory) || item.status;
+      const hasTranscript = Boolean(item.transcriptKey && item.transcriptKey.trim());
 
       return {
         id: item.pk.split('#')[1],
         title: item.title,
+        episodeNumber: item.episodeNumber,
         status: currentStatus,
-        ...item.airDate && { airDate: item.airDate }
+        ...item.airDate && { airDate: item.airDate },
+        ...item.platforms && { platforms: item.platforms },
+        ...item.themes && { themes: item.themes },
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        metrics: {
+          hasTranscript,
+          hasPlan: Boolean(item.planObjectives),
+          tracksCount: item.tracksCount || 0
+        }
       };
     });
 

@@ -32,6 +32,11 @@ export interface EpisodeListView {
   themes?: string[]
   createdAt: string
   updatedAt: string
+  metrics?: {
+    hasTranscript: boolean
+    hasPlan: boolean
+    tracksCount: number
+  }
 }
 
 export interface TrackInfo {
