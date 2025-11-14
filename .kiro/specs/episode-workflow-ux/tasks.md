@@ -41,22 +41,22 @@ This implementation plan breaks down the episode workflow UX redesign into discr
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
 
-- [ ] 3. Build NextActionCard component
-- [ ] 3.1 Create NextActionCard component structure
+- [x] 3. Build NextActionCard component
+- [x] 3.1 Create NextActionCard component structure
   - Implement card layout with icon, title, description, and button
   - Add different visual states for each action type
   - Implement action button with navigation
   - Style card with prominent visual treatment
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 3.2 Implement action type variants
+- [x] 3.2 Implement action type variants
   - Create variant for "Generate Plan" action
   - Create variant for "Upload Transcript" action
   - Create variant for "Upload Tracks" action
   - Create variant for "All Set" completion state
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 3.3 Add empty state handling
+- [x] 3.3 Add empty state handling
   - Implement empty state for when no action is needed
   - Add loading state while determining next action
   - Add error state if action determination fails
