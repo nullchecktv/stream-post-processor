@@ -20,20 +20,20 @@ This implementation plan breaks down the episode workflow UX redesign into discr
   - _Requirements: 2.1, 8.1, 8.2_
 
 - [ ] 2. Build WorkflowProgress component
-- [ ] 2.1 Create WorkflowProgress component with step visualization
+- [x] 2.1 Create WorkflowProgress component with step visualization
   - Implement horizontal stepper layout for desktop
   - Add step circles with completion states (complete, current, locked)
   - Add connecting lines between steps
   - Implement step labels and status text
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 2.2 Add responsive mobile layout for WorkflowProgress
+- [x] 2.2 Add responsive mobile layout for WorkflowProgress
   - Implement vertical stepper layout for mobile screens
   - Ensure touch-friendly spacing and sizing
   - Test on various mobile screen sizes
   - _Requirements: 9.1, 9.2, 9.4_
 
-- [ ] 2.3 Add accessibility features to WorkflowProgress
+- [x] 2.3 Add accessibility features to WorkflowProgress
   - Implement ARIA progressbar role and attributes
   - Add keyboard navigation support
   - Add screen reader announcements for step changes
