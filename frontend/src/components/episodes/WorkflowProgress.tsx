@@ -51,7 +51,7 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
   const handleKeyDown = (event: React.KeyboardEvent, stepNumber: number) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      if (isClickable(stepNumber)) {
+      if (isClickable()) {
         onStepClick?.(stepNumber)
       }
     }
@@ -75,7 +75,7 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
   const getStepClasses = (stepNumber: number) => {
     const state = getStepState(stepNumber)
     const baseClasses = 'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm'
-    const clickable = isClickable(stepNumber)
+    const clickable = isClickable()
 
     if (state === 'complete') {
       return `${baseClasses} bg-gradient-to-br from-emerald-500 to-emerald-600 text-white ${clickable ? 'hover:shadow-md hover:scale-105 cursor-pointer' : ''}`
@@ -93,7 +93,7 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
     }`
   }
 
-  const isClickable = (stepNumber: number) => {
+  const isClickable = () => {
     return onStepClick !== undefined
   }
 
@@ -154,12 +154,12 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
                 <button
                   type="button"
                   className={getStepClasses(step.number)}
-                  onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
+                  onClick={() => isClickable() && onStepClick?.(step.number)}
                   onKeyDown={(e) => handleKeyDown(e, step.number)}
-                  disabled={!isClickable(step.number)}
+                  disabled={!isClickable()}
                   aria-label={`${step.label}`}
                   aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                  tabIndex={isClickable(step.number) ? 0 : -1}
+                  tabIndex={isClickable() ? 0 : -1}
                 >
                   {getStepIcon(step.number)}
                 </button>
@@ -188,12 +188,12 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
                   <button
                     type="button"
                     className={getStepClasses(step.number)}
-                    onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
+                    onClick={() => isClickable() && onStepClick?.(step.number)}
                     onKeyDown={(e) => handleKeyDown(e, step.number)}
-                    disabled={!isClickable(step.number)}
+                    disabled={!isClickable()}
                     aria-label={`${step.label}`}
                     aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                    tabIndex={isClickable(step.number) ? 0 : -1}
+                    tabIndex={isClickable() ? 0 : -1}
                   >
                     {getStepIcon(step.number)}
                   </button>
@@ -227,12 +227,12 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
               <button
                 type="button"
                 className={getStepClasses(step.number)}
-                onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
+                onClick={() => isClickable() && onStepClick?.(step.number)}
                 onKeyDown={(e) => handleKeyDown(e, step.number)}
-                disabled={!isClickable(step.number)}
+                disabled={!isClickable()}
                 aria-label={`${step.label}`}
                 aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                tabIndex={isClickable(step.number) ? 0 : -1}
+                tabIndex={isClickable() ? 0 : -1}
               >
                 {getStepIcon(step.number)}
               </button>
@@ -260,12 +260,12 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
                   <button
                     type="button"
                     className={getStepClasses(step.number)}
-                    onClick={() => isClickable(step.number) && onStepClick?.(step.number)}
+                    onClick={() => isClickable() && onStepClick?.(step.number)}
                     onKeyDown={(e) => handleKeyDown(e, step.number)}
-                    disabled={!isClickable(step.number)}
+                    disabled={!isClickable()}
                     aria-label={`${step.label}`}
                     aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                    tabIndex={isClickable(step.number) ? 0 : -1}
+                    tabIndex={isClickable() ? 0 : -1}
                   >
                     {getStepIcon(step.number)}
                   </button>
