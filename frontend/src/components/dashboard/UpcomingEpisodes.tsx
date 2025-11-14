@@ -117,10 +117,10 @@ export function UpcomingEpisodes({ onCreateEpisode }: UpcomingEpisodesProps) {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              No upcoming episodes yet
+              No upcoming episodes
             </h3>
             <p className="text-gray-600 mb-8 max-w-md mx-auto text-lg">
-              Start your content journey by creating your first episode
+              Start your content journey by scheduling an episode
             </p>
             <button
               onClick={onCreateEpisode}
@@ -137,7 +137,7 @@ export function UpcomingEpisodes({ onCreateEpisode }: UpcomingEpisodesProps) {
               >
                 <path d="M12 4v16m8-8H4" />
               </svg>
-              Create Your First Episode
+              Create Episode
             </button>
           </div>
         </div>

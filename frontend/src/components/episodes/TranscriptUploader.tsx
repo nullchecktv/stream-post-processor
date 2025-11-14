@@ -2,7 +2,6 @@ import { useState, useRef, type ChangeEvent } from 'react'
 import { episodesApi } from '../../api/episodes'
 import { useUpload } from '../../hooks/useUpload'
 import { useToast } from '../../hooks/useToast'
-import { useActivity } from '../../hooks/useActivity'
 import { HelpTip } from '../common/HelpTip'
 
 interface TranscriptUploaderProps {
@@ -20,7 +19,6 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { addUpload, updateUpload } = useUpload()
   const { showSuccess, showError } = useToast()
-  const { addActivity } = useActivity()
 
   const validateFile = (file: File): string | null => {
     if (!file.name.toLowerCase().endsWith('.srt')) {
@@ -103,13 +101,6 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
       })
 
       updateUpload(uploadId, { status: 'processing', progress: 95 })
-
-      addActivity({
-        type: 'preprocessing_completed',
-        title: 'Transcript Uploaded',
-        message: `Transcript "${selectedFile.name}" uploaded successfully`,
-        episodeId,
-      })
 
       updateUpload(uploadId, { status: 'completed', progress: 100 })
 

@@ -6,7 +6,7 @@ import { ActivityItem } from '../components/activity/ActivityItem'
 
 type FilterTab = 'all' | 'unread'
 
-export function ActivityPage() {
+export default function ActivityPage() {
   const {
     notifications,
     loading,

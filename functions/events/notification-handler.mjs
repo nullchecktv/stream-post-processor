@@ -1,0 +1,79 @@
+import { Logger } from '@aws-lambda-powertools/logger';
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
+import { CredentialProvider, TopicClient } from '@gomomento/sdk';
+import { randomUUID } from 'crypto';
+
+const logger = new Logger({ serviceName: 'notification-handler' });
+
+const ddb = new DynamoDBClient();
+let topics = new TopicClient({ credentialProvider: CredentialProvider.fromEnvironmentVariable('MOMENTO_API_KEY')});
+
+export const handler = async (event) => {
+  const notification = event.detail;
+
+  try {
+    if (notification.persist && notification.userId) {
+      const notificationId = randomUUID();
+      const now = new Date().toISOString();
+      const ttl = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+
+      const notificationItem = {
+        pk: notification.userId,
+        sk: `notification#${now}#${notificationId}`,
+        id: notificationId,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        data: notification.metadata || {},
+        isRead: false,
+        createdAt: now,
+        ttl
+      };
+
+      await ddb.send(new PutItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Item: marshall(notificationItem),
+        ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)'
+      }));
+
+      logger.info('Notification persisted to DynamoDB', {
+        userId: notification.userId,
+        type: notification.type
+      });
+    }
+
+    if (process.env.MOMENTO_API_KEY && process.env.MOMENTO_CACHE_NAME) {
+      const topicName = notification.topic === 'tasks'
+        ? `${notification.tenantId}_tasks`
+        : notification.tenantId;
+
+      const payload = {
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        url: notification.url,
+        timestamp: new Date().toISOString()
+      };
+
+      await topics.publish(
+        process.env.MOMENTO_CACHE_NAME,
+        topicName,
+        JSON.stringify(payload)
+      );
+
+      logger.info('Notification published to Momento Topics', {
+        notificationType: notification.type,
+        topicName,
+        cacheName: process.env.MOMENTO_CACHE_NAME,
+        persist: notification.persist
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to process notification', {
+      error: error.message,
+      stack: error.stack,
+      notificationType: notification.type
+    });
+  }
+};

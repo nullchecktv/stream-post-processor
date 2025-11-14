@@ -7,6 +7,7 @@ import { ActivityProvider } from './contexts/ActivityContext'
 import { UploadProvider } from './contexts/UploadContext'
 import { SidebarProvider } from './contexts/SidebarContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthGuard } from './components/auth/AuthGuard'
 import { ProfileGuard } from './components/auth/ProfileGuard'
 import { TeamGuard } from './components/auth/TeamGuard'
@@ -38,7 +39,7 @@ const TeamGeneralSettingsPage = lazy(() => import('./pages/TeamGeneralSettingsPa
 const TeamBrandingSettingsPage = lazy(() => import('./pages/TeamBrandingSettingsPage'))
 const TeamWritingSettingsPage = lazy(() => import('./pages/TeamWritingSettingsPage'))
 const TeamMembersPage = lazy(() => import('./pages/TeamMembersPage'))
-const ActivityPage = lazy(() => import('./pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
+const ActivityPage = lazy(() => import('./pages/ActivityPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
@@ -49,10 +50,11 @@ function App() {
         <AuthProvider>
           <ToastProvider>
             <UserProvider>
-              <TeamProvider>
-                <ActivityProvider>
-                  <UploadProvider>
-                    <SidebarProvider>
+              <NotificationProvider>
+                <TeamProvider>
+                  <ActivityProvider>
+                    <UploadProvider>
+                      <SidebarProvider>
                     <Suspense fallback={<LoadingSpinner variant="page" />}>
                       <Routes>
                         <Route path="/login" element={<LoginPage />} />
@@ -94,10 +96,11 @@ function App() {
                         </Route>
                       </Routes>
                     </Suspense>
-                    </SidebarProvider>
-                  </UploadProvider>
-                </ActivityProvider>
-              </TeamProvider>
+                      </SidebarProvider>
+                    </UploadProvider>
+                  </ActivityProvider>
+                </TeamProvider>
+              </NotificationProvider>
             </UserProvider>
           </ToastProvider>
         </AuthProvider>

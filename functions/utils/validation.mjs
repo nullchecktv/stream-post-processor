@@ -10,11 +10,47 @@ const ddb = new DynamoDBClient();
 const formatValidationErrors = (error) => {
   const errors = [];
 
-  if (error instanceof ZodError && Array.isArray(error.errors)) {
-    for (const issue of error.errors) {
+  if (error instanceof ZodError && Array.isArray(error.issues)) {
+    for (const issue of error.issues) {
+      const fieldPath = issue.path?.join('.') || 'unknown';
+      let message = issue.message;
+
+      if (issue.code === 'invalid_type') {
+        const expected = issue.expected;
+        const receivedMatch = issue.message.match(/received (\w+)/);
+        const received = receivedMatch ? receivedMatch[1] : 'unknown';
+        message = `Expected ${expected}, but received ${received}`;
+      } else if (issue.code === 'too_small') {
+        if (issue.origin === 'string') {
+          message = `Must be at least ${issue.minimum} characters`;
+        } else if (issue.origin === 'array') {
+          message = `Must contain at least ${issue.minimum} items`;
+        } else {
+          message = `Value is too small (minimum: ${issue.minimum})`;
+        }
+      } else if (issue.code === 'too_big') {
+        if (issue.origin === 'string') {
+          message = `Must be at most ${issue.maximum} characters`;
+        } else if (issue.origin === 'array') {
+          message = `Must contain at most ${issue.maximum} items`;
+        } else {
+          message = `Value is too large (maximum: ${issue.maximum})`;
+        }
+      } else if (issue.code === 'invalid_format') {
+        if (issue.format === 'email') {
+          message = 'Must be a valid email address';
+        } else if (issue.format === 'url') {
+          message = 'Must be a valid URL';
+        } else if (issue.format === 'regex') {
+          message = 'Invalid format';
+        } else {
+          message = `Invalid ${issue.format}`;
+        }
+      }
+
       errors.push({
-        field: issue.path?.join('.') || 'unknown',
-        message: issue.message,
+        field: fieldPath,
+        message,
         code: issue.code
       });
     }
@@ -74,6 +110,11 @@ export const validateRequest = (event, schema) => {
         })
       };
     }
+    logger.error('Unexpected validation error', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     throw error;
   }
 };

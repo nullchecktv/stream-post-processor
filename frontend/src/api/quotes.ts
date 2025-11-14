@@ -32,8 +32,8 @@ export const quotesApi = {
     return result
   },
 
-  get: (episodeId: string, quoteId: string) => {
-    return apiRequest<QuoteDetail>(`/episodes/${episodeId}/quotes/${quoteId}`)
+  get: (episodeId: string, quoteId: string, skipCache = false) => {
+    return apiRequest<QuoteDetail>(`/episodes/${episodeId}/quotes/${quoteId}`, { skipCache })
   },
 
   list: (episodeId: string, params?: ListQuotesParams) => {

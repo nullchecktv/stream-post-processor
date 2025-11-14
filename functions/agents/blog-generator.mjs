@@ -5,6 +5,7 @@ import { converse } from '../utils/agents.mjs';
 import { convertToBedrockTools } from '../utils/tools.mjs';
 import { webSearchTool } from '../tools/web-search.mjs';
 import { BLOG_STATUS } from '../../schemas/index.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 const ddb = new DynamoDBClient();
@@ -217,6 +218,23 @@ Write the complete blog post now following the outline and brand voice guideline
       episodeId,
       tenantId,
       wordCount
+    });
+
+    const episodeTitle = episodeMetadata.title || `Episode ${episodeMetadata.episodeNumber || ''}`;
+
+    await publishNotificationEvent({
+      type: 'blog_generated',
+      tenantId,
+      userId,
+      title: 'Blog Post Ready',
+      message: `Your blog post for ${episodeTitle} has been generated`,
+      url: `/episodes/${episodeId}/blog`,
+      persist: false,
+      topic: 'tasks',
+      metadata: {
+        episodeId,
+        wordCount
+      }
     });
 
     return {

@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react'
 import { getCurrentUser, signOut as amplifySignOut, fetchAuthSession, signIn as amplifySignIn, resetPassword as amplifyResetPassword, confirmResetPassword as amplifyConfirmResetPassword } from 'aws-amplify/auth'
 import { Hub } from 'aws-amplify/utils'
+import { refreshMomentoToken } from '../api/tokens'
 
 interface AuthUser {
   userId: string
@@ -11,12 +12,14 @@ interface AuthUser {
 interface AuthContextType {
   isAuthenticated: boolean
   user: AuthUser | null
+  momentoToken: string | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   refreshAuth: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<void>
+  updateMomentoToken: (token: string) => void
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -28,6 +31,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [momentoToken, setMomentoToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   const checkAuth = async () => {
@@ -42,13 +46,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
           username: currentUser.username,
           email: session.tokens.idToken?.payload.email as string | undefined,
         })
+
+        const tokenFromSession = session.tokens.idToken?.payload.momentoToken as string | null
+
+        if (!tokenFromSession) {
+          try {
+            const { momentoToken: refreshedToken } = await refreshMomentoToken()
+            setMomentoToken(refreshedToken)
+          } catch (error) {
+            console.error('Failed to refresh Momento token:', error)
+            setMomentoToken(null)
+          }
+        } else {
+          setMomentoToken(tokenFromSession)
+        }
       } else {
         setIsAuthenticated(false)
         setUser(null)
+        setMomentoToken(null)
       }
     } catch (error) {
       setIsAuthenticated(false)
       setUser(null)
+      setMomentoToken(null)
     } finally {
       setLoading(false)
     }
@@ -72,6 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await amplifySignOut()
       setIsAuthenticated(false)
       setUser(null)
+      setMomentoToken(null)
     } catch (error) {
       console.error('Sign out error:', error)
       throw error
@@ -105,6 +126,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  const updateMomentoToken = (token: string) => {
+    setMomentoToken(token)
+  }
+
   useEffect(() => {
     checkAuth()
 
@@ -116,6 +141,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         case 'signedOut':
           setIsAuthenticated(false)
           setUser(null)
+          setMomentoToken(null)
           break
         case 'tokenRefresh':
           checkAuth()
@@ -123,6 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         case 'tokenRefresh_failure':
           setIsAuthenticated(false)
           setUser(null)
+          setMomentoToken(null)
           break
       }
     })
@@ -135,12 +162,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       value={{
         isAuthenticated,
         user,
+        momentoToken,
         loading,
         signIn,
         signOut,
         refreshAuth,
         resetPassword,
         confirmResetPassword,
+        updateMomentoToken,
       }}
     >
       {children}

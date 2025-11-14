@@ -2,7 +2,6 @@ import { useState, useRef, type ChangeEvent } from 'react'
 import { episodesApi } from '../../api/episodes'
 import { useUpload } from '../../hooks/useUpload'
 import { useToast } from '../../hooks/useToast'
-import { useActivity } from '../../hooks/useActivity'
 import { HelpTip } from '../common/HelpTip'
 
 interface TrackUploaderProps {
@@ -28,7 +27,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
   const abortControllerRef = useRef<AbortController | null>(null)
   const { addUpload, updateUpload } = useUpload()
   const { showSuccess, showError } = useToast()
-  const { addActivity } = useActivity()
 
   const validateFile = (file: File): string | null => {
     const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm']
@@ -202,13 +200,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
       }
 
       updateUpload(uploadId, { status: 'processing', progress: 95 })
-
-      addActivity({
-        type: 'preprocessing_completed',
-        title: 'Track Uploaded',
-        message: `Track "${trackName}" uploaded successfully`,
-        episodeId,
-      })
 
       updateUpload(uploadId, { status: 'completed', progress: 100 })
 

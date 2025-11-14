@@ -9,6 +9,8 @@ dev:
       parameter_overrides:
         - MaxTracksPerEpisode=50
         - TrackSelectionLogLevel=INFO
+        - MomentoCacheName=
+        - MomentoApiKey=
       tags:
         - project=stream-post-processor
   global:

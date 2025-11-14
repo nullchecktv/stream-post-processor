@@ -175,7 +175,7 @@ export const episodesApi = {
 
   getPlan: (id: string) => apiRequest<EpisodePlan>(`/episodes/${id}/plan`),
 
-  createPlan: async (id: string, data: { objectives: string; concepts: string; notes?: string }) => {
+  createPlan: async (id: string, data: { objectives: string[]; concepts: string[]; notes?: string }) => {
     const result = await apiRequest<EpisodePlan>(`/episodes/${id}/plan`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -184,7 +184,7 @@ export const episodesApi = {
     return result
   },
 
-  updatePlan: async (id: string, data: { objectives: string; concepts: string; notes?: string }) => {
+  updatePlan: async (id: string, data: { objectives: string[]; concepts: string[]; notes?: string }) => {
     const result = await apiRequest<EpisodePlan>(`/episodes/${id}/plan`, {
       method: 'PUT',
       body: JSON.stringify(data),
