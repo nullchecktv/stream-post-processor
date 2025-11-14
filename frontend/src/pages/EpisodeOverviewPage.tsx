@@ -19,30 +19,39 @@ function EpisodeOverviewPage() {
 
   usePageTitle(episode ? `${episode.title} - Overview` : 'Episode Overview')
 
-  useEffect(() => {
-    const fetchEpisode = async () => {
-      if (!id) {
-        setError('Episode ID is required')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const [episodeData, statusData] = await Promise.all([
-          episodesApi.getDetail(id),
-          episodesApi.getStatus(id),
-        ])
-        setEpisode({ ...(episodeData as any), statusHistory: statusData.statusHistory } as EpisodeDetail)
-        setError(null)
-      } catch (err) {
-        console.error('Failed to fetch episode or status history:', err)
-        setError('Failed to load episode. Please try again.')
-      } finally {
-        setLoading(false)
-      }
+  const fetchEpisode = async () => {
+    if (!id) {
+      setError('Episode ID is required')
+      setLoading(false)
+      return
     }
 
+    try {
+      const [episodeData, statusData] = await Promise.all([
+        episodesApi.getDetail(id),
+        episodesApi.getStatus(id),
+      ])
+      setEpisode({ ...(episodeData as any), statusHistory: statusData.statusHistory } as EpisodeDetail)
+      setError(null)
+    } catch (err) {
+      console.error('Failed to fetch episode or status history:', err)
+      setError('Failed to load episode. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchEpisode()
+  }, [id])
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchEpisode()
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
   }, [id])
 
   if (loading) {

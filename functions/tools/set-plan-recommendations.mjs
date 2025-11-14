@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { addStatusEntry } from '../utils/status-history.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 const ddb = new DynamoDBClient();
@@ -100,6 +101,22 @@ export const setPlanRecommendationsTool = {
         descriptionLength: proposedDescription.length,
         learningMomentsCount: keyLearningMoments.length,
         sectionsCount: detailedOutline.length
+      });
+
+      const episodeTitle = episode.title || `Episode ${episode.episodeNumber || ''}`;
+
+      await publishNotificationEvent({
+        type: 'plan_generated',
+        tenantId,
+        userId: null,
+        title: 'Episode Plan Ready',
+        message: `Your episode plan for ${episodeTitle} has been generated`,
+        url: `/episodes/${episodeId}/plan`,
+        persist: true,
+        metadata: {
+          episodeId,
+          sectionsCount: detailedOutline.length
+        }
       });
 
       return `Successfully stored recommendations for episode ${episodeId}`;

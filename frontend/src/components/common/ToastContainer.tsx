@@ -4,6 +4,7 @@ export interface ToastMessage {
   id: string
   message: string
   type: ToastType
+  onAction?: () => void
 }
 
 interface ToastContainerProps {
@@ -22,6 +23,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
           message={toast.message}
           type={toast.type}
           onClose={() => onRemove(toast.id)}
+          onAction={toast.onAction}
         />
       ))}
     </div>

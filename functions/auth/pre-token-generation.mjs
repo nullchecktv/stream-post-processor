@@ -1,9 +1,9 @@
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
+import { generateMomentoToken } from '../utils/momento.mjs';
 
 const logger = new Logger({ serviceName: 'auth' });
-
 const ddb = new DynamoDBClient();
 
 export const handler = async (event) => {
@@ -15,6 +15,9 @@ export const handler = async (event) => {
 
     const tenantId = userProfile?.activeTeamId || userId;
     const activeTeamId = userProfile?.activeTeamId || null;
+    const teams = userProfile?.teams || [];
+
+    const momentoToken = await generateMomentoToken(userId, teams);
 
     if (!event.response.claimsOverrideDetails) {
       event.response.claimsOverrideDetails = {};
@@ -26,6 +29,10 @@ export const handler = async (event) => {
 
     event.response.claimsOverrideDetails.claimsToAddOrOverride.tenantId = tenantId;
     event.response.claimsOverrideDetails.claimsToAddOrOverride.activeTeamId = activeTeamId;
+
+    if (momentoToken) {
+      event.response.claimsOverrideDetails.claimsToAddOrOverride.momentoToken = momentoToken;
+    }
 
     return event;
   } catch (error) {
@@ -62,3 +69,5 @@ const getUserProfile = async (userId) => {
     return null;
   }
 };
+
+

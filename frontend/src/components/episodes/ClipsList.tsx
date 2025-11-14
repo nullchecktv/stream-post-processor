@@ -27,6 +27,15 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     fetchClips()
   }, [episodeId])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchClips()
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [episodeId])
+
   const fetchClips = async () => {
     try {
       setLoading(true)

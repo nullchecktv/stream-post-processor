@@ -7,6 +7,7 @@ import { ActivityProvider } from './contexts/ActivityContext'
 import { UploadProvider } from './contexts/UploadContext'
 import { SidebarProvider } from './contexts/SidebarContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthGuard } from './components/auth/AuthGuard'
 import { ProfileGuard } from './components/auth/ProfileGuard'
 import { TeamGuard } from './components/auth/TeamGuard'
@@ -49,10 +50,11 @@ function App() {
         <AuthProvider>
           <ToastProvider>
             <UserProvider>
-              <TeamProvider>
-                <ActivityProvider>
-                  <UploadProvider>
-                    <SidebarProvider>
+              <NotificationProvider>
+                <TeamProvider>
+                  <ActivityProvider>
+                    <UploadProvider>
+                      <SidebarProvider>
                     <Suspense fallback={<LoadingSpinner variant="page" />}>
                       <Routes>
                         <Route path="/login" element={<LoginPage />} />
@@ -94,10 +96,11 @@ function App() {
                         </Route>
                       </Routes>
                     </Suspense>
-                    </SidebarProvider>
-                  </UploadProvider>
-                </ActivityProvider>
-              </TeamProvider>
+                      </SidebarProvider>
+                    </UploadProvider>
+                  </ActivityProvider>
+                </TeamProvider>
+              </NotificationProvider>
             </UserProvider>
           </ToastProvider>
         </AuthProvider>

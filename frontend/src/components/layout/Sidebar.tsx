@@ -6,12 +6,12 @@ import { useUser } from '../../hooks/useUser'
 import { SidebarItem } from './SidebarItem'
 import { SidebarSection } from './SidebarSection'
 import { Home, Video, Users, Settings, BarChart3, FileText, Upload, Film, MessageSquareQuote, Palette, Pencil, BookOpen, PenTool } from 'lucide-react'
-import { useActivity } from '../../hooks/useActivity'
+import { useNotifications } from '../../hooks/useNotifications'
 
 export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar()
   const { profile } = useUser()
-  const { unreadCount } = useActivity()
+  const { unreadCount } = useNotifications()
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)

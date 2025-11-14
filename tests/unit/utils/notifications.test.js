@@ -1,8 +1,10 @@
 const { mockClient } = require('aws-sdk-client-mock');
 const { DynamoDBClient, PutItemCommand, QueryCommand, DeleteItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const { EventBridgeClient } = require('@aws-sdk/client-eventbridge');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 
 const ddbMock = mockClient(DynamoDBClient);
+const eventBridgeMock = mockClient(EventBridgeClient);
 
 
 
@@ -18,6 +20,7 @@ const {
 describe('Notification Utilities', () => {
   beforeEach(() => {
     ddbMock.reset();
+    eventBridgeMock.reset();
     process.env.TABLE_NAME = 'test-table';
     jest.clearAllMocks();
   });
@@ -84,10 +87,10 @@ describe('Notification Utilities', () => {
       const putCall = ddbMock.calls()[0];
       const item = unmarshall(putCall.args[0].input.Item);
 
-      expect(item.pk).toBe('user#user-123');
-      expect(item.sk).toMatch(/^notification#/);
-      expect(item.GSI1PK).toBe('user#user-123');
-      expect(item.GSI1SK).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z#/);
+      expect(item.pk).toBe('user-123');
+      expect(item.sk).toMatch(/^notification#\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z#/);
+      expect(item.id).toBeDefined();
+      expect(item.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
   });
 
@@ -95,10 +98,8 @@ describe('Notification Utilities', () => {
     test('should list notifications successfully', async () => {
       const mockNotifications = [
         {
-          pk: marshall('user#user-123'),
+          pk: marshall('user-123'),
           sk: marshall('notification#notif-1'),
-          GSI1PK: marshall('user#user-123'),
-          GSI1SK: marshall('2025-01-15T10:30:00Z#notif-1'),
           id: marshall('notif-1'),
           type: marshall('team_invitation'),
           title: marshall('Team Invitation'),
@@ -128,8 +129,6 @@ describe('Notification Utilities', () => {
       // Should not include internal DynamoDB fields
       expect(result.notifications[0].pk).toBeUndefined();
       expect(result.notifications[0].sk).toBeUndefined();
-      expect(result.notifications[0].GSI1PK).toBeUndefined();
-      expect(result.notifications[0].GSI1SK).toBeUndefined();
       expect(result.notifications[0].ttl).toBeUndefined();
 
       expect(result.hasMore).toBe(false);
@@ -170,8 +169,6 @@ describe('Notification Utilities', () => {
       await listNotifications('user-123');
 
       const queryCall = ddbMock.calls()[0];
-      expect(queryCall.args[0].input.IndexName).toBe('GSI1');
-      expect(queryCall.args[0].input.KeyConditionExpression).toBe('GSI1PK = :pk');
       expect(queryCall.args[0].input.ScanIndexForward).toBe(false); // Newest first
     });
 
@@ -195,7 +192,8 @@ describe('Notification Utilities', () => {
     test('should delete notification successfully', async () => {
       ddbMock.on(DeleteItemCommand).resolves({});
 
-      const result = await deleteNotification('user-123', 'notif-456');
+      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
+      const result = await deleteNotification('user-123', sortKey);
 
       expect(result).toBe(true);
 
@@ -204,8 +202,8 @@ describe('Notification Utilities', () => {
       expect(deleteCall.args[0].input.ConditionExpression).toBe('attribute_exists(pk) AND attribute_exists(sk)');
 
       const key = unmarshall(deleteCall.args[0].input.Key);
-      expect(key.pk).toBe('user#user-123');
-      expect(key.sk).toBe('notification#notif-456');
+      expect(key.pk).toBe('user-123');
+      expect(key.sk).toBe(sortKey);
     });
 
     test('should handle non-existent notification', async () => {
@@ -213,7 +211,8 @@ describe('Notification Utilities', () => {
       conditionalError.name = 'ConditionalCheckFailedException';
       ddbMock.on(DeleteItemCommand).rejects(conditionalError);
 
-      const result = await deleteNotification('user-123', 'nonexistent');
+      const sortKey = 'notification#2025-01-15T10:30:00.000Z#nonexistent';
+      const result = await deleteNotification('user-123', sortKey);
 
       expect(result).toBe(false);
     });
@@ -221,7 +220,8 @@ describe('Notification Utilities', () => {
     test('should handle other DynamoDB errors', async () => {
       ddbMock.on(DeleteItemCommand).rejects(new Error('DynamoDB error'));
 
-      await expect(deleteNotification('user-123', 'notif-456')).rejects.toThrow('Failed to delete notification');
+      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
+      await expect(deleteNotification('user-123', sortKey)).rejects.toThrow('Failed to delete notification');
     });
   });
 
@@ -229,7 +229,8 @@ describe('Notification Utilities', () => {
     test('should mark notification as read successfully', async () => {
       ddbMock.on(UpdateItemCommand).resolves({});
 
-      const result = await markNotificationAsRead('user-123', 'notif-456');
+      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
+      const result = await markNotificationAsRead('user-123', sortKey);
 
       expect(result).toBe(true);
 
@@ -244,7 +245,8 @@ describe('Notification Utilities', () => {
       conditionalError.name = 'ConditionalCheckFailedException';
       ddbMock.on(UpdateItemCommand).rejects(conditionalError);
 
-      const result = await markNotificationAsRead('user-123', 'nonexistent');
+      const sortKey = 'notification#2025-01-15T10:30:00.000Z#nonexistent';
+      const result = await markNotificationAsRead('user-123', sortKey);
 
       expect(result).toBe(false);
     });
@@ -252,7 +254,8 @@ describe('Notification Utilities', () => {
     test('should handle other DynamoDB errors', async () => {
       ddbMock.on(UpdateItemCommand).rejects(new Error('DynamoDB error'));
 
-      await expect(markNotificationAsRead('user-123', 'notif-456')).rejects.toThrow('Failed to mark notification as read');
+      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
+      await expect(markNotificationAsRead('user-123', sortKey)).rejects.toThrow('Failed to mark notification as read');
     });
   });
 

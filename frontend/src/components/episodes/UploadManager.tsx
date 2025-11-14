@@ -17,13 +17,12 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
     return stored === 'true'
   })
 
-  if (uploads.length === 0) {
-    return null
-  }
-
-  const positionClasses = position === 'bottom-right'
-    ? 'right-4 bottom-4'
-    : 'left-4 bottom-4'
+  useEffect(() => {
+    if (activeUploadsCount > 0 && isMinimized) {
+      setIsMinimized(false)
+      localStorage.setItem(MINIMIZED_KEY, 'false')
+    }
+  }, [activeUploadsCount, isMinimized])
 
   const handleToggleExpand = () => {
     if (collapsible) {
@@ -37,16 +36,17 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
     localStorage.setItem(MINIMIZED_KEY, String(newMinimized))
   }
 
-  useEffect(() => {
-    if (activeUploadsCount > 0 && isMinimized) {
-      setIsMinimized(false)
-      localStorage.setItem(MINIMIZED_KEY, 'false')
-    }
-  }, [activeUploadsCount, isMinimized])
-
   const handleRemove = (uploadId: string) => {
     removeUpload(uploadId)
   }
+
+  if (uploads.length === 0) {
+    return null
+  }
+
+  const positionClasses = position === 'bottom-right'
+    ? 'right-4 bottom-4'
+    : 'left-4 bottom-4'
 
   if (isMinimized) {
     return (

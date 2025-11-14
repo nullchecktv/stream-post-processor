@@ -14,12 +14,11 @@
             "S.$": "States.Format('data#clip#{}', $.clipId)"
           }
         },
-        "UpdateExpression": "SET #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatus), #status = :status, #updatedAt = :updatedAt, #processingStartedAt = :processingStartedAt",
+        "UpdateExpression": "SET #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatus), #status = :status, #updatedAt = :updatedAt",
         "ExpressionAttributeNames": {
           "#statusHistory": "statusHistory",
           "#status": "status",
-          "#updatedAt": "updatedAt",
-          "#processingStartedAt": "processingStartedAt"
+          "#updatedAt": "updatedAt"
         },
         "ExpressionAttributeValues": {
           ":status": {
@@ -43,9 +42,6 @@
             ]
           },
           ":updatedAt": {
-            "S.$": "$$.State.EnteredTime"
-          },
-          ":processingStartedAt": {
             "S.$": "$$.State.EnteredTime"
           },
           ":emptyList": {
@@ -525,6 +521,45 @@
           "Next": "Error Handler"
         }
       ],
+      "Next": "Publish Notification Event"
+    },
+    "Publish Notification Event": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::events:putEvents",
+      "Parameters": {
+        "Entries": [
+          {
+            "Source": "nullcheck",
+            "DetailType": "Notification",
+            "Detail": {
+              "type": "clip_processed",
+              "tenantId.$": "$$.Execution.Input.tenantId",
+              "userId": null,
+              "title": "Clip Ready",
+              "message": "Your clip has been processed",
+              "url.$": "States.Format('/episodes/{}/clips/{}', $$.Execution.Input.episodeId, $$.Execution.Input.clipId)",
+              "persist": false,
+              "topic": "tasks",
+              "metadata": {
+                "episodeId.$": "$.episodeId",
+                "clipId.$": "$.clipId"
+              }
+            }
+          }
+        ]
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Events.ServiceException",
+            "Events.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
       "End": true
     },
     "Error Handler": {
@@ -593,7 +628,7 @@
           "Next": "Final Error State"
         }
       ],
-      "Next": "Fail State"
+      "Next": "Notify Failure"
     },
     "Final Error State": {
       "Type": "Pass",
@@ -602,6 +637,43 @@
         "message": "Critical error: Unable to update clip status in database",
         "timestamp.$": "$$.State.EnteredTime"
       },
+      "Next": "Notify Failure"
+    },
+    "Notify Failure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ClipGenerationFailedFunctionArn}",
+        "Payload": {
+          "tenantId.$": "$.Execution.Input.tenantId",
+          "episodeId.$": "$.Execution.Input.episodeId",
+          "clipId.$": "$.Execution.Input.clipId",
+          "error": {
+            "message": "Clip generation failed"
+          }
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Fail State"
+        }
+      ],
+      "ResultPath": null,
       "Next": "Fail State"
     },
     "Fail State": {
@@ -611,4 +683,3 @@
     }
   }
 }
-

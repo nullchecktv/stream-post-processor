@@ -2,7 +2,7 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
-import { publishNotification } from '../utils/notifications.mjs';
+import { publishNotification, publishNotificationEvent } from '../utils/notifications.mjs';
 import { TRACK_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
@@ -107,6 +107,21 @@ export const handler = async (event) => {
       episodeId,
       title: 'Video Preprocessing Complete',
       message: `Track "${trackName}" has been processed`
+    });
+
+    await publishNotificationEvent({
+      type: 'preprocessing_completed',
+      tenantId,
+      userId: null,
+      title: 'Video Preprocessing Complete',
+      message: `Track "${trackName}" has been processed`,
+      url: `/episodes/${episodeId}`,
+      persist: true,
+      metadata: {
+        episodeId,
+        trackName,
+        segmentCount
+      }
     });
 
     return { statusCode: 200 };

@@ -38,28 +38,41 @@ function EpisodeDetailPage() {
 
   usePageTitle(episode ? `Edit ${episode.title}` : 'Edit Episode')
 
-  useEffect(() => {
-    const fetchEpisode = async () => {
-      if (!id) {
-        setError('Episode ID is required')
-        setLoading(false)
-        return
-      }
+  const fetchEpisode = async () => {
+    if (!id) {
+      setError('Episode ID is required')
+      setLoading(false)
+      return
+    }
 
-      try {
-        const data = await episodesApi.get(id)
-        setEpisode(data)
-        setError(null)
-      } catch (err) {
-        console.error('Failed to fetch episode:', err)
-        setError('Failed to load episode. Please try again.')
-      } finally {
-        setLoading(false)
+    try {
+      const data = await episodesApi.get(id)
+      setEpisode(data)
+      setError(null)
+    } catch (err) {
+      console.error('Failed to fetch episode:', err)
+      setError('Failed to load episode. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchEpisode()
+  }, [id])
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (activeTab === 'details') {
+        fetchEpisode()
+      } else if (activeTab === 'quotes' && id) {
+        fetchQuotes()
       }
     }
 
-    fetchEpisode()
-  }, [id])
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [id, activeTab])
 
   useEffect(() => {
     if (activeTab === 'quotes' && id && quotes.length === 0) {
@@ -466,15 +479,25 @@ function EpisodeDetailPage() {
                       <div className="space-y-4">
                         <div>
                           <h3 className="text-sm font-medium text-gray-700 mb-2">Objectives</h3>
-                          <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
-                            {episodePlan.plan.objectives}
-                          </p>
+                          <ul className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3 space-y-1">
+                            {episodePlan.plan.objectives.map((objective, index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="text-primary mr-2">•</span>
+                                <span>{objective}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-gray-700 mb-2">Concepts</h3>
-                          <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
-                            {episodePlan.plan.concepts}
-                          </p>
+                          <ul className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3 space-y-1">
+                            {episodePlan.plan.concepts.map((concept, index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="text-primary mr-2">•</span>
+                                <span>{concept}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                         {episodePlan.plan.notes && (
                           <div>

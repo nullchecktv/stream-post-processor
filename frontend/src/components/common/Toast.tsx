@@ -7,9 +7,10 @@ interface ToastProps {
   type: ToastType
   onClose: () => void
   duration?: number
+  onAction?: () => void
 }
 
-export function Toast({ message, type, onClose, duration = 5000 }: ToastProps) {
+export function Toast({ message, type, onClose, duration = 5000, onAction }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(onClose, duration)
     return () => clearTimeout(timer)
@@ -65,6 +66,13 @@ export function Toast({ message, type, onClose, duration = 5000 }: ToastProps) {
   const buttonHoverBg = type === 'success' ? 'hover:bg-primary/10' : 'hover:bg-white/20'
   const buttonFocusRing = type === 'success' ? 'focus:ring-primary/50' : 'focus:ring-white/50'
 
+  const handleAction = () => {
+    if (onAction) {
+      onAction()
+      onClose()
+    }
+  }
+
   return (
     <div
       className={`${textColor} px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md animate-slide-in`}
@@ -75,6 +83,15 @@ export function Toast({ message, type, onClose, duration = 5000 }: ToastProps) {
     >
       <div className="flex-shrink-0" aria-hidden="true">{icon}</div>
       <p className="flex-1 text-sm font-medium">{message}</p>
+      {onAction && (
+        <button
+          onClick={handleAction}
+          className={`flex-shrink-0 px-3 py-1 text-xs font-medium rounded ${buttonHoverBg} transition-colors focus:outline-none focus:ring-2 ${buttonFocusRing}`}
+          aria-label="View"
+        >
+          View
+        </button>
+      )}
       <button
         onClick={onClose}
         className={`flex-shrink-0 ${buttonHoverBg} rounded p-1 transition-colors focus:outline-none focus:ring-2 ${buttonFocusRing}`}

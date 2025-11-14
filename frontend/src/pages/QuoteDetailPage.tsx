@@ -78,6 +78,15 @@ function QuoteDetailPage() {
     fetchData()
   }, [episodeId, quoteId])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchData()
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [episodeId, quoteId])
+
   const handleDelete = async () => {
     if (!episodeId || !quoteId) return
 

@@ -1,17 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import mermaid from 'mermaid'
 
 interface MermaidDiagramProps {
   diagram: string
   className?: string
 }
 
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'loose',
-  fontFamily: 'system-ui, -apple-system, sans-serif',
-})
+let mermaidInstance: typeof import('mermaid').default | null = null
+
+async function getMermaid() {
+  if (!mermaidInstance) {
+    const mermaidModule = await import('mermaid')
+    mermaidInstance = mermaidModule.default
+    mermaidInstance.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    })
+  }
+  return mermaidInstance
+}
 
 export function MermaidDiagram({ diagram, className = '' }: MermaidDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -26,6 +34,7 @@ export function MermaidDiagram({ diagram, className = '' }: MermaidDiagramProps)
       setError(null)
 
       try {
+        const mermaid = await getMermaid()
         const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`
         const { svg } = await mermaid.render(id, diagram)
 

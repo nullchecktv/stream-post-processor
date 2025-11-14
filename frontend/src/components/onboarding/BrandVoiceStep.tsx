@@ -22,6 +22,9 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
     formState: { errors },
   } = useForm<BrandVoiceFormData>({
     resolver: zodResolver(BrandVoiceSchema),
+    defaultValues: {
+      perspective: 'first_person',
+    },
   })
 
   const onSubmit = async (data: BrandVoiceFormData) => {
@@ -108,6 +111,29 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
           )}
           <p className="mt-2 text-xs text-gray-500">
             Examples: "storytelling with code examples", "technical with practical examples", "educational with step-by-step guides"
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="perspective" className="block text-sm font-medium text-gray-700 mb-1">
+            Writing Perspective
+          </label>
+          <select
+            id="perspective"
+            {...register('perspective')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            disabled={isSubmitting}
+          >
+            <option value="first_person">First Person (I, we, our)</option>
+            <option value="third_person">Third Person (they, the team, the company)</option>
+          </select>
+          {errors.perspective && (
+            <p className="mt-1 text-sm text-red-600">{errors.perspective.message}</p>
+          )}
+          <p className="mt-2 text-xs text-gray-500">
+            <strong>First person</strong> creates personal, relatable content ("I discovered that...").
+            <strong>Third person</strong> maintains professional distance ("The team found that...").
+            Choose based on whether you're writing as an individual or representing an organization.
           </p>
         </div>
 

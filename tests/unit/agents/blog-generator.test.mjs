@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
 const ddbMock = mockClient(DynamoDBClient);
+const eventBridgeMock = mockClient(EventBridgeClient);
 
 jest.mock('../../../functions/utils/agents.mjs', () => ({
   converse: jest.fn()
@@ -24,10 +26,13 @@ import { convertToBedrockTools } from '../../../functions/utils/tools.mjs';
 describe('Blog Generator Agent', () => {
   beforeEach(() => {
     ddbMock.reset();
+    eventBridgeMock.reset();
     converse.mockReset();
     convertToBedrockTools.mockReturnValue([]);
     process.env.TABLE_NAME = 'test-table';
     process.env.MODEL_ID = 'amazon.nova-pro-v1:0';
+
+    eventBridgeMock.on(PutEventsCommand).resolves({});
   });
 
   const createEvent = (detail) => ({

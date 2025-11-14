@@ -44,6 +44,15 @@ function EpisodeClipsPage() {
     fetchEpisode()
   }, [id])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchEpisode()
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [id])
+
   const handleGenerateClips = async () => {
     if (!id) return
 

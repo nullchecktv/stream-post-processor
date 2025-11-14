@@ -74,6 +74,17 @@ function EpisodeQuotesPage() {
     }
   }, [id])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (id) {
+        fetchQuotes()
+      }
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [id])
+
   const handleDelete = async (quoteId: string) => {
     if (!id) return
 
