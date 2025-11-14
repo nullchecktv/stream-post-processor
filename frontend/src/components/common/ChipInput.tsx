@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent, ChangeEvent } from 'react'
+import { useState, type KeyboardEvent, type ChangeEvent } from 'react'
 
 interface ChipInputProps {
   value: string[]

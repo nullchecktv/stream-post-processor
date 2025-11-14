@@ -7,6 +7,7 @@ interface ClipCardProps {
   onPlay: (clipId: string) => void
   onApprove: (clipId: string) => void
   onReject: (clipId: string) => void
+  onRetry?: (clipId: string) => void
 }
 
 const statusConfig: Record<string, { colors: string; label: string }> = {
@@ -35,12 +36,13 @@ function formatDuration(seconds?: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export function ClipCard({ clip, episodeId, onPlay, onApprove, onReject }: ClipCardProps) {
+export function ClipCard({ clip, episodeId, onPlay, onApprove, onReject, onRetry }: ClipCardProps) {
   const navigate = useNavigate()
   const config = statusConfig[clip.status] || statusConfig.Proposed
   const canPlay = clip.status === 'Created'
   const canApprove = clip.status === 'Created'
   const canReject = clip.status === 'Created'
+  const canRetry = clip.status === 'Failed'
 
   const handleCardClick = () => {
     navigate(`/episodes/${episodeId}/clips/${clip.id}`)
@@ -88,6 +90,17 @@ export function ClipCard({ clip, episodeId, onPlay, onApprove, onReject }: ClipC
       </div>
 
       <div className="flex items-center gap-2">
+        {canRetry && onRetry && (
+          <button
+            onClick={(e) => handleButtonClick(e, () => onRetry(clip.id))}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Retry Generation
+          </button>
+        )}
         {canPlay && (
           <button
             onClick={(e) => handleButtonClick(e, () => onPlay(clip.id))}

@@ -52,8 +52,18 @@ export const handler = async (event) => {
 
     const relatedItems = relatedDataResult.Items?.map(item => unmarshall(item)) || [];
 
-    const tracksCount = relatedItems.filter(item => item.sk.startsWith('data#track#')).length;
-    const hasTranscript = episode.transcriptKey ? true : false;
+    const tracks = relatedItems
+      .filter(item => item.sk.startsWith('data#track#'))
+      .map(track => ({
+        name: track.trackName || track.sk.replace('data#track#', ''),
+        filename: track.filename,
+        uploadedAt: track.uploadedAt,
+        status: track.status || 'uploaded',
+        speakers: track.speakers
+      }));
+
+    const tracksCount = tracks.length;
+    const hasTranscript = Boolean(episode.transcriptKey && episode.transcriptKey.trim());
     const clipsCount = relatedItems.filter(item => item.sk.startsWith('data#clip#')).length;
 
     const currentStatus = getCurrentStatus(episode.statusHistory) || episode.status;
@@ -65,12 +75,21 @@ export const handler = async (event) => {
       episodeNumber: episode.episodeNumber,
       createdAt: episode.createdAt,
       updatedAt: episode.updatedAt,
+      tracks,
       metrics: {
         tracksCount,
         hasTranscript,
         clipsCount
       }
     };
+
+    if (hasTranscript && episode.transcriptKey) {
+      response.transcript = {
+        filename: episode.transcriptKey.split('/').pop() || 'transcript.srt',
+        uploadedAt: episode.updatedAt,
+        status: 'uploaded'
+      };
+    }
 
     if (episode.description) response.description = episode.description;
     if (episode.summary) response.summary = episode.summary;

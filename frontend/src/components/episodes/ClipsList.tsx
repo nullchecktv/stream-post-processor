@@ -87,6 +87,17 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     }
   }
 
+  const handleRetry = async (clipId: string) => {
+    try {
+      await episodesApi.generateClip(episodeId, clipId, { orientation: 'landscape' })
+      showToast('Clip generation restarted', 'success')
+      await fetchClips()
+    } catch (err) {
+      console.error('Failed to retry clip generation:', err)
+      showToast('Failed to retry clip generation', 'error')
+    }
+  }
+
   const handleCloseModal = () => {
     setShowModal(false)
     setSelectedClipId(null)
@@ -211,6 +222,7 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
               onPlay={handlePlay}
               onApprove={handleApprove}
               onReject={handleReject}
+              onRetry={handleRetry}
             />
           ))}
         </div>

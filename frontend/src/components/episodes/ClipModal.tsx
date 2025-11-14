@@ -49,7 +49,7 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
       setLoading(true)
       setError(null)
       const response = await episodesApi.playClip(episodeId, clipId)
-      setPlaybackUrl(response.url)
+      setPlaybackUrl(response.downloadUrl)
     } catch (err) {
       console.error('Failed to fetch playback URL:', err)
       setError('Failed to load video. Please try again.')

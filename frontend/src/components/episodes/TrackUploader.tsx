@@ -162,6 +162,13 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
       progress: 0,
     })
 
+    setSelectedFile(null)
+    setSpeakersRaw("")
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    setIsUploading(false)
+
     try {
       updateUpload(uploadId, { status: 'uploading', progress: 5 })
 
@@ -206,11 +213,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
       updateUpload(uploadId, { status: 'completed', progress: 100 })
 
       showSuccess(`Track "${trackName}" uploaded successfully`)
-      setSelectedFile(null)
-      setSpeakersRaw("")
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
       if (onUploadComplete) onUploadComplete(trackName)
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -223,7 +225,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
         if (onUploadError) onUploadError(errorMessage)
       }
     } finally {
-      setIsUploading(false)
       abortControllerRef.current = null
     }
   }
@@ -250,7 +251,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
           type="text"
           value={speakersRaw}
           onChange={(e) => setSpeakersRaw(e.target.value)}
-          disabled={isUploading}
           placeholder="Alice, Bob, Carol"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
@@ -278,7 +278,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
             type="file"
             accept="video/*"
             onChange={handleFileSelect}
-            disabled={isUploading}
             className="hidden"
             id={`track-upload-${episodeId}`}
           />

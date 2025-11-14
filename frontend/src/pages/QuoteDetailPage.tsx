@@ -268,11 +268,16 @@ function QuoteDetailPage() {
           {hasImage && quote.imageUrl && (
             <div className="mb-6 relative">
               <img
-                src={`${quote.imageUrl}?t=${new Date(quote.updatedAt).getTime()}`}
+                src={quote.imageUrl}
                 alt={`Quote by ${quote.speaker}`}
                 className={`w-full h-auto rounded-lg border border-gray-200 shadow-sm transition-opacity ${
                   regenerating ? 'opacity-50' : 'opacity-100'
                 }`}
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  console.error('Failed to load quote image:', quote.imageUrl, e)
+                  e.currentTarget.style.display = 'none'
+                }}
               />
               {regenerating && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg">
