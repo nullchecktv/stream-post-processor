@@ -39,7 +39,7 @@ const TeamGeneralSettingsPage = lazy(() => import('./pages/TeamGeneralSettingsPa
 const TeamBrandingSettingsPage = lazy(() => import('./pages/TeamBrandingSettingsPage'))
 const TeamWritingSettingsPage = lazy(() => import('./pages/TeamWritingSettingsPage'))
 const TeamMembersPage = lazy(() => import('./pages/TeamMembersPage'))
-const ActivityPage = lazy(() => import('./pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
+const ActivityPage = lazy(() => import('./pages/ActivityPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 

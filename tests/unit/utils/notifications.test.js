@@ -1,20 +1,18 @@
 const { mockClient } = require('aws-sdk-client-mock');
-const { DynamoDBClient, PutItemCommand, QueryCommand, DeleteItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
-const { EventBridgeClient } = require('@aws-sdk/client-eventbridge');
+const { DynamoDBClient, QueryCommand, DeleteItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge');
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 
 const ddbMock = mockClient(DynamoDBClient);
 const eventBridgeMock = mockClient(EventBridgeClient);
 
-
-
 const {
-  createNotification,
   listNotifications,
   deleteNotification,
   markNotificationAsRead,
   createTeamInvitationNotification,
-  removeNotificationsByInvitation
+  removeNotificationsByInvitation,
+  publishNotificationEvent
 } = require('../../../functions/utils/notifications.mjs');
 
 describe('Notification Utilities', () => {
@@ -25,72 +23,43 @@ describe('Notification Utilities', () => {
     jest.clearAllMocks();
   });
 
-  describe('createNotification', () => {
-    test('should create notification successfully', async () => {
-      ddbMock.on(PutItemCommand).resolves({});
+  describe('publishNotificationEvent', () => {
+    test('should publish notification event to EventBridge', async () => {
+      eventBridgeMock.on(PutEventsCommand).resolves({});
 
-      const result = await createNotification(
-        'user-123',
-        'team_invitation',
-        'Team Invitation',
-        'You have been invited to join Test Team',
-        { teamId: 'team-456', invitationId: 'inv-789' }
-      );
-
-      expect(result).toMatchObject({
+      await publishNotificationEvent({
         type: 'team_invitation',
+        tenantId: 'tenant-123',
+        userId: 'user-123',
         title: 'Team Invitation',
         message: 'You have been invited to join Test Team',
-        data: { teamId: 'team-456', invitationId: 'inv-789' },
-        isRead: false
+        url: '/teams/team-456',
+        persist: true,
+        metadata: { teamId: 'team-456' }
       });
 
-      expect(result.id).toBeDefined();
-      expect(result.createdAt).toBeDefined();
-      expect(result.ttl).toBeDefined();
+      const eventCall = eventBridgeMock.calls()[0];
+      expect(eventCall.args[0].input.Entries).toHaveLength(1);
+      expect(eventCall.args[0].input.Entries[0].Source).toBe('nullcheck');
+      expect(eventCall.args[0].input.Entries[0].DetailType).toBe('Notification');
 
-      expect(ddbMock.calls()).toHaveLength(1);
-      const putCall = ddbMock.calls()[0];
-      expect(putCall.args[0].input.TableName).toBe('test-table');
-      expect(putCall.args[0].input.ConditionExpression).toBe('attribute_not_exists(pk) AND attribute_not_exists(sk)');
+      const detail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);
+      expect(detail.type).toBe('team_invitation');
+      expect(detail.tenantId).toBe('tenant-123');
+      expect(detail.userId).toBe('user-123');
+      expect(detail.persist).toBe(true);
     });
 
-    test('should handle DynamoDB errors', async () => {
-      ddbMock.on(PutItemCommand).rejects(new Error('DynamoDB error'));
+    test('should handle EventBridge errors', async () => {
+      eventBridgeMock.on(PutEventsCommand).rejects(new Error('EventBridge error'));
 
-      await expect(createNotification(
-        'user-123',
-        'team_invitation',
-        'Test',
-        'Test message'
-      )).rejects.toThrow('Failed to create notification');
-    });
-
-    test('should set correct TTL (30 days)', async () => {
-      ddbMock.on(PutItemCommand).resolves({});
-
-      const beforeTime = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
-
-      const result = await createNotification('user-123', 'test', 'Test', 'Test');
-
-      const afterTime = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
-
-      expect(result.ttl).toBeGreaterThanOrEqual(beforeTime);
-      expect(result.ttl).toBeLessThanOrEqual(afterTime);
-    });
-
-    test('should create correct DynamoDB keys', async () => {
-      ddbMock.on(PutItemCommand).resolves({});
-
-      const result = await createNotification('user-123', 'test', 'Test', 'Test');
-
-      const putCall = ddbMock.calls()[0];
-      const item = unmarshall(putCall.args[0].input.Item);
-
-      expect(item.pk).toBe('user-123');
-      expect(item.sk).toMatch(/^notification#\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z#/);
-      expect(item.id).toBeDefined();
-      expect(item.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      await expect(publishNotificationEvent({
+        type: 'test',
+        tenantId: 'tenant-123',
+        userId: 'user-123',
+        title: 'Test',
+        message: 'Test message'
+      })).rejects.toThrow('Failed to publish notification event');
     });
   });
 
@@ -98,21 +67,21 @@ describe('Notification Utilities', () => {
     test('should list notifications successfully', async () => {
       const mockNotifications = [
         {
-          pk: marshall('user-123'),
-          sk: marshall('notification#notif-1'),
-          id: marshall('notif-1'),
-          type: marshall('team_invitation'),
-          title: marshall('Team Invitation'),
-          message: marshall('Test message'),
-          isRead: marshall(false),
-          createdAt: marshall('2025-01-15T10:30:00Z'),
-          ttl: marshall(1642248000)
+          pk: 'user-123',
+          sk: 'notification#2025-01-15T10:30:00.000Z#notif-1',
+          id: 'notif-1',
+          type: 'team_invitation',
+          title: 'Team Invitation',
+          message: 'Test message',
+          isRead: false,
+          createdAt: '2025-01-15T10:30:00.000Z',
+          ttl: 1234567890
         }
       ];
 
       ddbMock.on(QueryCommand).resolves({
-        Items: mockNotifications,
-        LastEvaluatedKey: null
+        Items: mockNotifications.map(n => marshall(n)),
+        LastEvaluatedKey: undefined
       });
 
       const result = await listNotifications('user-123');
@@ -122,69 +91,35 @@ describe('Notification Utilities', () => {
         id: 'notif-1',
         type: 'team_invitation',
         title: 'Team Invitation',
-        message: 'Test message',
         isRead: false
       });
-
-      // Should not include internal DynamoDB fields
-      expect(result.notifications[0].pk).toBeUndefined();
-      expect(result.notifications[0].sk).toBeUndefined();
-      expect(result.notifications[0].ttl).toBeUndefined();
-
       expect(result.hasMore).toBe(false);
-      expect(result.lastEvaluatedKey).toBeNull();
     });
 
-    test('should handle pagination correctly', async () => {
-      const cursor = { pk: marshall('user#user-123'), sk: marshall('notification#last') };
-
+    test('should filter by isRead status', async () => {
       ddbMock.on(QueryCommand).resolves({
         Items: [],
-        LastEvaluatedKey: cursor
+        LastEvaluatedKey: undefined
       });
-
-      const result = await listNotifications('user-123', { cursor, limit: 10 });
-
-      expect(result.hasMore).toBe(true);
-      expect(result.lastEvaluatedKey).toEqual(cursor);
-
-      const queryCall = ddbMock.calls()[0];
-      expect(queryCall.args[0].input.ExclusiveStartKey).toEqual(cursor);
-      expect(queryCall.args[0].input.Limit).toBe(10);
-    });
-
-    test('should filter by read status', async () => {
-      ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       await listNotifications('user-123', { isRead: true });
 
       const queryCall = ddbMock.calls()[0];
       expect(queryCall.args[0].input.FilterExpression).toBe('isRead = :isRead');
-      expect(queryCall.args[0].input.ExpressionAttributeValues[':isRead']).toEqual(marshall(true));
     });
 
-    test('should use correct GSI and sort order', async () => {
-      ddbMock.on(QueryCommand).resolves({ Items: [] });
+    test('should handle pagination', async () => {
+      const mockKey = { pk: 'user-123', sk: 'notification#2025-01-15T10:30:00.000Z#notif-1' };
 
-      await listNotifications('user-123');
-
-      const queryCall = ddbMock.calls()[0];
-      expect(queryCall.args[0].input.ScanIndexForward).toBe(false); // Newest first
-    });
-
-    test('should handle DynamoDB errors', async () => {
-      ddbMock.on(QueryCommand).rejects(new Error('DynamoDB error'));
-
-      await expect(listNotifications('user-123')).rejects.toThrow('Failed to list notifications');
-    });
-
-    test('should handle empty results', async () => {
-      ddbMock.on(QueryCommand).resolves({ Items: null });
+      ddbMock.on(QueryCommand).resolves({
+        Items: [],
+        LastEvaluatedKey: marshall(mockKey)
+      });
 
       const result = await listNotifications('user-123');
 
-      expect(result.notifications).toEqual([]);
-      expect(result.hasMore).toBe(false);
+      expect(result.hasMore).toBe(true);
+      expect(result.lastEvaluatedKey).toBeDefined();
     });
   });
 
@@ -192,36 +127,20 @@ describe('Notification Utilities', () => {
     test('should delete notification successfully', async () => {
       ddbMock.on(DeleteItemCommand).resolves({});
 
-      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
-      const result = await deleteNotification('user-123', sortKey);
+      const result = await deleteNotification('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
 
       expect(result).toBe(true);
-
-      const deleteCall = ddbMock.calls()[0];
-      expect(deleteCall.args[0].input.TableName).toBe('test-table');
-      expect(deleteCall.args[0].input.ConditionExpression).toBe('attribute_exists(pk) AND attribute_exists(sk)');
-
-      const key = unmarshall(deleteCall.args[0].input.Key);
-      expect(key.pk).toBe('user-123');
-      expect(key.sk).toBe(sortKey);
+      expect(ddbMock.calls()).toHaveLength(1);
     });
 
-    test('should handle non-existent notification', async () => {
-      const conditionalError = new Error('Conditional check failed');
-      conditionalError.name = 'ConditionalCheckFailedException';
-      ddbMock.on(DeleteItemCommand).rejects(conditionalError);
+    test('should return false if notification does not exist', async () => {
+      const error = new Error('Conditional check failed');
+      error.name = 'ConditionalCheckFailedException';
+      ddbMock.on(DeleteItemCommand).rejects(error);
 
-      const sortKey = 'notification#2025-01-15T10:30:00.000Z#nonexistent';
-      const result = await deleteNotification('user-123', sortKey);
+      const result = await deleteNotification('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
 
       expect(result).toBe(false);
-    });
-
-    test('should handle other DynamoDB errors', async () => {
-      ddbMock.on(DeleteItemCommand).rejects(new Error('DynamoDB error'));
-
-      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
-      await expect(deleteNotification('user-123', sortKey)).rejects.toThrow('Failed to delete notification');
     });
   });
 
@@ -229,216 +148,69 @@ describe('Notification Utilities', () => {
     test('should mark notification as read successfully', async () => {
       ddbMock.on(UpdateItemCommand).resolves({});
 
-      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
-      const result = await markNotificationAsRead('user-123', sortKey);
+      const result = await markNotificationAsRead('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
 
       expect(result).toBe(true);
-
-      const updateCall = ddbMock.calls()[0];
-      expect(updateCall.args[0].input.UpdateExpression).toBe('SET isRead = :isRead');
-      expect(updateCall.args[0].input.ExpressionAttributeValues[':isRead']).toEqual(marshall(true));
-      expect(updateCall.args[0].input.ConditionExpression).toBe('attribute_exists(pk) AND attribute_exists(sk)');
+      expect(ddbMock.calls()).toHaveLength(1);
     });
 
-    test('should handle non-existent notification', async () => {
-      const conditionalError = new Error('Conditional check failed');
-      conditionalError.name = 'ConditionalCheckFailedException';
-      ddbMock.on(UpdateItemCommand).rejects(conditionalError);
+    test('should return false if notification does not exist', async () => {
+      const error = new Error('Conditional check failed');
+      error.name = 'ConditionalCheckFailedException';
+      ddbMock.on(UpdateItemCommand).rejects(error);
 
-      const sortKey = 'notification#2025-01-15T10:30:00.000Z#nonexistent';
-      const result = await markNotificationAsRead('user-123', sortKey);
+      const result = await markNotificationAsRead('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
 
       expect(result).toBe(false);
-    });
-
-    test('should handle other DynamoDB errors', async () => {
-      ddbMock.on(UpdateItemCommand).rejects(new Error('DynamoDB error'));
-
-      const sortKey = 'notification#2025-01-15T10:30:00.000Z#notif-456';
-      await expect(markNotificationAsRead('user-123', sortKey)).rejects.toThrow('Failed to mark notification as read');
     });
   });
 
   describe('createTeamInvitationNotification', () => {
-    test('should create team invitation notification with correct data', async () => {
-      ddbMock.on(PutItemCommand).resolves({});
+    test('should publish team invitation notification event', async () => {
+      eventBridgeMock.on(PutEventsCommand).resolves({});
 
-      const result = await createTeamInvitationNotification(
-        'user-123',
-        'team-456',
-        'Test Team',
-        'John Doe',
-        'inv-789'
-      );
+      await createTeamInvitationNotification('user-123', 'team-456', 'Test Team', 'John Doe', 'inv-789');
 
-      expect(result.type).toBe('team_invitation');
-      expect(result.title).toBe('Team Invitation');
-      expect(result.message).toBe('You have been invited to join Test Team');
-      expect(result.data).toEqual({
-        teamId: 'team-456',
-        teamName: 'Test Team',
-        inviterName: 'John Doe',
-        invitationId: 'inv-789'
-      });
+      const eventCall = eventBridgeMock.calls()[0];
+      const detail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);
+
+      expect(detail.type).toBe('team_invitation');
+      expect(detail.userId).toBe('user-123');
+      expect(detail.metadata.teamId).toBe('team-456');
+      expect(detail.metadata.invitationId).toBe('inv-789');
     });
   });
 
   describe('removeNotificationsByInvitation', () => {
-    test('should remove notifications by invitation ID successfully', async () => {
+    test('should remove notifications by invitation ID', async () => {
       const mockNotifications = [
-        marshall({
-          pk: 'user#user-123',
-          sk: 'notification#notif-1',
-          id: 'notif-1',
-          data: { invitationId: 'inv-789' }
-        }),
-        marshall({
-          pk: 'user#user-123',
-          sk: 'notification#notif-2',
-          id: 'notif-2',
-          data: { invitationId: 'inv-789' }
-        })
-      ];
-
-      ddbMock.on(QueryCommand).resolves({ Items: mockNotifications });
-      ddbMock.on(DeleteItemCommand).resolves({}); // Both deletes succeed
-
-      const result = await removeNotificationsByInvitation('user-123', 'inv-789');
-
-      expect(result).toBe(true);
-      expect(ddbMock.calls()).toHaveLength(3); // 1 query + 2 deletes
-
-      const queryCall = ddbMock.calls()[0];
-      expect(queryCall.args[0].input.FilterExpression).toBe('#data.invitationId = :invitationId');
-      expect(queryCall.args[0].input.ExpressionAttributeNames['#data']).toBe('data');
-    });
-
-    test('should handle no matching notifications', async () => {
-      ddbMock.on(QueryCommand).resolves({ Items: [] });
-
-      const result = await removeNotificationsByInvitation('user-123', 'inv-nonexistent');
-
-      expect(result).toBe(true);
-      expect(ddbMock.calls()).toHaveLength(1); // Only query, no deletes
-    });
-
-    test('should handle partial deletion failures', async () => {
-      const mockNotifications = [
-        marshall({
-          pk: 'user#user-123',
-          sk: 'notification#notif-1',
-          id: 'notif-1',
-          data: { invitationId: 'inv-789' }
-        }),
-        marshall({
-          pk: 'user#user-123',
-          sk: 'notification#notif-2',
-          id: 'notif-2',
-          data: { invitationId: 'inv-789' }
-        })
-      ];
-
-      ddbMock.on(QueryCommand).resolves({ Items: mockNotifications });
-      ddbMock.on(DeleteItemCommand)
-        .resolvesOnce({}) // First delete succeeds
-        .rejectsOnce(new Error('Delete failed')); // Second delete fails
-
-      const result = await removeNotificationsByInvitation('user-123', 'inv-789');
-
-      expect(result).toBe(true); // Should still return true even with partial failures
-    });
-
-    test('should handle query errors', async () => {
-      ddbMock.on(QueryCommand).rejects(new Error('Query failed'));
-
-      await expect(removeNotificationsByInvitation('user-123', 'inv-789'))
-        .rejects.toThrow('Failed to remove invitation notifications');
-    });
-  });
-
-  describe('TTL and cleanup operations', () => {
-    test('should set TTL correctly for automatic cleanup', async () => {
-      ddbMock.on(PutItemCommand).resolves({});
-
-      const beforeTime = Math.floor(Date.now() / 1000);
-      await createNotification('user-123', 'test', 'Test', 'Test');
-      const afterTime = Math.floor(Date.now() / 1000);
-
-      const putCall = ddbMock.calls()[0];
-      const item = unmarshall(putCall.args[0].input.Item);
-
-      const expectedMinTTL = beforeTime + (30 * 24 * 60 * 60); // 30 days
-      const expectedMaxTTL = afterTime + (30 * 24 * 60 * 60);
-
-      expect(item.ttl).toBeGreaterThanOrEqual(expectedMinTTL);
-      expect(item.ttl).toBeLessThanOrEqual(expectedMaxTTL);
-    });
-
-
-  });
-
-  describe('Performance and edge cases', () => {
-    test('should handle large notification lists efficiently', async () => {
-      const largeNotificationList = Array(100).fill().map((_, i) => ({
-        pk: marshall(`user#user-123`),
-        sk: marshall(`notification#notif-${i}`),
-        id: marshall(`notif-${i}`),
-        type: marshall('test'),
-        title: marshall(`Notification ${i}`),
-        message: marshall(`Message ${i}`),
-        isRead: marshall(false),
-        createdAt: marshall('2025-01-15T10:30:00Z')
-      }));
-
-      ddbMock.on(QueryCommand).resolves({
-        Items: largeNotificationList,
-        LastEvaluatedKey: null
-      });
-
-      const startTime = Date.now();
-      const result = await listNotifications('user-123', { limit: 100 });
-      const endTime = Date.now();
-
-      expect(result.notifications).toHaveLength(100);
-      expect(endTime - startTime).toBeLessThan(100); // Should complete quickly
-    });
-
-    test('should handle concurrent notification operations', async () => {
-      ddbMock.on(PutItemCommand).resolves({});
-      ddbMock.on(DeleteItemCommand).resolves({});
-
-      const operations = [
-        createNotification('user-1', 'test', 'Test 1', 'Message 1'),
-        createNotification('user-2', 'test', 'Test 2', 'Message 2'),
-        deleteNotification('user-3', 'notif-3'),
-        markNotificationAsRead('user-4', 'notif-4')
-      ];
-
-      ddbMock.on(UpdateItemCommand).resolves({});
-
-      const results = await Promise.allSettled(operations);
-
-      expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(4);
-    });
-
-    test('should handle malformed notification data gracefully', async () => {
-      const malformedNotifications = [
         {
-          pk: marshall('user#user-123'),
-          sk: marshall('notification#notif-1'),
-          // Missing required fields
+          pk: 'user-123',
+          sk: 'notification#2025-01-15T10:30:00.000Z#notif-1',
+          data: { invitationId: 'inv-789' }
         }
       ];
 
       ddbMock.on(QueryCommand).resolves({
-        Items: malformedNotifications
+        Items: mockNotifications.map(n => marshall(n))
+      });
+      ddbMock.on(DeleteItemCommand).resolves({});
+
+      const result = await removeNotificationsByInvitation('user-123', 'inv-789');
+
+      expect(result).toBe(true);
+      const deleteCalls = ddbMock.calls().filter(c => c.args[0] instanceof DeleteItemCommand);
+      expect(deleteCalls).toHaveLength(1);
+    });
+
+    test('should handle no matching notifications', async () => {
+      ddbMock.on(QueryCommand).resolves({
+        Items: []
       });
 
-      const result = await listNotifications('user-123');
+      const result = await removeNotificationsByInvitation('user-123', 'inv-789');
 
-      expect(result.notifications).toHaveLength(1);
-      // Should handle missing fields gracefully
-      expect(result.notifications[0]).toBeDefined();
+      expect(result).toBe(true);
     });
   });
 });

@@ -10,22 +10,20 @@ interface ActivityDropdownProps {
 
 export const ActivityDropdown = memo(function ActivityDropdown({ onClose }: ActivityDropdownProps) {
   const navigate = useNavigate()
-  const { notifications, activities, markAsRead, markAllAsRead } = useActivity()
+  const { notifications, markAsRead } = useActivity()
 
-  const allItems = [...activities, ...notifications]
+  const allItems = [...notifications]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5)
 
   const handleMarkAsRead = (id: string) => {
-    const activity = activities.find(a => a.id === id)
-    if (activity) {
-      return
-    }
     markAsRead(id)
   }
 
-  const handleMarkAllAsRead = () => {
-    markAllAsRead()
+  const handleMarkAllAsRead = async () => {
+    const unreadNotifications = notifications.filter(n => !n.isRead)
+    const promises = unreadNotifications.map(n => markAsRead(n.id))
+    await Promise.allSettled(promises)
     onClose()
   }
 
@@ -38,16 +36,16 @@ export const ActivityDropdown = memo(function ActivityDropdown({ onClose }: Acti
     return (
       <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
         <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Activities</h3>
         </div>
 
         <div className="p-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4 text-gray-400">
             <ActivityIcon className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No activity</h3>
           <p className="text-sm text-gray-600">
-            You're all caught up! You'll see notifications here when there's activity.
+            You're all caught up! You'll see activities here when something cool happens.
           </p>
         </div>
       </div>

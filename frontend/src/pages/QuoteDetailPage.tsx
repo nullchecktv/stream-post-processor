@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { quotesApi } from '../api/quotes'
 import { episodesApi } from '../api/episodes'
@@ -49,7 +49,7 @@ function QuoteDetailPage() {
 
   const isDirty = quote && (showSpeaker !== quote.showSpeaker || showEpisodeTitle !== quote.showEpisodeTitle)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!episodeId || !quoteId) {
       setError('Episode ID and Quote ID are required')
       setLoading(false)
@@ -58,9 +58,16 @@ function QuoteDetailPage() {
 
     try {
       const [quoteData, episodeData] = await Promise.all([
-        quotesApi.get(episodeId, quoteId),
+        quotesApi.get(episodeId, quoteId, true),
         episodesApi.get(episodeId)
       ])
+      console.log('Fetched quote data:', {
+        imageUrl: quoteData.imageUrl,
+        showSpeaker: quoteData.showSpeaker,
+        showEpisodeTitle: quoteData.showEpisodeTitle,
+        status: quoteData.status,
+        updatedAt: quoteData.updatedAt
+      })
       setQuote(quoteData)
       setEpisode(episodeData)
       setShowSpeaker(quoteData.showSpeaker)
@@ -72,20 +79,29 @@ function QuoteDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [episodeId, quoteId])
+
+  const fetchDataRef = useRef(fetchData)
+
+  useEffect(() => {
+    fetchDataRef.current = fetchData
+  }, [fetchData])
 
   useEffect(() => {
     fetchData()
-  }, [episodeId, quoteId])
+  }, [fetchData])
 
   useEffect(() => {
-    const handleRefresh = () => {
-      fetchData()
+    const handleRefresh = (event: Event) => {
+      console.log('Quote refresh event received:', event)
+      setRegenerating(false)
+      setLoading(true)
+      fetchDataRef.current()
     }
 
     window.addEventListener('refreshPageContent', handleRefresh)
     return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [episodeId, quoteId])
+  }, [])
 
   const handleDelete = async () => {
     if (!episodeId || !quoteId) return
@@ -120,12 +136,16 @@ function QuoteDetailPage() {
         showEpisodeTitle
       })
       showToast('Quote settings saved successfully', 'success')
-      await fetchData()
+
+      setQuote({
+        ...quote,
+        showSpeaker,
+        showEpisodeTitle,
+        updatedAt: new Date().toISOString()
+      })
 
       if (willRegenerate) {
         setRegenerating(true)
-        showToast('Regenerating image...', 'info')
-        pollForUpdatedQuote()
       }
     } catch (err) {
       console.error('Failed to save quote:', err)
@@ -133,50 +153,6 @@ function QuoteDetailPage() {
     } finally {
       setSaving(false)
     }
-  }
-
-  const pollForUpdatedQuote = async () => {
-    if (!episodeId || !quoteId || !quote) return
-
-    const maxAttempts = 10
-    const pollInterval = 1000
-    let attempts = 0
-    const previousUpdatedAt = quote.updatedAt
-
-    const poll = async () => {
-      attempts++
-
-      try {
-        const updatedQuote = await quotesApi.get(episodeId, quoteId)
-
-        if (updatedQuote.updatedAt !== previousUpdatedAt && updatedQuote.status === 'Created') {
-          setQuote(updatedQuote)
-          setRegenerating(false)
-          return
-        }
-
-        if (updatedQuote.status === 'Failed') {
-          setQuote(updatedQuote)
-          setRegenerating(false)
-          return
-        }
-
-        if (attempts < maxAttempts) {
-          setTimeout(poll, pollInterval)
-        } else {
-          setRegenerating(false)
-        }
-      } catch (err) {
-        console.error('Failed to poll quote status:', err)
-        if (attempts < maxAttempts) {
-          setTimeout(poll, pollInterval)
-        } else {
-          setRegenerating(false)
-        }
-      }
-    }
-
-    setTimeout(poll, pollInterval)
   }
 
   const handleDownload = async () => {
@@ -268,6 +244,7 @@ function QuoteDetailPage() {
           {hasImage && quote.imageUrl && (
             <div className="mb-6 relative">
               <img
+                key={`${quote.imageUrl}-${quote.updatedAt}`}
                 src={quote.imageUrl}
                 alt={`Quote by ${quote.speaker}`}
                 className={`w-full h-auto rounded-lg border border-gray-200 shadow-sm transition-opacity ${

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { quotesApi } from '../api/quotes'
@@ -38,6 +38,9 @@ function EpisodeDetailPage() {
 
   usePageTitle(episode ? `Edit ${episode.title}` : 'Edit Episode')
 
+  const fetchEpisodeRef = useRef<(() => Promise<void>) | null>(null)
+  const fetchQuotesRef = useRef<((cursor?: string) => Promise<void>) | null>(null)
+
   const fetchEpisode = async () => {
     if (!id) {
       setError('Episode ID is required')
@@ -57,22 +60,24 @@ function EpisodeDetailPage() {
     }
   }
 
+  fetchEpisodeRef.current = fetchEpisode
+
   useEffect(() => {
     fetchEpisode()
   }, [id])
 
   useEffect(() => {
     const handleRefresh = () => {
-      if (activeTab === 'details') {
-        fetchEpisode()
-      } else if (activeTab === 'quotes' && id) {
-        fetchQuotes()
+      if (activeTab === 'details' && fetchEpisodeRef.current) {
+        fetchEpisodeRef.current()
+      } else if (activeTab === 'quotes' && id && fetchQuotesRef.current) {
+        fetchQuotesRef.current()
       }
     }
 
     window.addEventListener('refreshPageContent', handleRefresh)
     return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [id, activeTab])
+  }, [])
 
   useEffect(() => {
     if (activeTab === 'quotes' && id && quotes.length === 0) {
@@ -134,6 +139,8 @@ function EpisodeDetailPage() {
       setQuotesLoading(false)
     }
   }
+
+  fetchQuotesRef.current = fetchQuotes
 
   const handleLoadMore = () => {
     if (nextCursor && !quotesLoading) {

@@ -1,8 +1,9 @@
-import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse } from '../utils/api.mjs';
 import { generateMomentoToken } from '../utils/momento.mjs';
+import { MEMBERSHIP_STATUS } from '../../schemas/index.mjs';
 
 const logger = new Logger({ serviceName: 'tokens' });
 const ddb = new DynamoDBClient();
@@ -15,8 +16,7 @@ export const handler = async (event) => {
       return formatResponse(401, { message: 'User ID not found in authorization context' });
     }
 
-    const userProfile = await getUserProfile(userId);
-    const teams = userProfile?.teams || [];
+    const teams = await getUserTeams(userId);
     const momentoToken = await generateMomentoToken(userId, teams);
 
     if (!momentoToken) {
@@ -39,28 +39,32 @@ export const handler = async (event) => {
   }
 };
 
-const getUserProfile = async (userId) => {
+const getUserTeams = async (userId) => {
   try {
-    const response = await ddb.send(new GetItemCommand({
+    const response = await ddb.send(new QueryCommand({
       TableName: process.env.TABLE_NAME,
-      Key: marshall({
-        pk: `user#${userId}`,
-        sk: 'profile'
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :pk',
+      ExpressionAttributeValues: marshall({
+        ':pk': `user#${userId}#teams`
       })
     }));
 
-    if (!response.Item) {
-      return null;
+    if (!response.Items || response.Items.length === 0) {
+      return [];
     }
 
-    return unmarshall(response.Item);
+    return response.Items
+      .map(item => unmarshall(item))
+      .filter(membership => membership.status === MEMBERSHIP_STATUS.ACTIVE)
+      .map(membership => ({ teamId: membership.teamId }));
   } catch (err) {
-    logger.error('Error fetching user profile', {
+    logger.error('Error fetching user teams', {
       error: err.message,
       stack: err.stack,
       userId
     });
-    return null;
+    return [];
   }
 };
 

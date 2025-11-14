@@ -338,7 +338,10 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
-              Resource: !GetAtt StreamPostProcessingTable.Arn
+                - dynamodb:Query
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+                - !Sub '${StreamPostProcessingTable.Arn}/index/GSI1'
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
@@ -2392,7 +2395,10 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
-              Resource: !GetAtt StreamPostProcessingTable.Arn
+                - dynamodb:Query
+              Resource:
+                - !GetAtt StreamPostProcessingTable.Arn
+                - !Sub '${StreamPostProcessingTable.Arn}/index/GSI1'
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable

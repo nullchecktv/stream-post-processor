@@ -136,6 +136,7 @@ jobs:
           VITE_USER_POOL_CLIENT_ID: ${{ steps.backend-outputs.outputs.user_pool_client_id }}
           VITE_USER_POOL_DOMAIN: ${{ steps.backend-outputs.outputs.user_pool_domain }}
           VITE_AWS_REGION: us-east-1
+          VITE_CACHE_NAME: nullcheck-dev
         run: |
           npm run build
 
