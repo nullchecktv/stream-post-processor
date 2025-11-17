@@ -1,108 +1,188 @@
-import { useMemo } from 'react'
-import type { Episode } from '../types'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { apiRequest } from '../api/client'
 
-export type WorkflowStep = 0 | 1 | 2 | 3
+export type WorkflowStepStatus = 'Locked' | 'Ready' | 'In Progress' | 'Complete' | 'Skipped' | 'Failed'
+export type ContentGenerationStatus = 'Pending' | 'Processing' | 'Complete' | 'Failed'
+export type WorkflowStepName = 'generate-plan' | 'upload-transcript' | 'upload-tracks'
+export type ContentType = 'blog' | 'quotes' | 'clips'
 
-export type StepState = 'not_started' | 'in_progress' | 'complete' | 'skipped' | 'locked'
+export interface WorkflowStep {
+  stepName: WorkflowStepName
+  status: WorkflowStepStatus
+  startedAt?: string
+  completedAt?: string
+  errorMessage?: string
+}
 
-export interface StepStatus {
-  state: StepState
-  canInteract: boolean
-  actionLabel?: string
-  actionRoute?: string
-  viewRoute?: string
+export interface ContentGeneration {
+  contentType: ContentType
+  status: ContentGenerationStatus
+  startedAt?: string
+  completedAt?: string
+  itemCount?: number
+  errorMessage?: string
 }
 
 export interface WorkflowState {
-  currentStep: WorkflowStep
-  completedSteps: number[]
-  steps: {
-    1: StepStatus
-    2: StepStatus
-    3: StepStatus
+  steps: WorkflowStep[]
+  contentGeneration: ContentGeneration[]
+  isLoading: boolean
+  error: string | null
+}
+
+interface WorkflowStateResponse {
+  steps: WorkflowStep[]
+  contentGeneration: ContentGeneration[]
+}
+
+interface MomentoMessage {
+  type: string
+  metadata?: {
+    episodeId?: string
+    workflowState?: WorkflowStateResponse
   }
 }
 
-export function computeWorkflowState(
-  episode: Episode,
-  hasPlan: boolean = false,
-  planSkipped: boolean = false
-): WorkflowState {
-  const completedSteps: number[] = []
+export function useWorkflowState(episodeId: string | null) {
+  const [state, setState] = useState<WorkflowState>({
+    steps: [],
+    contentGeneration: [],
+    isLoading: true,
+    error: null
+  })
 
-  const hasTranscript = episode.metrics?.hasTranscript || false
-  const hasTracks = (episode.metrics?.tracksCount || 0) > 0
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isMountedRef = useRef(true)
 
-  if (hasPlan) completedSteps.push(1)
-  if (hasTranscript) completedSteps.push(2)
-  if (hasTracks) completedSteps.push(3)
+  const fetchWorkflowState = useCallback(async () => {
+    if (!episodeId) {
+      setState({
+        steps: [],
+        contentGeneration: [],
+        isLoading: false,
+        error: null
+      })
+      return
+    }
 
-  const currentStep = (completedSteps.length > 0 ? Math.max(...completedSteps) : 0) as WorkflowStep
+    try {
+      const response = await apiRequest<WorkflowStateResponse>(`/episodes/${episodeId}/workflow`)
 
-  const planComplete = hasPlan || planSkipped
-  const step1State: StepState = hasPlan ? 'complete' : planSkipped ? 'skipped' : 'not_started'
-  const step2State: StepState = hasTranscript ? 'complete' : planComplete ? 'not_started' : 'locked'
-  const step3State: StepState = hasTracks ? 'complete' : planComplete ? 'not_started' : 'locked'
+      if (isMountedRef.current) {
+        setState({
+          steps: response.steps,
+          contentGeneration: response.contentGeneration,
+          isLoading: false,
+          error: null
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch workflow state:', error)
 
-  return {
-    currentStep,
-    completedSteps,
-    steps: {
-      1: {
-        state: step1State,
-        canInteract: true,
-        actionLabel: hasPlan ? undefined : 'Generate Plan',
-        actionRoute: hasPlan ? undefined : `/episodes/${episode.id}/plan`,
-        viewRoute: hasPlan ? `/episodes/${episode.id}/plan` : undefined
-      },
-      2: {
-        state: step2State,
-        canInteract: planComplete,
-        actionLabel: hasTranscript ? undefined : 'Upload',
-        actionRoute: hasTranscript ? undefined : `/episodes/${episode.id}/uploads`,
-        viewRoute: hasTranscript ? `/episodes/${episode.id}/uploads` : undefined
-      },
-      3: {
-        state: step3State,
-        canInteract: planComplete,
-        actionLabel: hasTracks ? undefined : 'Upload',
-        actionRoute: hasTracks ? undefined : `/episodes/${episode.id}/uploads`,
-        viewRoute: hasTracks ? `/episodes/${episode.id}/uploads` : undefined
+      if (isMountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Failed to load workflow state'
+        }))
       }
     }
+  }, [episodeId])
+
+  const handleWorkflowUpdate = useCallback((event: Event) => {
+    const customEvent = event as CustomEvent<{ message: MomentoMessage }>
+    const message = customEvent.detail.message
+
+    if (
+      (message.type === 'workflow_step_updated' || message.type === 'content_generation_updated') &&
+      message.metadata?.episodeId === episodeId &&
+      message.metadata?.workflowState
+    ) {
+      if (isMountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          steps: message.metadata!.workflowState!.steps,
+          contentGeneration: message.metadata!.workflowState!.contentGeneration
+        }))
+      }
+    }
+  }, [episodeId])
+
+  const isProcessing = useCallback(() => {
+    const hasProcessingStep = state.steps.some(
+      step => step.status === 'In Progress' || step.status === 'Ready'
+    )
+    const hasProcessingContent = state.contentGeneration.some(
+      content => content.status === 'Pending' || content.status === 'Processing'
+    )
+    return hasProcessingStep || hasProcessingContent
+  }, [state.steps, state.contentGeneration])
+
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+    }
+
+    pollingIntervalRef.current = setInterval(() => {
+      if (isProcessing()) {
+        fetchWorkflowState()
+      }
+    }, 5000)
+  }, [isProcessing, fetchWorkflowState])
+
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    isMountedRef.current = true
+    fetchWorkflowState()
+
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [fetchWorkflowState])
+
+  useEffect(() => {
+    globalThis.addEventListener('refreshPageContent', handleWorkflowUpdate)
+
+    return () => {
+      globalThis.removeEventListener('refreshPageContent', handleWorkflowUpdate)
+    }
+  }, [handleWorkflowUpdate])
+
+  useEffect(() => {
+    if (isProcessing()) {
+      startPolling()
+    } else {
+      stopPolling()
+    }
+
+    return () => {
+      stopPolling()
+    }
+  }, [isProcessing, startPolling, stopPolling])
+
+  const refetch = useCallback(() => {
+    fetchWorkflowState()
+  }, [fetchWorkflowState])
+
+  const getStep = useCallback((stepName: WorkflowStepName): WorkflowStep | undefined => {
+    return state.steps.find(step => step.stepName === stepName)
+  }, [state.steps])
+
+  const getContentGeneration = useCallback((contentType: ContentType): ContentGeneration | undefined => {
+    return state.contentGeneration.find(content => content.contentType === contentType)
+  }, [state.contentGeneration])
+
+  return {
+    ...state,
+    refetch,
+    isProcessing: isProcessing(),
+    getStep,
+    getContentGeneration
   }
-}
-
-export function getWorkflowStepFromEpisode(episode: Episode, hasPlan: boolean = false): WorkflowStep {
-  const hasTranscript = episode.metrics?.hasTranscript || false
-  const hasTracks = (episode.metrics?.tracksCount || 0) > 0
-
-  if (hasTracks) return 3
-  if (hasTranscript) return 2
-  if (hasPlan) return 1
-  return 1
-}
-
-export function isStepComplete(step: number, episode: Episode, hasPlan: boolean = false): boolean {
-  switch (step) {
-    case 1:
-      return hasPlan
-    case 2:
-      return episode.metrics?.hasTranscript || false
-    case 3:
-      return (episode.metrics?.tracksCount || 0) > 0
-    default:
-      return false
-  }
-}
-
-export function useWorkflowState(
-  episode: Episode | null,
-  hasPlan: boolean = false,
-  planSkipped: boolean = false
-): WorkflowState | null {
-  return useMemo(() => {
-    if (!episode) return null
-    return computeWorkflowState(episode, hasPlan, planSkipped)
-  }, [episode, hasPlan, planSkipped])
 }

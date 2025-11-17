@@ -53,8 +53,13 @@ export const handler = async (event) => {
         title: notification.title,
         message: notification.message,
         url: notification.url,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        metadata: notification.metadata || {}
       };
+
+      if (notification.subscriptionId) {
+        payload.subscriptionId = notification.subscriptionId;
+      }
 
       await topics.publish(
         process.env.MOMENTO_CACHE_NAME,
@@ -66,7 +71,8 @@ export const handler = async (event) => {
         notificationType: notification.type,
         topicName,
         cacheName: process.env.MOMENTO_CACHE_NAME,
-        persist: notification.persist
+        persist: notification.persist,
+        subscriptionId: notification.subscriptionId
       });
     }
   } catch (error) {

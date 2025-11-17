@@ -130,17 +130,17 @@
   - Publish Momento notification for workflow state change
   - _Requirements: 1.9, 9.1, 9.3_
 
-- [ ] 8. Enhance Momento Notification Publishing
+- [x] 8. Enhance Momento Notification Publishing
 
-- [ ] 8.1 Update publishNotificationEvent utility for workflow notifications
+- [x] 8.1 Update publishNotificationEvent utility for workflow notifications
   - Ensure publishNotificationEvent supports workflow state updates
   - Add workflowState to metadata for real-time updates
   - Support subscriptionId pattern for episode-specific updates
   - _Requirements: 9.1, 9.2, 9.3_
 
-- [ ] 9. Create Frontend Workflow State Hook
+- [x] 9. Create Frontend Workflow State Hook
 
-- [ ] 9.1 Create useWorkflowState custom hook
+- [x] 9.1 Create useWorkflowState custom hook
   - Create frontend/src/hooks/useWorkflowState.ts
   - Define WorkflowStep and ContentGeneration TypeScript interfaces
   - Implement initial state fetch from API

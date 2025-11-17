@@ -181,24 +181,31 @@ export const publishNotificationEvent = async ({
   url,
   persist = true,
   topic = 'tenant',
+  subscriptionId,
   metadata = {}
 }) => {
   try {
+    const detail = {
+      type,
+      tenantId,
+      userId,
+      title,
+      message,
+      url,
+      persist,
+      topic,
+      metadata
+    };
+
+    if (subscriptionId) {
+      detail.subscriptionId = subscriptionId;
+    }
+
     await eventBridge.send(new PutEventsCommand({
       Entries: [{
         Source: 'nullcheck',
         DetailType: 'Notification',
-        Detail: JSON.stringify({
-          type,
-          tenantId,
-          userId,
-          title,
-          message,
-          url,
-          persist,
-          topic,
-          metadata
-        })
+        Detail: JSON.stringify(detail)
       }]
     }));
   } catch (error) {

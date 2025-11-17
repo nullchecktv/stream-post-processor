@@ -220,4 +220,22 @@ export const episodesApi = {
     apiCache.invalidate(`GET:/episodes/${id}/blog`)
     return result
   },
+
+  getWorkflowState: (id: string) => apiRequest<{
+    steps: Array<{
+      stepName: string
+      status: string
+      startedAt?: string
+      completedAt?: string
+      errorMessage?: string
+    }>
+    contentGeneration: Array<{
+      contentType: string
+      status: string
+      startedAt?: string
+      completedAt?: string
+      itemCount?: number
+      errorMessage?: string
+    }>
+  }>(`/episodes/${id}/workflow`),
 }

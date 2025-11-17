@@ -50,6 +50,38 @@ describe('Notification Utilities', () => {
       expect(detail.persist).toBe(true);
     });
 
+    test('should include subscriptionId when provided', async () => {
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      await publishNotificationEvent({
+        type: 'workflow_step_updated',
+        tenantId: 'team-123',
+        userId: null,
+        title: 'Workflow Updated',
+        message: 'generate-plan is now Complete',
+        url: '/episodes/episode-456',
+        persist: false,
+        topic: 'tenant',
+        subscriptionId: 'episode-456_workflow',
+        metadata: {
+          episodeId: 'episode-456',
+          stepName: 'generate-plan',
+          status: 'Complete',
+          workflowState: {
+            steps: [],
+            contentGeneration: []
+          }
+        }
+      });
+
+      const eventCall = eventBridgeMock.calls()[0];
+      const detail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);
+
+      expect(detail.subscriptionId).toBe('episode-456_workflow');
+      expect(detail.metadata.episodeId).toBe('episode-456');
+      expect(detail.metadata.workflowState).toBeDefined();
+    });
+
     test('should handle EventBridge errors', async () => {
       eventBridgeMock.on(PutEventsCommand).rejects(new Error('EventBridge error'));
 
