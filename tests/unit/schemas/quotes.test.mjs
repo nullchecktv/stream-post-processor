@@ -3,6 +3,8 @@ import {
   QuoteStatus,
   QUOTE_STATUS,
   QUOTE_STATUS_TRANSITIONS,
+  QuoteOrientation,
+  QUOTE_ORIENTATION,
   QuoteCreateSchema,
   QuoteUpdateSchema,
   QuotePathParamsSchema
@@ -71,6 +73,34 @@ describe('Quote Schemas', () => {
     });
   });
 
+  describe('QuoteOrientation enum', () => {
+    it('should validate correct orientation values', () => {
+      const validOrientations = ['landscape', 'portrait'];
+
+      validOrientations.forEach(orientation => {
+        const result = QuoteOrientation.safeParse(orientation);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data).toBe(orientation);
+        }
+      });
+    });
+
+    it('should reject invalid orientation values', () => {
+      const invalidOrientations = ['Landscape', 'Portrait', 'square', 'vertical', '', null, undefined];
+
+      invalidOrientations.forEach(orientation => {
+        const result = QuoteOrientation.safeParse(orientation);
+        expect(result.success).toBe(false);
+      });
+    });
+
+    it('should have correct QUOTE_ORIENTATION constants', () => {
+      expect(QUOTE_ORIENTATION.LANDSCAPE).toBe('landscape');
+      expect(QUOTE_ORIENTATION.PORTRAIT).toBe('portrait');
+    });
+  });
+
   describe('QuoteCreateSchema', () => {
     const validQuote = {
       text: 'This is a memorable quote',
@@ -108,6 +138,51 @@ describe('Quote Schemas', () => {
         expect(result.data.showSpeaker).toBe(true);
         expect(result.data.showEpisodeTitle).toBe(true);
       }
+    });
+
+    it('should apply default value of landscape for orientation', () => {
+      const minimalQuote = {
+        text: 'Short quote',
+        speaker: 'Speaker',
+        timestamp: '00:15:30'
+      };
+      const result = QuoteCreateSchema.safeParse(minimalQuote);
+      if (result.success) {
+        expect(result.data.orientation).toBe('landscape');
+      }
+    });
+
+    it('should validate quote with portrait orientation', () => {
+      const portraitQuote = {
+        ...validQuote,
+        orientation: 'portrait'
+      };
+      const result = QuoteCreateSchema.safeParse(portraitQuote);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.orientation).toBe('portrait');
+      }
+    });
+
+    it('should validate quote with landscape orientation', () => {
+      const landscapeQuote = {
+        ...validQuote,
+        orientation: 'landscape'
+      };
+      const result = QuoteCreateSchema.safeParse(landscapeQuote);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.orientation).toBe('landscape');
+      }
+    });
+
+    it('should reject quote with invalid orientation', () => {
+      const invalidQuote = {
+        ...validQuote,
+        orientation: 'square'
+      };
+      const result = QuoteCreateSchema.safeParse(invalidQuote);
+      expect(result.success).toBe(false);
     });
 
     it('should reject quote with text less than 5 characters', () => {
@@ -218,6 +293,18 @@ describe('Quote Schemas', () => {
       const update = { status: 'Edited' };
       const result = QuoteUpdateSchema.safeParse(update);
       expect(result.success).toBe(true);
+    });
+
+    it('should validate partial update with only orientation', () => {
+      const update = { orientation: 'portrait' };
+      const result = QuoteUpdateSchema.safeParse(update);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject update with invalid orientation', () => {
+      const update = { orientation: 'square' };
+      const result = QuoteUpdateSchema.safeParse(update);
+      expect(result.success).toBe(false);
     });
 
     it('should validate empty update object', () => {
