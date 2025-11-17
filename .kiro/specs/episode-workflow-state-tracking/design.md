@@ -502,29 +502,43 @@ Updates content generation status.
 
 ## Real-Time Communication with Momento Topics
 
-### Momento Integration
+### Existing Momento Infrastructure
 
-The system uses Momento Topics for real-time workflow state updates. When workflow state changes occur, notifications are published to the tenant's Momento topic, allowing the frontend to receive immediate updates without polling.
+**The Momento Topics notification system is already fully implemented and operational.** The system includes:
 
-### Notification Flow
+- **NotificationContext** (frontend/src/contexts/NotificationContext.tsx): Manages Momento subscriptions and message handling
+- **Notification Handler Lambda** (functions/events/notification-handler.mjs): Processes EventBridge notification events and publishes to Momento
+- **publishNotificationEvent utility** (functions/utils/notifications.mjs): Helper function for publishing notifications
+
+### Integration Approach
+
+For workflow state tracking, we will **leverage the existing notification infrastructure** by:
+
+1. Using the existing `publishNotificationEvent()` utility function
+2. Publishing workflow state updates to the existing tenant topic
+3. Including complete workflow state in the notification metadata
+4. Frontend will receive updates through the existing NotificationContext subscription
+
+### Notification Flow (Already Implemented)
 
 ```
 Workflow State Change
       │
       ▼
-publishNotificationEvent()
+publishNotificationEvent() ← Existing utility
       │
       ▼
-EventBridge Event
+EventBridge Event ← Existing event bus
       │
       ▼
-Notification Handler Lambda
+Notification Handler Lambda ← Already deployed
       │
       ├─────────────────┬─────────────────┐
       │                 │                 │
       ▼                 ▼                 ▼
 DynamoDB Persist   Momento Publish   Frontend Subscribe
-(if persist=true)  (tenant topic)    (real-time update)
+(if persist=true)  (tenant topic)    (NotificationContext)
+                   ← Already working  ← Already working
 ```
 
 ### Workflow State Notification Events
@@ -576,34 +590,53 @@ await publishNotificationEvent({
 });
 ```
 
-### Frontend Momento Subscription
+### Frontend Momento Subscription (Already Implemented)
 
-The frontend subscribes to the tenant's Momento topic and listens for workflow state updates:
+The frontend already subscribes to the tenant's Momento topic through **NotificationContext**. We will extend the existing message handling to process workflow state updates:
 
 ```typescript
-// In NotificationContext or WorkflowContext
-useEffect(() => {
-  const handleWorkflowMessage = (message: MomentoMessage) => {
-    if (message.type === 'workflow_step_updated' || 
-        message.type === 'content_generation_updated') {
+// In useWorkflowState hook - leverage existing NotificationContext
+export const useWorkflowState = (episodeId: string) => {
+  const [state, setState] = useState<WorkflowState>({...});
+
+  useEffect(() => {
+    // Listen for custom events dispatched by NotificationContext
+    const handleWorkflowUpdate = (event: CustomEvent) => {
+      const message = event.detail.message;
       
-      const { episodeId, workflowState } = message.metadata;
-      
-      // Update local state with new workflow state
-      if (episodeId === currentEpisodeId) {
-        setWorkflowState(workflowState);
+      if (message.type === 'workflow_step_updated' || 
+          message.type === 'content_generation_updated') {
+        
+        const { episodeId: msgEpisodeId, workflowState } = message.metadata;
+        
+        // Update local state if this is for the current episode
+        if (msgEpisodeId === episodeId && workflowState) {
+          setState(prev => ({
+            ...prev,
+            steps: workflowState.steps,
+            contentGeneration: workflowState.contentGeneration
+          }));
+        }
       }
-    }
-  };
+    };
 
-  // Subscribe to tenant topic
-  momentoClient.subscribe(tenantId, handleWorkflowMessage);
+    window.addEventListener('refreshPageContent', handleWorkflowUpdate as EventListener);
 
-  return () => {
-    momentoClient.unsubscribe(tenantId);
-  };
-}, [tenantId, currentEpisodeId]);
+    return () => {
+      window.removeEventListener('refreshPageContent', handleWorkflowUpdate as EventListener);
+    };
+  }, [episodeId]);
+
+  return state;
+};
 ```
+
+**Note:** The NotificationContext already handles:
+- Momento client initialization
+- Topic subscription management
+- Token refresh and reconnection
+- Message parsing and validation
+- Custom event dispatching for page-specific updates
 
 ## State Transition Logic
 
@@ -725,8 +758,6 @@ export const useWorkflowState = (episodeId: string) => {
     isLoading: true,
     error: null
   });
-  
-  const { subscribeTo } = useMomento(); // Use existing Momento context
 
   const fetchWorkflowState = async () => {
     try {
@@ -750,24 +781,27 @@ export const useWorkflowState = (episodeId: string) => {
     // Initial fetch
     fetchWorkflowState();
     
-    // Subscribe to real-time updates via Momento
-    const unsubscribe = subscribeTo(`${episodeId}_workflow`, (message) => {
-      if (message.type === 'workflow_step_updated' || 
-          message.type === 'content_generation_updated') {
+    // Subscribe to real-time updates via existing NotificationContext
+    const handleWorkflowUpdate = (event: CustomEvent) => {
+      const message = event.detail.message;
+      
+      if ((message.type === 'workflow_step_updated' || 
+           message.type === 'content_generation_updated') &&
+          message.metadata?.episodeId === episodeId &&
+          message.metadata?.workflowState) {
         
-        // Update state with new workflow state from message
-        if (message.metadata?.workflowState) {
-          setState(prev => ({
-            ...prev,
-            steps: message.metadata.workflowState.steps,
-            contentGeneration: message.metadata.workflowState.contentGeneration
-          }));
-        }
+        setState(prev => ({
+          ...prev,
+          steps: message.metadata.workflowState.steps,
+          contentGeneration: message.metadata.workflowState.contentGeneration
+        }));
       }
-    });
+    };
+    
+    window.addEventListener('refreshPageContent', handleWorkflowUpdate as EventListener);
     
     return () => {
-      unsubscribe();
+      window.removeEventListener('refreshPageContent', handleWorkflowUpdate as EventListener);
     };
   }, [episodeId]);
 
@@ -850,9 +884,11 @@ describe('Workflow State Manager', () => {
 
 ### Momento Optimization
 
-- Reuse existing Momento client from NotificationContext
+- **Reuse existing Momento infrastructure** - No new clients or subscriptions needed
+- **Leverage existing NotificationContext** - Already handles connection management, token refresh, and reconnection
 - Batch workflow state updates when multiple changes occur simultaneously
 - Include complete workflow state in Momento messages to avoid additional API calls
+- Use `persist: false` for workflow updates to avoid cluttering the notifications table
 
 ## Security Considerations
 

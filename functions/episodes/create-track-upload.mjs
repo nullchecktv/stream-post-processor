@@ -5,6 +5,8 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { EpisodePathParamsSchema, TrackCreateSchema, TRACK_STATUS } from '../../schemas/index.mjs';
+import { updateWorkflowStep } from '../utils/workflow-state.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/workflow.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -56,6 +58,7 @@ export const handler = async (event) => {
     }));
     if (!getEpisode.Item) return formatResponse(404, { message: 'Episode not found' });
 
+    await updateWorkflowStep(tenantId, episodeId, 'upload-tracks', WORKFLOW_STEP_STATUS.IN_PROGRESS);
 
     const ext = getExt(filename);
     const key = `${tenantId}/${episodeId}/tracks/${trackName}${ext}`;

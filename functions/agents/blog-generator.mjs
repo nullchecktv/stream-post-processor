@@ -6,6 +6,8 @@ import { convertToBedrockTools } from '../utils/tools.mjs';
 import { webSearchTool } from '../tools/web-search.mjs';
 import { BLOG_STATUS } from '../../schemas/index.mjs';
 import { publishNotificationEvent } from '../utils/notifications.mjs';
+import { updateContentGeneration, getWorkflowState } from '../utils/workflow-state.mjs';
+import { CONTENT_GENERATION_STATUS } from '../../schemas/workflow.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 const ddb = new DynamoDBClient();
@@ -166,6 +168,8 @@ Write the complete blog post now following the outline and brand voice guideline
       })
     }));
 
+    await updateContentGeneration(tenantId, episodeId, 'blog', CONTENT_GENERATION_STATUS.PROCESSING);
+
     logger.info('Starting blog content generation', {
       episodeId,
       tenantId,
@@ -214,6 +218,10 @@ Write the complete blog post now following the outline and brand voice guideline
       })
     }));
 
+    await updateContentGeneration(tenantId, episodeId, 'blog', CONTENT_GENERATION_STATUS.COMPLETE, {
+      itemCount: 1
+    });
+
     logger.info('Blog content generated successfully', {
       episodeId,
       tenantId,
@@ -222,18 +230,24 @@ Write the complete blog post now following the outline and brand voice guideline
 
     const episodeTitle = episodeMetadata.title || `Episode ${episodeMetadata.episodeNumber || ''}`;
 
+    const workflowState = await getWorkflowState(tenantId, episodeId);
+
     await publishNotificationEvent({
-      type: 'blog_generated',
+      type: 'content_generation_updated',
       tenantId,
       userId,
       title: 'Blog Post Ready',
       message: `Your blog post for ${episodeTitle} has been generated`,
       url: `/episodes/${episodeId}/blog`,
       persist: false,
-      topic: 'tasks',
+      topic: 'tenant',
+      subscriptionId: `${episodeId}_content_blog`,
       metadata: {
         episodeId,
-        wordCount
+        contentType: 'blog',
+        status: CONTENT_GENERATION_STATUS.COMPLETE,
+        itemCount: 1,
+        workflowState
       }
     });
 
@@ -270,6 +284,31 @@ Write the complete blog post now following the outline and brand voice guideline
             ':errorMessage': err.message
           })
         }));
+
+        await updateContentGeneration(tenantId, episodeId, 'blog', CONTENT_GENERATION_STATUS.FAILED, {
+          errorMessage: err.message
+        });
+
+        const workflowState = await getWorkflowState(tenantId, episodeId);
+
+        await publishNotificationEvent({
+          type: 'content_generation_updated',
+          tenantId,
+          userId,
+          title: 'Blog Generation Failed',
+          message: 'Blog post generation encountered an error',
+          url: `/episodes/${episodeId}`,
+          persist: false,
+          topic: 'tenant',
+          subscriptionId: `${episodeId}_content_blog`,
+          metadata: {
+            episodeId,
+            contentType: 'blog',
+            status: CONTENT_GENERATION_STATUS.FAILED,
+            errorMessage: err.message,
+            workflowState
+          }
+        });
       } catch (updateErr) {
         logger.error('Failed to update error status', {
           error: updateErr.message,

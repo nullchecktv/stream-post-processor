@@ -2,6 +2,9 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { parseEpisodeIdFromKey } from '../utils/clips.mjs';
+import { initializeContentGeneration, updateWorkflowStep } from '../utils/workflow-state.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/workflow.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
@@ -75,6 +78,29 @@ export const handler = async (event) => {
     } catch (e) {
       logger.warn('Failed to delete presigned url record', { episodeId, error: e?.message || e });
     }
+
+    await updateWorkflowStep(tenantId, episodeId, 'upload-transcript', WORKFLOW_STEP_STATUS.IN_PROGRESS);
+
+    await initializeContentGeneration(tenantId, episodeId);
+
+    const workflowState = await import('../utils/workflow-state.mjs').then(m => m.getWorkflowState(tenantId, episodeId));
+
+    await publishNotificationEvent({
+      type: 'workflow_step_updated',
+      tenantId,
+      userId: null,
+      title: 'Workflow Updated',
+      message: 'Transcript uploaded, content generation started',
+      url: `/episodes/${episodeId}`,
+      persist: false,
+      topic: 'tenant',
+      metadata: {
+        episodeId,
+        stepName: 'upload-transcript',
+        status: WORKFLOW_STEP_STATUS.IN_PROGRESS,
+        workflowState
+      }
+    });
 
     return { statusCode: 200 };
   } catch (err) {

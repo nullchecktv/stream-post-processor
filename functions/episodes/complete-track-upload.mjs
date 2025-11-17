@@ -6,6 +6,9 @@ import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { TRACK_STATUS } from '../../schemas/index.mjs';
+import { updateWorkflowStep, getWorkflowState } from '../utils/workflow-state.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/workflow.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -153,6 +156,36 @@ export const handler = async (event) => {
     }));
 
     try {
+      await updateWorkflowStep(tenantId, episodeId, 'upload-tracks', WORKFLOW_STEP_STATUS.COMPLETE);
+
+      const workflowState = await getWorkflowState(tenantId, episodeId);
+
+      await publishNotificationEvent({
+        type: 'workflow_step_updated',
+        tenantId,
+        userId: null,
+        title: 'Workflow Updated',
+        message: `Track upload completed`,
+        url: `/episodes/${episodeId}`,
+        persist: false,
+        topic: 'tenant',
+        metadata: {
+          episodeId,
+          stepName: 'upload-tracks',
+          status: WORKFLOW_STEP_STATUS.COMPLETE,
+          workflowState
+        }
+      });
+    } catch (workflowErr) {
+      logger.error('Failed to update workflow state', {
+        error: workflowErr.message,
+        stack: workflowErr.stack,
+        episodeId,
+        trackName
+      });
+    }
+
+    try {
       await eb.send(new PutEventsCommand({
         Entries: [
           {
@@ -181,6 +214,47 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       trackName: event.pathParameters?.trackName
     });
+
+    try {
+      const { tenantId } = event.requestContext.authorizer;
+      const { episodeId } = event.pathParameters;
+
+      if (tenantId && episodeId) {
+        await updateWorkflowStep(
+          tenantId,
+          episodeId,
+          'upload-tracks',
+          WORKFLOW_STEP_STATUS.FAILED,
+          { errorMessage: err.message }
+        );
+
+        const workflowState = await getWorkflowState(tenantId, episodeId);
+
+        await publishNotificationEvent({
+          type: 'workflow_step_updated',
+          tenantId,
+          userId: null,
+          title: 'Workflow Error',
+          message: `Track upload failed`,
+          url: `/episodes/${episodeId}`,
+          persist: false,
+          topic: 'tenant',
+          metadata: {
+            episodeId,
+            stepName: 'upload-tracks',
+            status: WORKFLOW_STEP_STATUS.FAILED,
+            errorMessage: err.message,
+            workflowState
+          }
+        });
+      }
+    } catch (workflowErr) {
+      logger.error('Failed to update workflow state on error', {
+        error: workflowErr.message,
+        stack: workflowErr.stack
+      });
+    }
+
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

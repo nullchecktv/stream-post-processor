@@ -53,9 +53,9 @@
   - Add environment variables
   - _Requirements: 8.1_
 
-- [ ] 4. Update Plan Generation to Manage Workflow State
+- [x] 4. Update Plan Generation to Manage Workflow State
 
-- [ ] 4.1 Update add-plan Lambda to manage workflow state
+- [x] 4.1 Update add-plan Lambda to manage workflow state
   - Import updateWorkflowStep and unlockDependentSteps utilities
   - Update generate-plan step to "In Progress" when plan generation starts
   - Update generate-plan step to "Complete" when plan is saved
@@ -64,31 +64,31 @@
   - Handle errors and update to "Failed" status if needed
   - _Requirements: 1.4, 1.5, 1.6, 1.7, 9.1, 9.3_
 
-- [ ] 4.2 Add skip plan functionality
+- [x] 4.2 Add skip plan functionality
   - Add skip parameter to add-plan endpoint
   - Update generate-plan step to "Skipped" when skip is true
   - Unlock dependent steps when skipped
   - Publish Momento notification
   - _Requirements: 1.7_
 
-- [ ] 5. Update Transcript Upload to Manage Workflow State
+- [x] 5. Update Transcript Upload to Manage Workflow State
 
-- [ ] 5.1 Update upload-transcript Lambda to manage workflow state
+- [x] 5.1 Update upload-transcript Lambda to manage workflow state
   - Import updateWorkflowStep utility
   - Update upload-transcript step to "In Progress" when upload starts
   - Handle status updates appropriately
   - _Requirements: 1.8_
 
-- [ ] 5.2 Update transcript-added event handler to initialize content generation
+- [x] 5.2 Update transcript-added event handler to initialize content generation
   - Import initializeContentGeneration and updateWorkflowStep utilities
   - Update upload-transcript step to "Processing" when transcript is uploaded
   - Initialize content generation records (blog, quotes, clips) with "Pending" status
   - Publish Momento notification for workflow state change
   - _Requirements: 2.1, 2.2, 2.3, 9.2, 9.3_
 
-- [ ] 6. Update Content Generation Processes to Manage State
+- [x] 6. Update Content Generation Processes to Manage State
 
-- [ ] 6.1 Update blog-generator to manage content generation state
+- [x] 6.1 Update blog-generator to manage content generation state
   - Import updateContentGeneration utility
   - Update blog content generation to "Processing" when generation starts
   - Update to "Complete" when blog is generated with itemCount
@@ -97,7 +97,7 @@
   - Check if all content generation is complete and update upload-transcript step
   - _Requirements: 2.4, 2.5, 2.6, 2.7, 2.8, 9.2, 9.3_
 
-- [ ] 6.2 Update clip-detector to manage content generation state
+- [x] 6.2 Update clip-detector to manage content generation state
   - Import updateContentGeneration utility
   - Update clips content generation to "Processing" when detection starts
   - Update to "Complete" when clips are detected with itemCount
@@ -106,7 +106,7 @@
   - Check if all content generation is complete and update upload-transcript step
   - _Requirements: 2.4, 2.5, 2.6, 2.7, 2.8, 9.2, 9.3_
 
-- [ ] 6.3 Create quote-generator Lambda (if not exists) and manage state
+- [x] 6.3 Create quote-generator Lambda (if not exists) and manage state
   - Create functions/agents/quote-generator.mjs if needed
   - Import updateContentGeneration utility
   - Update quotes content generation to "Processing" when generation starts
@@ -116,14 +116,14 @@
   - Check if all content generation is complete and update upload-transcript step
   - _Requirements: 2.4, 2.5, 2.6, 2.7, 2.8, 9.2, 9.3_
 
-- [ ] 7. Update Track Upload to Manage Workflow State
+- [x] 7. Update Track Upload to Manage Workflow State
 
-- [ ] 7.1 Update create-track-upload Lambda to manage workflow state
+- [x] 7.1 Update create-track-upload Lambda to manage workflow state
   - Import updateWorkflowStep utility
   - Update upload-tracks step to "In Progress" when upload starts
   - _Requirements: 1.8_
 
-- [ ] 7.2 Update complete-track-upload Lambda to manage workflow state
+- [x] 7.2 Update complete-track-upload Lambda to manage workflow state
   - Import updateWorkflowStep utility
   - Update upload-tracks step to "Complete" when upload completes successfully
   - Update to "Failed" on error with error message

@@ -6,6 +6,9 @@ import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { PlanCreateSchema, PlanPathParamsSchema } from '../../schemas/index.mjs';
 import { addStatusEntry } from '../utils/status-history.mjs';
+import { updateWorkflowStep, getWorkflowState } from '../utils/workflow-state.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/workflow.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
@@ -25,7 +28,7 @@ export const handler = async (event) => {
 
     const { tenantId, data } = validation;
     const { episodeId } = pathValidation.data;
-    const { objectives, concepts, notes } = data;
+    const { objectives, concepts, notes, skip } = data;
 
     const episodeResult = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -41,6 +44,69 @@ export const handler = async (event) => {
 
     const episode = unmarshall(episodeResult.Item);
     const now = new Date().toISOString();
+
+    try {
+      await updateWorkflowStep(tenantId, episodeId, 'generate-plan', WORKFLOW_STEP_STATUS.IN_PROGRESS);
+    } catch (workflowErr) {
+      logger.error('Failed to update workflow step to In Progress', {
+        error: workflowErr.message,
+        stack: workflowErr.stack,
+        episodeId,
+        tenantId
+      });
+    }
+
+    if (skip) {
+      try {
+        await updateWorkflowStep(tenantId, episodeId, 'generate-plan', WORKFLOW_STEP_STATUS.SKIPPED);
+
+        const workflowState = await getWorkflowState(tenantId, episodeId);
+
+        await publishNotificationEvent({
+          type: 'workflow_step_updated',
+          tenantId,
+          userId: null,
+          title: 'Workflow Updated',
+          message: 'Plan generation was skipped',
+          url: `/episodes/${episodeId}`,
+          persist: false,
+          topic: 'tenant',
+          metadata: {
+            episodeId,
+            stepName: 'generate-plan',
+            status: WORKFLOW_STEP_STATUS.SKIPPED,
+            workflowState
+          }
+        });
+
+        return formatResponse(200, {
+          episodeId,
+          skipped: true,
+          status: 'plan_skipped'
+        });
+      } catch (workflowErr) {
+        logger.error('Failed to skip plan generation', {
+          error: workflowErr.message,
+          stack: workflowErr.stack,
+          episodeId,
+          tenantId
+        });
+
+        try {
+          await updateWorkflowStep(tenantId, episodeId, 'generate-plan', WORKFLOW_STEP_STATUS.FAILED, {
+            errorMessage: workflowErr.message
+          });
+        } catch (failErr) {
+          logger.error('Failed to update workflow step to Failed', {
+            error: failErr.message,
+            episodeId,
+            tenantId
+          });
+        }
+
+        return formatResponse(500, { message: 'Failed to skip plan generation' });
+      }
+    }
 
     const planItem = {
       pk: `${tenantId}#${episodeId}`,
@@ -69,6 +135,36 @@ export const handler = async (event) => {
         updatedAt: now
       })
     }));
+
+    try {
+      await updateWorkflowStep(tenantId, episodeId, 'generate-plan', WORKFLOW_STEP_STATUS.COMPLETE);
+
+      const workflowState = await getWorkflowState(tenantId, episodeId);
+
+      await publishNotificationEvent({
+        type: 'workflow_step_updated',
+        tenantId,
+        userId: null,
+        title: 'Workflow Updated',
+        message: 'Plan generation is complete',
+        url: `/episodes/${episodeId}`,
+        persist: true,
+        topic: 'tenant',
+        metadata: {
+          episodeId,
+          stepName: 'generate-plan',
+          status: WORKFLOW_STEP_STATUS.COMPLETE,
+          workflowState
+        }
+      });
+    } catch (workflowErr) {
+      logger.error('Failed to update workflow step to Complete', {
+        error: workflowErr.message,
+        stack: workflowErr.stack,
+        episodeId,
+        tenantId
+      });
+    }
 
     try {
       await eventBridge.send(new PutEventsCommand({
@@ -122,6 +218,22 @@ export const handler = async (event) => {
       name: err.name,
       episodeId: event.pathParameters?.episodeId
     });
+
+    try {
+      const { tenantId } = event.requestContext?.authorizer || {};
+      const { episodeId } = event.pathParameters || {};
+      if (tenantId && episodeId) {
+        await updateWorkflowStep(tenantId, episodeId, 'generate-plan', WORKFLOW_STEP_STATUS.FAILED, {
+          errorMessage: err.message
+        });
+      }
+    } catch (workflowErr) {
+      logger.error('Failed to update workflow step to Failed', {
+        error: workflowErr.message,
+        episodeId: event.pathParameters?.episodeId
+      });
+    }
+
     return formatResponse(500, { message: 'Something went wrong' });
   }
 };

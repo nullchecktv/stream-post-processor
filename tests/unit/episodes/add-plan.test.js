@@ -32,9 +32,20 @@ jest.mock('../../../functions/utils/status-history.mjs', () => ({
   })
 }));
 
+jest.mock('../../../functions/utils/workflow-state.mjs', () => ({
+  updateWorkflowStep: jest.fn(),
+  getWorkflowState: jest.fn()
+}));
+
+jest.mock('../../../functions/utils/notifications.mjs', () => ({
+  publishNotificationEvent: jest.fn()
+}));
+
 const { handler } = require('../../../functions/episodes/add-plan.mjs');
 const { validateRequest, validatePathParameters } = require('../../../functions/utils/validation.mjs');
 const { addStatusEntry } = require('../../../functions/utils/status-history.mjs');
+const { updateWorkflowStep, getWorkflowState } = require('../../../functions/utils/workflow-state.mjs');
+const { publishNotificationEvent } = require('../../../functions/utils/notifications.mjs');
 const { Logger } = require('@aws-lambda-powertools/logger');
 
 describe('Add Plan Function', () => {
@@ -487,6 +498,186 @@ describe('Add Plan Function', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(400);
+    });
+
+    test('should update workflow state when creating plan', async () => {
+      validateRequest.mockReturnValueOnce({
+        success: true,
+        tenantId: 'tenant-123',
+        data: {
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway'
+        }
+      });
+
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'metadata',
+          title: 'Test Episode',
+          status: 'draft',
+          statusHistory: []
+        })
+      });
+
+      ddbMock.on(PutItemCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      getWorkflowState.mockResolvedValueOnce({
+        steps: [
+          { stepName: 'generate-plan', status: 'Complete' },
+          { stepName: 'upload-transcript', status: 'Ready' },
+          { stepName: 'upload-tracks', status: 'Ready' }
+        ],
+        contentGeneration: []
+      });
+
+      const event = {
+        body: JSON.stringify({
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway'
+        }),
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      await handler(event);
+
+      expect(updateWorkflowStep).toHaveBeenCalledWith(
+        'tenant-123',
+        'episode-123',
+        'generate-plan',
+        'In Progress'
+      );
+      expect(updateWorkflowStep).toHaveBeenCalledWith(
+        'tenant-123',
+        'episode-123',
+        'generate-plan',
+        'Complete'
+      );
+      expect(publishNotificationEvent).toHaveBeenCalled();
+    });
+
+    test('should handle skip plan functionality', async () => {
+      validateRequest.mockReturnValueOnce({
+        success: true,
+        tenantId: 'tenant-123',
+        data: {
+          skip: true
+        }
+      });
+
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'metadata',
+          title: 'Test Episode',
+          status: 'draft',
+          statusHistory: []
+        })
+      });
+
+      getWorkflowState.mockResolvedValueOnce({
+        steps: [
+          { stepName: 'generate-plan', status: 'Skipped' },
+          { stepName: 'upload-transcript', status: 'Ready' },
+          { stepName: 'upload-tracks', status: 'Ready' }
+        ],
+        contentGeneration: []
+      });
+
+      const event = {
+        body: JSON.stringify({ skip: true }),
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.body.skipped).toBe(true);
+      expect(result.body.status).toBe('plan_skipped');
+      expect(updateWorkflowStep).toHaveBeenCalledWith(
+        'tenant-123',
+        'episode-123',
+        'generate-plan',
+        'Skipped'
+      );
+      expect(publishNotificationEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'workflow_step_updated',
+          metadata: expect.objectContaining({
+            stepName: 'generate-plan',
+            status: 'Skipped'
+          })
+        })
+      );
+    });
+
+    test('should update workflow to Failed on error', async () => {
+      validateRequest.mockReturnValueOnce({
+        success: true,
+        tenantId: 'tenant-123',
+        data: {
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway'
+        }
+      });
+
+      validatePathParameters.mockResolvedValueOnce({
+        success: true,
+        data: { episodeId: 'episode-123' }
+      });
+
+      ddbMock.on(GetItemCommand).resolvesOnce({
+        Item: marshall({
+          pk: 'tenant-123#episode-123',
+          sk: 'metadata',
+          title: 'Test Episode',
+          status: 'draft',
+          statusHistory: []
+        })
+      });
+
+      ddbMock.on(PutItemCommand).rejectsOnce(new Error('Database error'));
+
+      const event = {
+        body: JSON.stringify({
+          objectives: 'Teach serverless',
+          concepts: 'Lambda, API Gateway'
+        }),
+        pathParameters: { episodeId: 'episode-123' },
+        requestContext: {
+          authorizer: { tenantId: 'tenant-123' }
+        }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(500);
+      expect(updateWorkflowStep).toHaveBeenCalledWith(
+        'tenant-123',
+        'episode-123',
+        'generate-plan',
+        'Failed',
+        expect.objectContaining({
+          errorMessage: expect.any(String)
+        })
+      );
     });
   });
 });

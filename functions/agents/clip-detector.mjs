@@ -1,5 +1,5 @@
 import { Logger } from '@aws-lambda-powertools/logger';
-import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
 import { createClipTool } from "../tools/create-clips.mjs";
 import { buildBlogOutlineTool } from "../tools/build-blog-outline.mjs";
 import { createQuoteTool } from "../tools/create-quotes.mjs";
@@ -9,6 +9,9 @@ import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 import { EPISODE_STATUS } from '../../schemas/index.mjs';
+import { updateContentGeneration, getWorkflowState } from '../utils/workflow-state.mjs';
+import { CONTENT_GENERATION_STATUS } from '../../schemas/workflow.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 
@@ -76,6 +79,9 @@ export const handler = async (event) => {
       hasDescription ? `description: ${episodeMeta.description}` : null,
       hasThemes ? `themes: ${episodeMeta.themes.join(', ')}` : null,
     ].filter(Boolean).join('\n');
+
+    await updateContentGeneration(tenantId, episodeId, 'clips', CONTENT_GENERATION_STATUS.PROCESSING);
+    await updateContentGeneration(tenantId, episodeId, 'quotes', CONTENT_GENERATION_STATUS.PROCESSING);
 
     const systemPrompt = `
 You are ClipForge, an autonomous clip discovery editor for the YouTube show **Null Check** hosted by Allen Helton and Andres Moreno.
@@ -314,6 +320,74 @@ ${transcript}
       })
     }));
 
+    const clipsResult = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      ExpressionAttributeValues: marshall({
+        ':pk': `${tenantId}#${episodeId}`,
+        ':sk': 'data#clip#'
+      })
+    }));
+    const clipCount = clipsResult.Items?.length || 0;
+
+    const quotesResult = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      ExpressionAttributeValues: marshall({
+        ':pk': `${tenantId}#${episodeId}`,
+        ':sk': 'data#quote#'
+      })
+    }));
+    const quoteCount = quotesResult.Items?.length || 0;
+
+    await updateContentGeneration(tenantId, episodeId, 'clips', CONTENT_GENERATION_STATUS.COMPLETE, {
+      itemCount: clipCount
+    });
+
+    await updateContentGeneration(tenantId, episodeId, 'quotes', CONTENT_GENERATION_STATUS.COMPLETE, {
+      itemCount: quoteCount
+    });
+
+    const workflowState = await getWorkflowState(tenantId, episodeId);
+
+    await publishNotificationEvent({
+      type: 'content_generation_updated',
+      tenantId,
+      userId,
+      title: 'Clips Detected',
+      message: `${clipCount} clips detected for your episode`,
+      url: `/episodes/${episodeId}`,
+      persist: false,
+      topic: 'tenant',
+      subscriptionId: `${episodeId}_content_clips`,
+      metadata: {
+        episodeId,
+        contentType: 'clips',
+        status: CONTENT_GENERATION_STATUS.COMPLETE,
+        itemCount: clipCount,
+        workflowState
+      }
+    });
+
+    await publishNotificationEvent({
+      type: 'content_generation_updated',
+      tenantId,
+      userId,
+      title: 'Quotes Detected',
+      message: `${quoteCount} quotes detected for your episode`,
+      url: `/episodes/${episodeId}`,
+      persist: false,
+      topic: 'tenant',
+      subscriptionId: `${episodeId}_content_quotes`,
+      metadata: {
+        episodeId,
+        contentType: 'quotes',
+        status: CONTENT_GENERATION_STATUS.COMPLETE,
+        itemCount: quoteCount,
+        workflowState
+      }
+    });
+
     return { message: response };
   } catch (err) {
     logger.error('AI agent clip detection failed', {
@@ -322,6 +396,46 @@ ${transcript}
       episodeId: episodeId || 'unknown',
       tenantId: tenantId || 'unknown'
     });
+
+    if (episodeId && tenantId) {
+      try {
+        await updateContentGeneration(tenantId, episodeId, 'clips', CONTENT_GENERATION_STATUS.FAILED, {
+          errorMessage: err.message
+        });
+
+        await updateContentGeneration(tenantId, episodeId, 'quotes', CONTENT_GENERATION_STATUS.FAILED, {
+          errorMessage: err.message
+        });
+
+        const workflowState = await getWorkflowState(tenantId, episodeId);
+
+        await publishNotificationEvent({
+          type: 'content_generation_updated',
+          tenantId,
+          userId,
+          title: 'Clip Detection Failed',
+          message: 'Clip and quote detection encountered an error',
+          url: `/episodes/${episodeId}`,
+          persist: false,
+          topic: 'tenant',
+          subscriptionId: `${episodeId}_content_clips`,
+          metadata: {
+            episodeId,
+            contentType: 'clips',
+            status: CONTENT_GENERATION_STATUS.FAILED,
+            errorMessage: err.message,
+            workflowState
+          }
+        });
+      } catch (updateErr) {
+        logger.error('Failed to update error status', {
+          error: updateErr.message,
+          episodeId,
+          tenantId
+        });
+      }
+    }
+
     throw err;
   }
 };

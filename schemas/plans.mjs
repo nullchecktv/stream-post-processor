@@ -1,10 +1,16 @@
 import { z } from 'zod';
 
 export const PlanCreateSchema = z.object({
-  objectives: z.array(z.string().min(1)),
-  concepts: z.array(z.string().min(1)),
-  notes: z.string().max(2000).optional()
-});
+  objectives: z.array(z.string().min(1)).optional(),
+  concepts: z.array(z.string().min(1)).optional(),
+  notes: z.string().max(2000).optional(),
+  skip: z.boolean().optional()
+}).refine(
+  (data) => data.skip === true || (data.objectives && data.concepts),
+  {
+    message: 'objectives and concepts are required unless skip is true'
+  }
+);
 
 export const PlanUpdateSchema = z.object({
   objectives: z.array(z.string().min(1)),
