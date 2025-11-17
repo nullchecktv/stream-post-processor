@@ -45,7 +45,7 @@ export const QuoteCreateSchema = z.object({
 
 export const QuoteUpdateSchema = z.object({
   text: z.string().min(5).max(280).optional(),
-  speaker: z.string().min(1).max(100).optional(),
+  speaker: z.string().min(1).max(100).nullable().optional(),
   showSpeaker: z.boolean().optional(),
   showEpisodeTitle: z.boolean().optional(),
   status: QuoteStatus.optional(),

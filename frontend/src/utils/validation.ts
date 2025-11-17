@@ -8,6 +8,7 @@ export const EpisodeSchema = z.object({
   platforms: z.array(z.enum(['linkedin live', 'X', 'twitch', 'youtube'])).optional(),
   themes: z.array(z.string()).optional(),
   seriesName: z.string().max(100, 'Series name must be less than 100 characters').optional(),
+  speakers: z.array(z.string().min(1).max(100)).optional(),
 })
 
 export const ProfileSchema = z.object({

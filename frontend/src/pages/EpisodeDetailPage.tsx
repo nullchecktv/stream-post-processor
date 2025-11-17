@@ -10,8 +10,10 @@ import { PlanForm, type PlanFormData } from '../components/episodes/PlanForm'
 import { PlanRecommendations } from '../components/episodes/PlanRecommendations'
 import { MermaidDiagram } from '../components/episodes/MermaidDiagram'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
+import { SpeakerDiscrepancyModal } from '../components/episodes/SpeakerDiscrepancyModal'
 import type { Episode, Quote, EpisodePlan } from '../types'
 import type { EpisodeFormData } from '../utils/validation'
+import type { MomentoMessage } from '../contexts/NotificationContext'
 
 type TabType = 'details' | 'quotes' | 'plan'
 
@@ -35,6 +37,12 @@ function EpisodeDetailPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMoreQuotes, setHasMoreQuotes] = useState(false)
   const [showPlanForm, setShowPlanForm] = useState(false)
+  const [showSpeakerModal, setShowSpeakerModal] = useState(false)
+  const [speakerAnalysis, setSpeakerAnalysis] = useState<{
+    matched: Array<{ transcriptName: string; episodeName: string; confidence: 'high' | 'medium' | 'low' }>
+    unmatched: string[]
+    suggestion: string | null
+  } | null>(null)
 
   usePageTitle(episode ? `Edit ${episode.title}` : 'Edit Episode')
 
@@ -67,7 +75,26 @@ function EpisodeDetailPage() {
   }, [id])
 
   useEffect(() => {
-    const handleRefresh = () => {
+    const handleRefresh = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message: MomentoMessage }>
+      const message = customEvent.detail?.message
+
+      if (message?.type === 'transcript_processed' && message.metadata?.speakerAnalysis) {
+        const analysis = message.metadata.speakerAnalysis as {
+          matched: Array<{ transcriptName: string; episodeName: string; confidence: 'high' | 'medium' | 'low' }>
+          unmatched: string[]
+          suggestion: string | null
+        }
+
+        const hasDiscrepancy = analysis.unmatched?.length > 0 ||
+                              analysis.matched?.some((m) => m.confidence === 'low')
+
+        if (hasDiscrepancy) {
+          setSpeakerAnalysis(analysis)
+          setShowSpeakerModal(true)
+        }
+      }
+
       if (activeTab === 'details' && fetchEpisodeRef.current) {
         fetchEpisodeRef.current()
       } else if (activeTab === 'quotes' && id && fetchQuotesRef.current) {
@@ -77,7 +104,7 @@ function EpisodeDetailPage() {
 
     window.addEventListener('refreshPageContent', handleRefresh)
     return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [])
+  }, [activeTab, id])
 
   useEffect(() => {
     if (activeTab === 'quotes' && id && quotes.length === 0) {
@@ -232,6 +259,21 @@ function EpisodeDetailPage() {
     navigate('/')
   }
 
+  const handleUpdateSpeakers = async (speakers: string[]) => {
+    if (!id) return
+
+    try {
+      await episodesApi.update(id, { speakers })
+      const updatedEpisode = await episodesApi.get(id)
+      setEpisode(updatedEpisode)
+      showToast('Speakers updated successfully!', 'success')
+    } catch (err) {
+      console.error('Failed to update speakers:', err)
+      showToast('Failed to update speakers. Please try again.', 'error')
+      throw err
+    }
+  }
+
   useEffect(() => {
     if (episode) {
       const formElement = document.querySelector('form')
@@ -274,15 +316,25 @@ function EpisodeDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {episode?.title || 'Episode'}
-        </h1>
-        <p className="text-gray-600">
-          Manage episode details and content
-        </p>
-      </div>
+    <>
+      {speakerAnalysis && (
+        <SpeakerDiscrepancyModal
+          isOpen={showSpeakerModal}
+          onClose={() => setShowSpeakerModal(false)}
+          speakerAnalysis={speakerAnalysis}
+          onUpdateSpeakers={handleUpdateSpeakers}
+        />
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {episode?.title || 'Episode'}
+          </h1>
+          <p className="text-gray-600">
+            Manage episode details and content
+          </p>
+        </div>
 
       <div className="mb-6 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
@@ -541,7 +593,8 @@ function EpisodeDetailPage() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

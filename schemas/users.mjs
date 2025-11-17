@@ -9,6 +9,6 @@ export const UserUpdateProfileSchema = z.object({
 });
 
 export const UserSetActiveTeamSchema = z.object({
-  teamId: z.string().uuid()
+  teamId: z.string().or(z.null())
 });
 

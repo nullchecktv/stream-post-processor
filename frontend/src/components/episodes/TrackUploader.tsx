@@ -1,8 +1,9 @@
-import { useState, useRef, type ChangeEvent } from 'react'
+import { useState, useRef, useEffect, type ChangeEvent } from 'react'
 import { episodesApi } from '../../api/episodes'
 import { useUpload } from '../../hooks/useUpload'
 import { useToast } from '../../hooks/useToast'
 import { HelpTip } from '../common/HelpTip'
+import { MultiSelect } from '../common/MultiSelect'
 
 interface TrackUploaderProps {
   episodeId: string
@@ -22,11 +23,25 @@ interface PartUpload {
 export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: TrackUploaderProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [speakersRaw, setSpeakersRaw] = useState<string>("")
+  const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>([])
+  const [episodeSpeakers, setEpisodeSpeakers] = useState<string[]>([])
+  const [validationError, setValidationError] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const { addUpload, updateUpload } = useUpload()
   const { showSuccess, showError } = useToast()
+
+  useEffect(() => {
+    const fetchEpisode = async () => {
+      try {
+        const episode = await episodesApi.get(episodeId)
+        setEpisodeSpeakers(episode.speakers || [])
+      } catch (error) {
+        console.error('Failed to fetch episode speakers:', error)
+      }
+    }
+    fetchEpisode()
+  }, [episodeId])
 
   const validateFile = (file: File): string | null => {
     const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm']
@@ -161,7 +176,8 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
     })
 
     setSelectedFile(null)
-    setSpeakersRaw("")
+    setSelectedSpeakers([])
+    setValidationError('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -170,16 +186,11 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
     try {
       updateUpload(uploadId, { status: 'uploading', progress: 5 })
 
-      const speakers = speakersRaw
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s.length > 0)
-
       const { uploadId: s3UploadId, uploadUrl } = await episodesApi.initiateTrackUpload(
         episodeId,
         trackName,
         selectedFile.name,
-        speakers.length ? speakers : undefined,
+        selectedSpeakers.length ? selectedSpeakers : undefined,
       )
 
       updateUpload(uploadId, { progress: 10 })
@@ -211,6 +222,11 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
         showError('Upload cancelled')
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+
+        if (errorMessage.includes('InvalidSpeakers') || errorMessage.includes('invalid speakers')) {
+          setValidationError('Selected speakers are not in the episode speaker list. Please update the episode speakers first.')
+        }
+
         updateUpload(uploadId, { status: 'failed', error: errorMessage })
         showError(errorMessage)
         if (onUploadError) onUploadError(errorMessage)
@@ -225,7 +241,8 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
       abortControllerRef.current.abort()
     }
     setSelectedFile(null)
-    setSpeakersRaw("")
+    setSelectedSpeakers([])
+    setValidationError('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -234,18 +251,30 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="speakers" className="block text-sm font-medium text-gray-700 mb-1">
-          Speaker Names (optional)
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Speakers (optional)
         </label>
-        <input
-          id="speakers"
-          type="text"
-          value={speakersRaw}
-          onChange={(e) => setSpeakersRaw(e.target.value)}
-          placeholder="Alice, Bob, Carol"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        <MultiSelect
+          options={episodeSpeakers}
+          selected={selectedSpeakers}
+          onChange={(speakers) => {
+            setSelectedSpeakers(speakers)
+            setValidationError('')
+          }}
+          placeholder={episodeSpeakers.length === 0 ? 'No speakers defined for this episode' : 'Select speakers'}
+          error={validationError}
+          disabled={episodeSpeakers.length === 0}
         />
-        <p className="mt-1 text-xs text-gray-500">Comma-separated names used for speaker labeling.</p>
+        {episodeSpeakers.length === 0 && (
+          <p className="mt-1 text-xs text-gray-500">
+            Add speakers to the episode first to enable speaker selection.
+          </p>
+        )}
+        {episodeSpeakers.length > 0 && (
+          <p className="mt-1 text-xs text-gray-500">
+            Select speakers who appear in this track. Speakers must be defined in the episode.
+          </p>
+        )}
       </div>
 
       <HelpTip

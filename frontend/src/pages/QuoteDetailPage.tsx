@@ -45,13 +45,17 @@ function QuoteDetailPage() {
   const [showSpeaker, setShowSpeaker] = useState(true)
   const [showEpisodeTitle, setShowEpisodeTitle] = useState(true)
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape')
+  const [selectedSpeaker, setSelectedSpeaker] = useState<string>('')
+  const [episodeSpeakers, setEpisodeSpeakers] = useState<string[]>([])
+  const [speakerError, setSpeakerError] = useState<string>('')
 
   usePageTitle(quote ? `Quote - ${quote.speaker}` : 'Quote Details')
 
   const isDirty = quote && (
     showSpeaker !== quote.showSpeaker ||
     showEpisodeTitle !== quote.showEpisodeTitle ||
-    orientation !== quote.orientation
+    orientation !== quote.orientation ||
+    selectedSpeaker !== quote.speaker
   )
 
   const fetchData = useCallback(async () => {
@@ -78,6 +82,8 @@ function QuoteDetailPage() {
       setShowSpeaker(quoteData.showSpeaker)
       setShowEpisodeTitle(quoteData.showEpisodeTitle)
       setOrientation(quoteData.orientation)
+      setSelectedSpeaker(quoteData.speaker)
+      setEpisodeSpeakers(episodeData.speakers || [])
       setError(null)
     } catch (err) {
       console.error('Failed to fetch quote:', err)
@@ -140,7 +146,10 @@ function QuoteDetailPage() {
 
     try {
       setSaving(true)
+      setSpeakerError('')
+
       await quotesApi.update(episodeId, quoteId, {
+        speaker: selectedSpeaker !== quote.speaker ? selectedSpeaker : undefined,
         showSpeaker,
         showEpisodeTitle,
         orientation
@@ -149,6 +158,7 @@ function QuoteDetailPage() {
 
       setQuote({
         ...quote,
+        speaker: selectedSpeaker,
         showSpeaker,
         showEpisodeTitle,
         orientation,
@@ -160,6 +170,12 @@ function QuoteDetailPage() {
       }
     } catch (err) {
       console.error('Failed to save quote:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save quote settings'
+
+      if (errorMessage.includes('InvalidSpeaker') || errorMessage.includes('invalid speaker')) {
+        setSpeakerError('Selected speaker is not in the episode speaker list')
+      }
+
       showToast('Failed to save quote settings. Please try again.', 'error')
     } finally {
       setSaving(false)
@@ -323,10 +339,41 @@ function QuoteDetailPage() {
 
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Details</h2>
+            {episodeSpeakers.length === 0 && (
+              <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  No speakers defined for this episode. Add speakers to the episode to enable speaker selection.
+                </p>
+              </div>
+            )}
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Speaker</span>
-                <span className="text-sm font-medium text-gray-900">{quote.speaker}</span>
+                {episodeSpeakers.length > 0 ? (
+                  <div className="flex flex-col items-end gap-1">
+                    <select
+                      value={selectedSpeaker}
+                      onChange={(e) => {
+                        setSelectedSpeaker(e.target.value)
+                        setSpeakerError('')
+                      }}
+                      className={`text-sm font-medium px-3 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                        speakerError ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      {episodeSpeakers.map(speaker => (
+                        <option key={speaker} value={speaker}>
+                          {speaker}
+                        </option>
+                      ))}
+                    </select>
+                    {speakerError && (
+                      <span className="text-xs text-red-600">{speakerError}</span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-sm font-medium text-gray-900">{quote.speaker}</span>
+                )}
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Timestamp</span>

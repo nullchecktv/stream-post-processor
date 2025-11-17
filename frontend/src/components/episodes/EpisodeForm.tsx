@@ -1,8 +1,9 @@
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { EpisodeSchema, type EpisodeFormData } from '../../utils/validation'
 import { Input } from '../common/Input'
 import { Button } from '../common/Button'
+import { SpeakerManager } from './SpeakerManager'
 import type { Episode } from '../../types'
 
 interface EpisodeFormProps {
@@ -23,6 +24,7 @@ export function EpisodeForm({ episode, onSubmit, onCancel, isSubmitting = false 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isDirty },
   } = useForm<EpisodeFormData>({
     resolver: zodResolver(EpisodeSchema),
@@ -34,7 +36,10 @@ export function EpisodeForm({ episode, onSubmit, onCancel, isSubmitting = false 
       platforms: episode.platforms || [],
       themes: Array.isArray(episode.themes) ? episode.themes : [],
       seriesName: episode.seriesName || '',
-    } : undefined,
+      speakers: episode.speakers || [],
+    } : {
+      speakers: [],
+    },
   })
 
   const handleFormSubmit = async (data: EpisodeFormData) => {
@@ -143,6 +148,18 @@ export function EpisodeForm({ episode, onSubmit, onCancel, isSubmitting = false 
         {...register('seriesName')}
         error={errors.seriesName?.message}
         placeholder="Enter series name"
+      />
+
+      <Controller
+        name="speakers"
+        control={control}
+        render={({ field }) => (
+          <SpeakerManager
+            speakers={field.value || []}
+            onChange={field.onChange}
+            error={errors.speakers?.message}
+          />
+        )}
       />
 
       <div className="flex gap-3 justify-end pt-4 border-t">

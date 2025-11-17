@@ -1,6 +1,6 @@
-import { apiRequest } from './client'
+import { apiRequest, ApiError } from './client'
 import { apiCache } from '../utils/cache'
-import type { Quote, QuoteDetail } from '../types'
+import type { Quote, QuoteDetail, SpeakerValidationError } from '../types'
 import type { QuoteCreate, QuoteUpdate } from '@schemas/quotes'
 
 interface CreateQuoteResponse {
@@ -22,14 +22,43 @@ interface GenerateQuoteGraphicResponse {
   status: string
 }
 
+function isSpeakerValidationError(error: unknown): error is ApiError & { details: SpeakerValidationError } {
+  return error instanceof ApiError &&
+         error.errorType === 'InvalidSpeaker' &&
+         error.details !== undefined &&
+         typeof error.details === 'object' &&
+         error.details !== null &&
+         'invalidSpeakers' in error.details &&
+         'validSpeakers' in error.details
+}
+
+function handleSpeakerValidationError(error: unknown): never {
+  if (isSpeakerValidationError(error)) {
+    const details = error.details as SpeakerValidationError
+    const invalidList = details.invalidSpeakers.join(', ')
+    const validList = details.validSpeakers.join(', ')
+    throw new ApiError(
+      error.status,
+      `Invalid speaker: ${invalidList}. Valid speakers for this episode: ${validList}`,
+      error.errorType,
+      details
+    )
+  }
+  throw error
+}
+
 export const quotesApi = {
   create: async (episodeId: string, data: QuoteCreate) => {
-    const result = await apiRequest<CreateQuoteResponse>(`/episodes/${episodeId}/quotes`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-    apiCache.invalidate(`GET:/episodes/${episodeId}/quotes`)
-    return result
+    try {
+      const result = await apiRequest<CreateQuoteResponse>(`/episodes/${episodeId}/quotes`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      apiCache.invalidate(`GET:/episodes/${episodeId}/quotes`)
+      return result
+    } catch (error) {
+      handleSpeakerValidationError(error)
+    }
   },
 
   get: (episodeId: string, quoteId: string, skipCache = false) => {
@@ -45,11 +74,15 @@ export const quotesApi = {
   },
 
   update: async (episodeId: string, quoteId: string, data: QuoteUpdate) => {
-    await apiRequest<void>(`/episodes/${episodeId}/quotes/${quoteId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
-    apiCache.invalidate(`GET:/episodes/${episodeId}/quotes`)
+    try {
+      await apiRequest<void>(`/episodes/${episodeId}/quotes/${quoteId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+      apiCache.invalidate(`GET:/episodes/${episodeId}/quotes`)
+    } catch (error) {
+      handleSpeakerValidationError(error)
+    }
   },
 
   delete: async (episodeId: string, quoteId: string) => {

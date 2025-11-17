@@ -3,19 +3,34 @@ import { episodesApi } from '../../api/episodes'
 import { useUpload } from '../../hooks/useUpload'
 import { useToast } from '../../hooks/useToast'
 import { HelpTip } from '../common/HelpTip'
+import { SpeakerAnalysisDisplay } from './SpeakerAnalysisDisplay'
+
+interface SpeakerMatch {
+  transcriptName: string
+  episodeName: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
+interface SpeakerAnalysis {
+  matched: SpeakerMatch[]
+  unmatched: string[]
+  suggestion?: string
+}
 
 interface TranscriptUploaderProps {
   episodeId: string
   hasExistingTranscript?: boolean
   onUploadComplete?: () => void
   onUploadError?: (error: string) => void
+  onAddSpeakers?: (speakers: string[]) => void
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 
-export function TranscriptUploader({ episodeId, hasExistingTranscript = false, onUploadComplete, onUploadError }: TranscriptUploaderProps) {
+export function TranscriptUploader({ episodeId, hasExistingTranscript = false, onUploadComplete, onUploadError, onAddSpeakers }: TranscriptUploaderProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [speakerAnalysis, setSpeakerAnalysis] = useState<SpeakerAnalysis | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { addUpload, updateUpload } = useUpload()
   const { showSuccess, showError } = useToast()
@@ -59,7 +74,11 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
     try {
       updateUpload(uploadId, { status: 'uploading', progress: 10 })
 
-      const { uploadUrl, requiredHeaders } = await episodesApi.uploadTranscript(episodeId, selectedFile.name)
+      const { uploadUrl, requiredHeaders, speakerAnalysis: analysis } = await episodesApi.uploadTranscript(episodeId, selectedFile.name)
+
+      if (analysis) {
+        setSpeakerAnalysis(analysis)
+      }
 
       updateUpload(uploadId, { progress: 20 })
 
@@ -129,6 +148,13 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
 
   return (
     <div className="space-y-4">
+      {speakerAnalysis && (
+        <SpeakerAnalysisDisplay
+          analysis={speakerAnalysis}
+          onAddSpeakers={onAddSpeakers}
+        />
+      )}
+
       {hasExistingTranscript && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">

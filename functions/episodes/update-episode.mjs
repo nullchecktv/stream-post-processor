@@ -39,6 +39,10 @@ export const handler = async (event) => {
 
     const now = new Date().toISOString();
 
+    const normalizedSpeakers = data.speakers !== undefined
+      ? [...new Set(data.speakers.map(s => s.trim()).filter(s => s.length > 0))]
+      : undefined;
+
     const updatedEpisode = {
       ...currentEpisode,
       ...(data.title !== undefined && { title: data.title }),
@@ -48,6 +52,7 @@ export const handler = async (event) => {
       ...(data.platforms !== undefined && { platforms: data.platforms }),
       ...(data.themes !== undefined && { themes: data.themes }),
       ...(data.seriesName !== undefined && { seriesName: data.seriesName }),
+      ...(normalizedSpeakers !== undefined && { speakers: normalizedSpeakers }),
       updatedAt: now
     };
 

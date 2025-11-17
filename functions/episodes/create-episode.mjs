@@ -18,13 +18,17 @@ export const handler = async (event) => {
     }
 
     const { tenantId, userId, data } = validation;
-    const { title, episodeNumber, description, airDate, platforms, themes, seriesName } = data;
+    const { title, episodeNumber, description, airDate, platforms, themes, seriesName, speakers } = data;
 
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
 
     const initialStatus = EPISODE_STATUS.DRAFT;
     const statusHistory = initializeStatusHistory(initialStatus, now);
+
+    const normalizedSpeakers = speakers?.length
+      ? [...new Set(speakers.map(s => s.trim()).filter(s => s.length > 0))]
+      : [];
 
     const item = {
       pk: `${tenantId}#${id}`,
@@ -36,6 +40,7 @@ export const handler = async (event) => {
       status: initialStatus,
       statusHistory,
       userId,
+      speakers: normalizedSpeakers,
       ...(description && { description }),
       ...(airDate && { airDate }),
       ...(platforms?.length && { platforms }),

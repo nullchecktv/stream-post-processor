@@ -97,6 +97,7 @@ export const handler = async (event) => {
     if (episode.platforms) response.platforms = episode.platforms;
     if (episode.themes) response.themes = episode.themes;
     if (episode.seriesName) response.seriesName = episode.seriesName;
+    if (episode.speakers) response.speakers = episode.speakers;
 
     return formatResponse(200, response);
 
