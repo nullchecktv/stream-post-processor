@@ -25,6 +25,13 @@ export const QUOTE_STATUS_TRANSITIONS = {
   [QUOTE_STATUS.EDITED]: []
 };
 
+export const QuoteOrientation = z.enum(['landscape', 'portrait']);
+
+export const QUOTE_ORIENTATION = {
+  LANDSCAPE: 'landscape',
+  PORTRAIT: 'portrait'
+};
+
 export const QuoteCreateSchema = z.object({
   text: z.string().min(5).max(280),
   speaker: z.string().min(1).max(100),
@@ -32,7 +39,8 @@ export const QuoteCreateSchema = z.object({
   relevanceScore: z.number().min(0).max(100).optional(),
   context: z.string().max(500).optional(),
   showSpeaker: z.boolean().default(true),
-  showEpisodeTitle: z.boolean().default(true)
+  showEpisodeTitle: z.boolean().default(true),
+  orientation: QuoteOrientation.default('landscape')
 });
 
 export const QuoteUpdateSchema = z.object({
@@ -40,7 +48,8 @@ export const QuoteUpdateSchema = z.object({
   speaker: z.string().min(1).max(100).optional(),
   showSpeaker: z.boolean().optional(),
   showEpisodeTitle: z.boolean().optional(),
-  status: QuoteStatus.optional()
+  status: QuoteStatus.optional(),
+  orientation: QuoteOrientation.optional()
 });
 
 export const QuotePathParamsSchema = z.object({

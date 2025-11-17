@@ -5,7 +5,7 @@ import type {
 } from '@schemas/common'
 import type { EpisodeStatusType } from '@schemas/episodes'
 import type { ClipStatusType, ClipOrientationType } from '@schemas/clips'
-import type { QuoteStatusType } from '@schemas/quotes'
+import type { QuoteStatusType, QuoteOrientationType } from '@schemas/quotes'
 import type { TeamStatusType, MembershipStatusType, MemberRoleType } from '@schemas/teams'
 import type { BlogStatusType } from '@schemas/blogs'
 
@@ -14,6 +14,7 @@ export type EpisodeStatus = EpisodeStatusType
 export type ClipOrientation = ClipOrientationType
 export type ClipStatus = ClipStatusType
 export type QuoteStatus = QuoteStatusType
+export type QuoteOrientation = QuoteOrientationType
 export type TeamStatus = TeamStatusType
 export type MembershipStatus = MembershipStatusType
 export type MemberRole = MemberRoleType
@@ -239,6 +240,7 @@ export interface Quote {
   relevanceScore?: number
   status: QuoteStatus
   imageUrl?: string
+  orientation: QuoteOrientation
   createdAt: string
 }
 

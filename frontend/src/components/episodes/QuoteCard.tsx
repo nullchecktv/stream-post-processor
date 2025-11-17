@@ -45,6 +45,7 @@ export function QuoteCard({ quote, onDelete, onDownload }: QuoteCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const config = statusConfig[quote.status] || statusConfig.Proposed
   const hasImage = quote.imageUrl && (quote.status === 'Created' || quote.status === 'approved' || quote.status === 'rejected')
+  const isPortrait = quote.orientation === 'portrait'
 
   const handleDelete = () => {
     onDelete(quote.id)
@@ -84,11 +85,26 @@ export function QuoteCard({ quote, onDelete, onDownload }: QuoteCardProps) {
       </button>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span
               className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-lg border ${config.colors}`}
             >
               {config.label}
+            </span>
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 border border-gray-200"
+              title={`${isPortrait ? 'Portrait' : 'Landscape'} orientation`}
+            >
+              {isPortrait ? (
+                <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                  <rect x="7" y="2" width="10" height="20" rx="2" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                  <rect x="2" y="7" width="20" height="10" rx="2" />
+                </svg>
+              )}
+              {isPortrait ? 'Portrait' : 'Landscape'}
             </span>
             <span className="text-xs text-gray-500">{quote.timestamp}</span>
           </div>
@@ -102,7 +118,7 @@ export function QuoteCard({ quote, onDelete, onDownload }: QuoteCardProps) {
       </div>
 
       {hasImage && quote.imageUrl && (
-        <div className="mb-3">
+        <div className={`mb-3 ${isPortrait ? 'max-w-xs mx-auto' : ''}`}>
           <img
             src={`${quote.imageUrl}?t=${new Date(quote.createdAt).getTime()}`}
             alt={`Quote by ${quote.speaker}`}

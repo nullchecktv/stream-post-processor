@@ -68,7 +68,8 @@ export const handler = async (event) => {
       (data.text !== undefined && data.text !== existingQuote.text) ||
       (data.speaker !== undefined && data.speaker !== existingQuote.speaker) ||
       (data.showSpeaker !== undefined && data.showSpeaker !== existingQuote.showSpeaker) ||
-      (data.showEpisodeTitle !== undefined && data.showEpisodeTitle !== existingQuote.showEpisodeTitle);
+      (data.showEpisodeTitle !== undefined && data.showEpisodeTitle !== existingQuote.showEpisodeTitle) ||
+      (data.orientation !== undefined && data.orientation !== existingQuote.orientation);
 
     if (shouldRegenerate) {
       try {
@@ -96,6 +97,7 @@ export const handler = async (event) => {
                 timestamp: updatedQuote.timestamp,
                 showSpeaker: updatedQuote.showSpeaker,
                 showEpisodeTitle: updatedQuote.showEpisodeTitle,
+                orientation: updatedQuote.orientation || 'landscape',
                 status: updatedQuote.status
               },
               episode: {

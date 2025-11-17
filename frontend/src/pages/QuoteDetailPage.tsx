@@ -44,10 +44,15 @@ function QuoteDetailPage() {
   const [regenerating, setRegenerating] = useState(false)
   const [showSpeaker, setShowSpeaker] = useState(true)
   const [showEpisodeTitle, setShowEpisodeTitle] = useState(true)
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape')
 
   usePageTitle(quote ? `Quote - ${quote.speaker}` : 'Quote Details')
 
-  const isDirty = quote && (showSpeaker !== quote.showSpeaker || showEpisodeTitle !== quote.showEpisodeTitle)
+  const isDirty = quote && (
+    showSpeaker !== quote.showSpeaker ||
+    showEpisodeTitle !== quote.showEpisodeTitle ||
+    orientation !== quote.orientation
+  )
 
   const fetchData = useCallback(async () => {
     if (!episodeId || !quoteId) {
@@ -72,6 +77,7 @@ function QuoteDetailPage() {
       setEpisode(episodeData)
       setShowSpeaker(quoteData.showSpeaker)
       setShowEpisodeTitle(quoteData.showEpisodeTitle)
+      setOrientation(quoteData.orientation)
       setError(null)
     } catch (err) {
       console.error('Failed to fetch quote:', err)
@@ -127,13 +133,17 @@ function QuoteDetailPage() {
   const handleSave = async () => {
     if (!episodeId || !quoteId || !quote) return
 
-    const willRegenerate = showSpeaker !== quote.showSpeaker || showEpisodeTitle !== quote.showEpisodeTitle
+    const willRegenerate =
+      showSpeaker !== quote.showSpeaker ||
+      showEpisodeTitle !== quote.showEpisodeTitle ||
+      orientation !== quote.orientation
 
     try {
       setSaving(true)
       await quotesApi.update(episodeId, quoteId, {
         showSpeaker,
-        showEpisodeTitle
+        showEpisodeTitle,
+        orientation
       })
       showToast('Quote settings saved successfully', 'success')
 
@@ -141,6 +151,7 @@ function QuoteDetailPage() {
         ...quote,
         showSpeaker,
         showEpisodeTitle,
+        orientation,
         updatedAt: new Date().toISOString()
       })
 
@@ -242,7 +253,7 @@ function QuoteDetailPage() {
           </div>
 
           {hasImage && quote.imageUrl && (
-            <div className="mb-6 relative">
+            <div className={`mb-6 relative ${quote.orientation === 'portrait' ? 'max-w-md mx-auto' : ''}`}>
               <img
                 key={`${quote.imageUrl}-${quote.updatedAt}`}
                 src={quote.imageUrl}
@@ -337,6 +348,31 @@ function QuoteDetailPage() {
                   </div>
                 </div>
               )}
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Orientation</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setOrientation('landscape')}
+                    className={`px-3 py-1 text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                      orientation === 'landscape'
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Landscape
+                  </button>
+                  <button
+                    onClick={() => setOrientation('portrait')}
+                    className={`px-3 py-1 text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                      orientation === 'portrait'
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Portrait
+                  </button>
+                </div>
+              </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Show Speaker</span>
                 <button

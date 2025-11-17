@@ -26,7 +26,7 @@ export const handler = async (event) => {
 
     const { tenantId, data } = requestValidation;
     const { episodeId } = pathValidation.data;
-    const { text, speaker, timestamp, relevanceScore, context, showSpeaker, showEpisodeTitle } = data;
+    const { text, speaker, timestamp, relevanceScore, context, showSpeaker, showEpisodeTitle, orientation } = data;
 
     const quoteId = randomUUID();
     const now = new Date().toISOString();
@@ -42,6 +42,7 @@ export const handler = async (event) => {
       context: context || '',
       showSpeaker: showSpeaker !== undefined ? showSpeaker : true,
       showEpisodeTitle: showEpisodeTitle !== undefined ? showEpisodeTitle : true,
+      orientation: orientation || 'landscape',
       status: QUOTE_STATUS.PROPOSED,
       createdAt: now,
       updatedAt: now,
@@ -80,6 +81,7 @@ export const handler = async (event) => {
                 timestamp: quote.timestamp,
                 showSpeaker: quote.showSpeaker,
                 showEpisodeTitle: quote.showEpisodeTitle,
+                orientation: quote.orientation,
                 status: quote.status
               },
               episode: {

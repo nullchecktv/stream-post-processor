@@ -8,13 +8,15 @@ import { readFileSync } from 'node:fs';
 import { resolveBranding } from '../utils/branding.mjs';
 import { createQuoteKey, QUOTE_STATUS, generateQuoteS3Key } from '../utils/quotes.mjs';
 import { publishNotificationEvent } from '../utils/notifications.mjs';
+import { getPatternIndex } from './utils/hash.mjs';
+import { getPattern } from './patterns/index.mjs';
+import { calculateFontSize, wrapText, calculateTextHeight } from './utils/text.mjs';
+import { applyTextShadowIfNeeded } from './utils/contrast.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
 const BORDER_WIDTH = 20;
 
 let fontsRegistered = false;
@@ -68,47 +70,71 @@ export const handler = async (event) => {
     try {
       const quoteKey = createQuoteKey(tenantId, episodeId, quoteId);
 
-      const branding = await resolveBranding(tenantId);
-      const canvas = createCanvas(WIDTH, HEIGHT);
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = branding.colors.primary;
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      const isPortrait = quote.orientation === 'portrait';
+      const width = isPortrait ? 1080 : 1920;
+      const height = isPortrait ? 1920 : 1080;
 
-      const innerWidth = WIDTH - (BORDER_WIDTH * 2);
-      const innerHeight = HEIGHT - (BORDER_WIDTH * 2);
+      const branding = await resolveBranding(tenantId);
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = branding.colors.primary;
+      ctx.fillRect(0, 0, width, height);
+
+      const innerWidth = width - (BORDER_WIDTH * 2);
+      const innerHeight = height - (BORDER_WIDTH * 2);
       ctx.fillStyle = branding.colors.background;
       ctx.fillRect(BORDER_WIDTH, BORDER_WIDTH, innerWidth, innerHeight);
 
-      ctx.fillStyle = branding.colors.text;
+      ctx.save();
+      ctx.translate(BORDER_WIDTH, BORDER_WIDTH);
+      const patternIndex = getPatternIndex(quote.text);
+      const pattern = getPattern(patternIndex);
+      pattern(ctx, innerWidth, innerHeight, branding);
+      ctx.restore();
+
+      const fontSize = calculateFontSize(quote.text, innerWidth, innerHeight);
       const chosenFamily = registeredFamilies.has(branding.fontFamily) ? branding.fontFamily : 'Inter';
-      ctx.font = `bold 72px ${chosenFamily}`;
+
+      ctx.fillStyle = branding.colors.text;
+      ctx.font = `bold ${fontSize}px ${chosenFamily}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
+      const shadowApplied = applyTextShadowIfNeeded(ctx, branding.colors.text, branding.colors.background);
+
       const maxWidth = innerWidth - 200;
       const lines = wrapText(ctx, quote.text, maxWidth);
-      const lineHeight = 90;
-      const totalTextHeight = lines.length * lineHeight;
-      let yPosition = (HEIGHT - totalTextHeight) / 2;
+      const textHeight = calculateTextHeight(fontSize, lines.length);
+      const lineHeight = fontSize * 1.3;
+
+      let yPosition = (height - textHeight) / 2;
 
       lines.forEach(line => {
-        ctx.fillText(line, WIDTH / 2, yPosition);
+        ctx.fillText(line, width / 2, yPosition);
         yPosition += lineHeight;
       });
+
+      if (shadowApplied) {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
 
       yPosition += 60;
       if (quote.showSpeaker && quote.speaker) {
         ctx.fillStyle = branding.colors.secondary;
-        ctx.font = `48px ${chosenFamily}`;
-        ctx.fillText(`— ${quote.speaker}`, WIDTH / 2, yPosition);
-        yPosition += 80;
+        ctx.font = `${Math.floor(fontSize * 0.67)}px ${chosenFamily}`;
+        ctx.fillText(`— ${quote.speaker}`, width / 2, yPosition);
+        yPosition += fontSize * 0.9;
       }
 
       if (quote.showEpisodeTitle && episode.title) {
         ctx.fillStyle = branding.colors.text;
         ctx.globalAlpha = 0.7;
-        ctx.font = `36px ${chosenFamily}`;
-        ctx.fillText(episode.title, WIDTH / 2, yPosition);
+        ctx.font = `${Math.floor(fontSize * 0.5)}px ${chosenFamily}`;
+        ctx.fillText(episode.title, width / 2, yPosition);
         ctx.globalAlpha = 1.0;
       }
 
@@ -202,27 +228,3 @@ export const handler = async (event) => {
     });
   }
 };
-
-function wrapText(ctx, text, maxWidth) {
-  const words = text.split(' ');
-  const lines = [];
-  let currentLine = '';
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const metrics = ctx.measureText(testLine);
-
-    if (metrics.width > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines;
-}
