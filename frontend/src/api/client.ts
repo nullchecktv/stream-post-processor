@@ -65,6 +65,41 @@ function getErrorMessage(status: number, errorData: any): string {
   }
 }
 
+let isRefreshingToken = false
+let refreshPromise: Promise<void> | null = null
+
+async function refreshTokenAndRetry(): Promise<void> {
+  if (isRefreshingToken && refreshPromise) {
+    return refreshPromise
+  }
+
+  isRefreshingToken = true
+  refreshPromise = (async () => {
+    try {
+      const token = await getAuthToken()
+      const response = await fetch(`${API_BASE_URL}/tokens/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Token refresh failed')
+      }
+
+      const event = new CustomEvent('momento-token-refreshed')
+      window.dispatchEvent(event)
+    } finally {
+      isRefreshingToken = false
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
@@ -94,6 +129,13 @@ export async function apiRequest<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
 
     if (response.status === 401) {
+      const errorData = await response.json().catch(() => ({}))
+
+      if (errorData.error === 'AuthenticationError' && errorData.message?.includes('Authorization token is expired') && endpoint !== '/tokens/refresh') {
+        await refreshTokenAndRetry()
+        return apiRequest<T>(endpoint, options)
+      }
+
       await signOut()
       window.location.href = '/login'
       throw new ApiError(401, 'Your session has expired. Please log in again.')

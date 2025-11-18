@@ -16,6 +16,7 @@ import { EpisodeLayout } from './components/episodes/EpisodeLayout'
 import { TeamLayout } from './components/teams/TeamLayout'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { TeamSwitchingOverlay } from './components/common/TeamSwitchingOverlay'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const SignupPage = lazy(() => import('./pages/SignupPage'))
@@ -54,6 +55,7 @@ function App() {
                   <ActivityProvider>
                     <UploadProvider>
                       <SidebarProvider>
+                    <TeamSwitchingOverlay />
                     <Suspense fallback={<LoadingSpinner variant="page" />}>
                       <Routes>
                         <Route path="/login" element={<LoginPage />} />

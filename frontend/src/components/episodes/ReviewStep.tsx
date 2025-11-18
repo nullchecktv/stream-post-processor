@@ -8,6 +8,7 @@ interface ReviewStepProps {
     seriesName: string
     platforms: string[]
     themes: string[]
+    speakers: string[]
   }
   onEdit: (step: number) => void
   isSubmitting: boolean
@@ -56,6 +57,21 @@ export function ReviewStep({ formData, onEdit, isSubmitting, error }: ReviewStep
           <ReviewItem label="Episode Number" value={formData.episodeNumber} />
           <ReviewItem label="Air Date" value={formatDate(formData.airDate)} />
           <ReviewItem label="Series Name" value={formData.seriesName || 'Not set'} />
+          {formData.speakers.length > 0 && (
+            <div className="pt-2">
+              <span className="text-sm text-gray-600">Speakers:</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {formData.speakers.map((speaker) => (
+                  <span
+                    key={speaker}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                  >
+                    {speaker}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </ReviewSection>
 
         <ReviewSection

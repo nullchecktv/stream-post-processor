@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { episodesApi } from '../../api/episodes'
 import { EpisodeCard } from '../episodes/EpisodeCard'
 import type { EpisodeListView } from '../../types'
@@ -12,30 +12,39 @@ export function UpcomingEpisodes({ onCreateEpisode }: UpcomingEpisodesProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchEpisodes = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await episodesApi.list()
+
+      const now = new Date()
+      const upcoming = response.items.filter(episode => {
+        if (!episode.airDate) return true
+        return new Date(episode.airDate) >= now
+      })
+
+      setEpisodes(upcoming)
+    } catch (err) {
+      console.error('Failed to fetch episodes:', err)
+      setError('Failed to load episodes. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    const fetchEpisodes = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await episodesApi.list()
+    fetchEpisodes()
+  }, [fetchEpisodes])
 
-        const now = new Date()
-        const upcoming = response.items.filter(episode => {
-          if (!episode.airDate) return true
-          return new Date(episode.airDate) >= now
-        })
-
-        setEpisodes(upcoming)
-      } catch (err) {
-        console.error('Failed to fetch episodes:', err)
-        setError('Failed to load episodes. Please try again.')
-      } finally {
-        setLoading(false)
-      }
+  useEffect(() => {
+    const handleTeamSwitch = () => {
+      fetchEpisodes()
     }
 
-    fetchEpisodes()
-  }, [])
+    window.addEventListener('team-switched', handleTeamSwitch)
+    return () => window.removeEventListener('team-switched', handleTeamSwitch)
+  }, [fetchEpisodes])
 
   if (loading) {
     return (

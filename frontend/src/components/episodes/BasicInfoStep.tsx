@@ -7,6 +7,7 @@ interface BasicInfoStepProps {
     episodeNumber: string
     airDate: string
     seriesName: string
+    speakers: string[]
   }
   onChange: (updates: Partial<BasicInfoStepProps['formData']>) => void
   errors: Record<string, string>

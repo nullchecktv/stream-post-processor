@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { episodesApi } from '../../api/episodes'
 import { EpisodeCard } from '../episodes/EpisodeCard'
@@ -11,13 +11,7 @@ export function PreviousEpisodes() {
   const [nextToken, setNextToken] = useState<string | undefined>()
   const [hasMore, setHasMore] = useState(false)
 
-  useEffect(() => {
-    if (isExpanded && episodes.length === 0) {
-      fetchEpisodes()
-    }
-  }, [isExpanded])
-
-  const fetchEpisodes = async (cursor?: string) => {
+  const fetchEpisodes = useCallback(async (cursor?: string) => {
     try {
       setLoading(true)
       const response = await episodesApi.list({ nextToken: cursor, limit: 10 })
@@ -36,7 +30,27 @@ export function PreviousEpisodes() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (isExpanded && episodes.length === 0) {
+      fetchEpisodes()
+    }
+  }, [isExpanded, fetchEpisodes, episodes.length])
+
+  useEffect(() => {
+    const handleTeamSwitch = () => {
+      if (isExpanded) {
+        setEpisodes([])
+        setNextToken(undefined)
+        setHasMore(false)
+        fetchEpisodes()
+      }
+    }
+
+    window.addEventListener('team-switched', handleTeamSwitch)
+    return () => window.removeEventListener('team-switched', handleTeamSwitch)
+  }, [isExpanded, fetchEpisodes])
 
   const handleLoadMore = () => {
     if (nextToken && !loading) {

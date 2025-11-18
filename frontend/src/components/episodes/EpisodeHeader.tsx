@@ -514,6 +514,12 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                   e.currentTarget.value = ''
                 }
               }}
+              onBlur={(e) => {
+                if (e.target.value.trim()) {
+                  handleSpeakerAdd(e.target.value)
+                  e.target.value = ''
+                }
+              }}
               className={`w-full px-3 py-2 border rounded-md text-sm ${
                 validationErrors.speakers ? 'border-red-500' : 'border-gray-300'
               } focus:outline-none focus:ring-2 focus:ring-blue-500`}
