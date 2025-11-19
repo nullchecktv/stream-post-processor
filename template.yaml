@@ -1379,6 +1379,10 @@ Resources:
               Action:
                 - lambda:InvokeFunction
               Resource: !GetAtt SetPlanRecommendationsFunction.Arn
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable

@@ -38,7 +38,6 @@ export const handler = async (event) => {
     const userInfo = await getUserAttributes(token);
     const userId = userInfo.sub || decoded.sub;
     const email = userInfo.email;
-    const tokenTenantId = userInfo['custom:tenantId'] || decoded.tenantId || userId;
 
     if (!userId) {
       logger.error('Missing userId (sub) in user attributes');
@@ -46,7 +45,7 @@ export const handler = async (event) => {
     }
 
     const userProfile = await getUserProfile(userId);
-    const tenantId = userProfile?.activeTeamId || tokenTenantId;
+    const tenantId = userProfile?.activeTeamId || userId;
     const activeTeamId = userProfile?.activeTeamId || null;
 
     const apiArn = getApiArnPattern(event.methodArn);

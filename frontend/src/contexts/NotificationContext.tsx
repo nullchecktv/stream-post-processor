@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
-import { TopicSubscribe, type TopicClient, type TopicItem } from '@gomomento/sdk-web';
+import { TopicSubscribe, TopicSubscribeResponse, type TopicClient, type TopicItem } from '@gomomento/sdk-web';
 import { useAuth } from '../hooks/useAuth';
 import { useUser } from '../hooks/useUser';
 import { useToast } from './ToastContext';
@@ -42,7 +42,7 @@ interface NotificationProviderProps {
 }
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
-  const { isAuthenticated, momentoToken, updateMomentoToken } = useAuth();
+  const { isAuthenticated, momentoToken, updateMomentoToken, user } = useAuth();
   const { profile } = useUser();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -52,14 +52,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [topicClient, setTopicClient] = useState<TopicClient | null>(null);
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [refreshAttempts, setRefreshAttempts] = useState(0);
   const [proactiveRefreshTimer, setProactiveRefreshTimer] = useState<NodeJS.Timeout | null>(null);
 
   const tenantSubscriptionRef = useRef<any>(null);
   const tasksSubscriptionRef = useRef<any>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const MAX_REFRESH_ATTEMPTS = 3;
 
   const isValidMessage = (msg: unknown): msg is MomentoMessage => {
     if (typeof msg !== 'object' || msg === null) return false;
@@ -115,20 +112,28 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, [location.pathname, navigate, showToast]);
 
-  const handleAuthErrorRef = useRef<((error: unknown) => Promise<void>) | null>(null);
+  const subscribeTenant = useCallback(async (tenantId: string, client: TopicClient, token: string, retryCount = 0) => {
+    const MAX_RETRIES = 1;
 
-  const subscribeTenant = useCallback(async (tenantId: string, client: TopicClient, token: string) => {
     try {
       const cacheName = import.meta.env.VITE_CACHE_NAME;
       const tenantTopic = tenantId;
       const tasksTopic = `${tenantId}_tasks`;
 
-      console.log(`Subscribing to topics for tenant: ${tenantId}`);
+      console.log(`Subscribing to topics for tenant: ${tenantId}`, {
+        cacheName,
+        tenantTopic,
+        tasksTopic,
+        hasClient: !!client,
+        retryCount
+      });
 
       tokenStorage.save(token);
 
+      console.log('Attempting tenant topic subscription...', { cacheName, tenantTopic });
       const tenantSubscriptionResponse = await client.subscribe(cacheName, tenantTopic, {
         onItem: (item: TopicItem) => {
+          console.log('Received tenant message:', item.value().toString());
           try {
             const message = JSON.parse(item.value().toString());
             if (isValidMessage(message)) {
@@ -140,24 +145,20 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         },
         onError: async (error) => {
           console.error('Tenant subscription error:', error);
-          if (handleAuthErrorRef.current) {
-            await handleAuthErrorRef.current(error);
-          }
         }
       });
-
-      if (tenantSubscriptionResponse instanceof TopicSubscribe.Error) {
+      console.log('Tenant subscription response:', tenantSubscriptionResponse);
+      if (tenantSubscriptionResponse.type === TopicSubscribeResponse.Error) {
         console.error('Failed to subscribe to tenant topic:', tenantSubscriptionResponse);
-        if (handleAuthErrorRef.current) {
-          await handleAuthErrorRef.current(tenantSubscriptionResponse);
-        }
         throw tenantSubscriptionResponse;
       }
 
       const tenantSubscription = tenantSubscriptionResponse as TopicSubscribe.Subscription;
 
+      console.log('Attempting tasks topic subscription...', { cacheName, tasksTopic });
       const tasksSubscriptionResponse = await client.subscribe(cacheName, tasksTopic, {
         onItem: (item: TopicItem) => {
+          console.log('Received task message:', item.value().toString());
           try {
             const message = JSON.parse(item.value().toString());
             if (isValidMessage(message)) {
@@ -169,18 +170,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         },
         onError: async (error) => {
           console.error('Tasks subscription error:', error);
-          if (handleAuthErrorRef.current) {
-            await handleAuthErrorRef.current(error);
-          }
         }
       });
+      console.log('Tasks subscription response:', tasksSubscriptionResponse);
 
-      if (tasksSubscriptionResponse instanceof TopicSubscribe.Error) {
+      if (tasksSubscriptionResponse.type === TopicSubscribeResponse.Error) {
         console.error('Failed to subscribe to tasks topic:', tasksSubscriptionResponse);
         tenantSubscription.unsubscribe();
-        if (handleAuthErrorRef.current) {
-          await handleAuthErrorRef.current(tasksSubscriptionResponse);
-        }
         throw tasksSubscriptionResponse;
       }
 
@@ -193,12 +189,40 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       console.log(`Successfully subscribed to topics for tenant: ${tenantId}`);
     } catch (error) {
       console.error('Failed to subscribe to topics:', error);
-      if (handleAuthErrorRef.current) {
-        await handleAuthErrorRef.current(error);
+
+      const subscribeError = error as TopicSubscribe.Error;
+
+      let isAuthError = false;
+      try {
+        const errorCode = subscribeError.errorCode?.();
+        isAuthError = errorCode === 'PERMISSION_ERROR' || errorCode === 'AUTHENTICATION_ERROR';
+      } catch {
+        isAuthError = false;
       }
+
+      if (isAuthError && retryCount < MAX_RETRIES) {
+        console.log(`Auth error detected, refreshing token and retrying (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+
+        try {
+          const response = await refreshMomentoToken();
+          const newToken = response.momentoToken;
+          tokenStorage.save(newToken);
+
+          const newClient = await initializeClient(newToken);
+          if (!newClient) {
+            throw new Error('Failed to initialize client with new token');
+          }
+
+          return await subscribeTenant(tenantId, newClient, newToken, retryCount + 1);
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          throw refreshError;
+        }
+      }
+
       throw error;
     }
-  }, [handleTenantMessage, handleTaskMessage]);
+  }, [handleTenantMessage, handleTaskMessage, initializeClient]);
 
   const setupProactiveRefreshRef = useRef<(() => void) | null>(null);
 
@@ -255,16 +279,26 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   setupProactiveRefreshRef.current = setupProactiveRefresh;
 
   const subscribe = useCallback(async (tenantId: string, token: string) => {
+    console.log('subscribe() called', {
+      tenantId,
+      currentTenantId,
+      hasTopicClient: !!topicClient,
+      tokenLength: token?.length
+    });
+
     if (currentTenantId === tenantId && topicClient) {
+      console.log('Already subscribed to this tenant, skipping');
       return;
     }
 
     unsubscribeFromTopics();
 
+    console.log('Initializing Momento client...');
     const client = topicClient || await initializeClient(token);
     if (!client) {
       throw new Error('Failed to initialize Momento client');
     }
+    console.log('Momento client initialized successfully');
 
     await subscribeTenant(tenantId, client, token);
 
@@ -276,7 +310,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const unsubscribe = useCallback(async () => {
     unsubscribeFromTopics();
     setTopicClient(null);
-    setRefreshAttempts(0);
     tokenStorage.clear();
 
     if (proactiveRefreshTimer) {
@@ -333,7 +366,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
 
       setCurrentTenantId(newTenantId);
-      setRefreshAttempts(0);
 
       console.log(`Successfully switched to team ${newTenantId}`);
     } catch (error) {
@@ -347,64 +379,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       throw error;
     }
   }, [currentTenantId, topicClient, unsubscribeFromTopics, initializeClient, subscribeTenant, showToast]);
-
-  handleAuthErrorRef.current = useCallback(async (error: unknown) => {
-    console.error('Momento subscription error:', error);
-
-    const errorObj = error as {
-      statusCode?: number;
-      errorCode?: string;
-      message?: string;
-    };
-
-    const isAuthError =
-      errorObj.statusCode === 401 ||
-      errorObj.statusCode === 403 ||
-      errorObj.errorCode === 'AUTHENTICATION_ERROR' ||
-      errorObj.errorCode === 'PERMISSION_ERROR' ||
-      (typeof errorObj.message === 'string' && (
-        errorObj.message.includes('authentication') ||
-        errorObj.message.includes('unauthorized') ||
-        errorObj.message.includes('permission') ||
-        errorObj.message.includes('token')
-      ));
-
-    if (!isAuthError) {
-      return;
-    }
-
-    setRefreshAttempts(prev => prev + 1);
-
-    if (refreshAttempts + 1 > MAX_REFRESH_ATTEMPTS) {
-      console.error('Max refresh attempts reached, redirecting to login');
-      showToast('Session expired. Please log in again.', 'error');
-      navigate('/login');
-      return;
-    }
-
-    try {
-      console.log(`Attempting token refresh (attempt ${refreshAttempts + 1}/${MAX_REFRESH_ATTEMPTS})`);
-
-      if (tokenStorage.isValid()) {
-        const stored = tokenStorage.get();
-        if (stored) {
-          console.log('Using valid token from localStorage');
-          await reestablishSubscriptions(stored.token);
-          setRefreshAttempts(0);
-          return;
-        }
-      }
-
-      console.log('Calling refreshMomentoToken endpoint');
-      const response = await refreshMomentoToken();
-      tokenStorage.save(response.momentoToken);
-      await reestablishSubscriptions(response.momentoToken);
-      setRefreshAttempts(0);
-      console.log('Token refresh successful');
-    } catch (refreshError) {
-      console.error('Token refresh failed:', refreshError);
-    }
-  }, [refreshAttempts, navigate, showToast, reestablishSubscriptions]);
 
   const reconnect = useCallback(async (attempt = 1) => {
     const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
@@ -462,20 +436,56 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   useEffect(() => {
     const initializeSubscriptions = async () => {
-      if (!isAuthenticated || !profile?.activeTeamId || !momentoToken) {
-        unsubscribe();
+      const tenantId = user?.tenantId;
+
+      console.log('NotificationContext: Checking subscription initialization', {
+        isAuthenticated,
+        userTenantId: user?.tenantId,
+        effectiveTenantId: tenantId,
+        hasMomentoToken: !!momentoToken,
+        momentoTokenLength: momentoToken?.length,
+        currentTenantId,
+        isSubscribed
+      });
+
+      if (!isAuthenticated || !tenantId) {
+        console.log('NotificationContext: Skipping subscription - missing requirements', {
+          isAuthenticated,
+          hasTenantId: !!tenantId
+        });
+        if (isSubscribed) {
+          await unsubscribe();
+        }
+        return;
+      }
+
+      if (currentTenantId === tenantId && isSubscribed) {
+        console.log('NotificationContext: Already subscribed to this tenant, skipping');
         return;
       }
 
       try {
-        await subscribe(profile.activeTeamId, momentoToken);
+        let tokenToUse = momentoToken;
+
+        if (!tokenToUse || !tokenStorage.isValid()) {
+          console.log('NotificationContext: Token missing or expired, fetching fresh token...');
+          const response = await refreshMomentoToken();
+          tokenToUse = response.momentoToken;
+          updateMomentoToken(tokenToUse);
+          tokenStorage.save(tokenToUse);
+          console.log('NotificationContext: Fresh token obtained');
+        }
+
+        console.log('NotificationContext: Attempting to subscribe...');
+        await subscribe(tenantId, tokenToUse);
+        console.log('NotificationContext: Subscription successful');
       } catch (error) {
         console.error('Failed to initialize subscriptions:', error);
       }
     };
 
     initializeSubscriptions();
-  }, [isAuthenticated, profile?.activeTeamId, momentoToken]);
+  }, [isAuthenticated, user?.tenantId, profile?.activeTeamId]);
 
   useEffect(() => {
     return () => {

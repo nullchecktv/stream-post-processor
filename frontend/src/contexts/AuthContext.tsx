@@ -48,7 +48,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (currentUser && session.tokens?.idToken) {
         const idTokenPayload = session.tokens.idToken.payload
         const extractedMomentoToken = idTokenPayload.momentoToken as string | undefined
-        const extractedTenantId = idTokenPayload['custom:tenantId'] as string | undefined
+        const extractedTenantId = idTokenPayload.tenantId as string | undefined
 
         setIsAuthenticated(true)
         setUser({
@@ -149,7 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (session.tokens?.idToken) {
         const idTokenPayload = session.tokens.idToken.payload
         const extractedMomentoToken = idTokenPayload.momentoToken as string | undefined
-        const extractedTenantId = idTokenPayload['custom:tenantId'] as string | undefined
+        const extractedTenantId = idTokenPayload.tenantId as string | undefined
 
         setUser(prev => prev ? {
           ...prev,

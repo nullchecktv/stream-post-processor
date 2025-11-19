@@ -4,7 +4,7 @@ import { AuthClient, CredentialProvider, ExpiresIn, TopicRole } from '@gomomento
 const logger = new Logger({ serviceName: 'momento' });
 const authClient = new AuthClient({ credentialProvider: CredentialProvider.fromEnvironmentVariable('MOMENTO_API_KEY') });
 
-export const generateMomentoToken = async (userId, teams) => {
+export const generateMomentoToken = async (tenantId, userId, teams) => {
   try {
     const permissions = [
       {
@@ -33,8 +33,18 @@ export const generateMomentoToken = async (userId, teams) => {
       });
     }
 
+    logger.info('Generating Momento token', {
+      tenantId,
+      userId,
+      teamsCount: teams.length,
+      teamIds: teams.map(t => t.teamId),
+      permissionsCount: permissions.length,
+      userTopics: [userId, `${userId}_tasks`],
+      teamTopics: teams.flatMap(t => [t.teamId, `${t.teamId}_tasks`])
+    });
+
     const tokenResponse = await authClient.generateDisposableToken({ permissions },
-      ExpiresIn.minutes(15), { userId }
+      ExpiresIn.minutes(15), { tokenId: userId }
     );
 
     if (tokenResponse.type === 'Success') {
@@ -42,6 +52,7 @@ export const generateMomentoToken = async (userId, teams) => {
     }
 
     logger.error('Failed to generate Momento token', {
+      tenantId,
       userId,
       errorType: tokenResponse.type
     });
@@ -50,6 +61,7 @@ export const generateMomentoToken = async (userId, teams) => {
     logger.error('Error generating Momento token', {
       error: err.message,
       stack: err.stack,
+      tenantId,
       userId
     });
     return null;
