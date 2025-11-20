@@ -2356,7 +2356,8 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:Query
-              Resource: !GetAtt StreamPostProcessingTable.Arn
+              Resource:
+                - !Sub '${StreamPostProcessingTable.Arn}/index/GSI1'
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable

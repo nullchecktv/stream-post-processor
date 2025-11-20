@@ -67,7 +67,11 @@ export const handler = async (event) => {
       };
     });
 
-    return formatResponse(200, buildPagingParams(clips, result.LastEvaluatedKey));
+    return formatResponse(200, buildPagingParams(clips, result.LastEvaluatedKey), {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
 
   } catch (err) {
     logger.error('Error listing clips', {

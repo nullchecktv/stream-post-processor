@@ -87,10 +87,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   const handleTenantMessage = useCallback(async () => {
     try {
-      const response = await apiRequest<{ unreadCount: number; }>('/activities');
+      const response = await apiRequest<{ unreadCount: number; }>('/notifications');
       setUnreadCount(response.unreadCount || 0);
+
+      window.dispatchEvent(new CustomEvent('activityUpdated'));
     } catch (error) {
-      console.error('Failed to refresh activities:', error);
+      console.error('Failed to refresh notifications:', error);
     }
   }, []);
 
@@ -103,12 +105,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       window.dispatchEvent(new CustomEvent('refreshPageContent', {
         detail: { url: messageUrl, message }
       }));
+      window.dispatchEvent(new CustomEvent('activityUpdated'));
     } else {
       showToast(
         message.title,
         'info',
         () => navigate(messageUrl)
       );
+      window.dispatchEvent(new CustomEvent('activityUpdated'));
     }
   }, [location.pathname, navigate, showToast]);
 
@@ -456,12 +460,20 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         if (isSubscribed) {
           await unsubscribe();
         }
+        setUnreadCount(0);
         return;
       }
 
       if (currentTenantId === tenantId && isSubscribed) {
         console.log('NotificationContext: Already subscribed to this tenant, skipping');
         return;
+      }
+
+      try {
+        const response = await apiRequest<{ unreadCount: number; }>('/notifications');
+        setUnreadCount(response.unreadCount || 0);
+      } catch (error) {
+        console.error('Failed to fetch initial unread count:', error);
       }
 
       try {

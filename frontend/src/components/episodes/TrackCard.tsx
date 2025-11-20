@@ -23,13 +23,12 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
   const [isEditing, setIsEditing] = useState(false)
   const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>(track.speakers || [])
   const [isSaving, setIsSaving] = useState(false)
-  const { showSuccess, showError } = useToast()
+  const { showError } = useToast()
 
   const handleSave = async () => {
     setIsSaving(true)
     try {
       await episodesApi.updateTrack(episodeId, track.name, { speakers: selectedSpeakers })
-      showSuccess('Track speakers updated successfully')
       setIsEditing(false)
       onUpdate()
     } catch (error) {

@@ -225,11 +225,10 @@ Write the complete blog post now following the outline and brand voice guideline
     await publishNotificationEvent({
       type: 'blog_generated',
       tenantId,
-      userId,
       title: 'Blog Post Ready',
       message: `Your blog post for ${episodeTitle} has been generated`,
       url: `/episodes/${episodeId}/blog`,
-      persist: false,
+      persist: true,
       topic: 'tasks',
       metadata: {
         episodeId,

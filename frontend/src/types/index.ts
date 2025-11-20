@@ -147,6 +147,7 @@ export interface Activity {
   type: 'clip_detected' | 'clip_processed' | 'clip_failed' | 'preprocessing_completed' | 'preprocessing_failed' | 'status_changed'
   title: string
   message: string
+  url?: string
   episodeId: string
   clipId?: string
   isRead: boolean
@@ -242,6 +243,7 @@ export interface Notification {
   type: 'team_invitation' | 'member_added' | 'member_removed' | 'role_changed' | 'clip_processed'
   title: string
   message: string
+  url?: string
   data?: {
     teamId?: string
     teamName?: string

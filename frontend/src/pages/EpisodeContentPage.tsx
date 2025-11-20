@@ -20,28 +20,37 @@ function EpisodeContentPage() {
 
   usePageTitle(episode ? `${episode.title} - Uploads` : 'Episode Uploads')
 
-  useEffect(() => {
-    const fetchEpisode = async () => {
-      if (!id) {
-        setError('Episode ID is required')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const data = await episodesApi.getDetail(id)
-        setEpisode(data)
-        setError(null)
-      } catch (err) {
-        console.error('Failed to fetch episode:', err)
-        setError('Failed to load episode. Please try again.')
-      } finally {
-        setLoading(false)
-      }
+  const fetchEpisode = async () => {
+    if (!id) {
+      setError('Episode ID is required')
+      setLoading(false)
+      return
     }
 
+    try {
+      const data = await episodesApi.getDetail(id)
+      setEpisode(data)
+      setError(null)
+    } catch (err) {
+      console.error('Failed to fetch episode:', err)
+      setError('Failed to load episode. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchEpisode()
   }, [id, refreshKey])
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      setRefreshKey(prev => prev + 1)
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [])
 
   const handleUploadComplete = () => {
     setRefreshKey(prev => prev + 1)

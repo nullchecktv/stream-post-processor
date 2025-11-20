@@ -100,6 +100,16 @@ async function refreshTokenAndRetry(): Promise<void> {
   return refreshPromise
 }
 
+const NO_CACHE_ENDPOINTS = [
+  '/notifications',
+  '/status',
+  '/clips'
+]
+
+function shouldSkipCache(endpoint: string): boolean {
+  return NO_CACHE_ENDPOINTS.some(pattern => endpoint.includes(pattern))
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
@@ -107,7 +117,7 @@ export async function apiRequest<T>(
   const method = options.method || 'GET'
   const cacheKey = `${method}:${endpoint}`
 
-  if (method === 'GET' && !options.skipCache) {
+  if (method === 'GET' && !options.skipCache && !shouldSkipCache(endpoint)) {
     const cached = apiCache.get<T>(cacheKey)
     if (cached !== null) {
       return cached
@@ -158,7 +168,7 @@ export async function apiRequest<T>(
 
     const data = await response.json()
 
-    if (method === 'GET') {
+    if (method === 'GET' && !shouldSkipCache(endpoint)) {
       apiCache.set(cacheKey, data)
     }
 

@@ -29,7 +29,7 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const { addUpload, updateUpload } = useUpload()
-  const { showSuccess, showError } = useToast()
+  const { showError } = useToast()
 
   useEffect(() => {
     const fetchEpisode = async () => {
@@ -214,7 +214,6 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
 
       updateUpload(uploadId, { status: 'completed', progress: 100 })
 
-      showSuccess(`Track "${trackName}" uploaded successfully`)
       if (onUploadComplete) onUploadComplete(trackName)
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {

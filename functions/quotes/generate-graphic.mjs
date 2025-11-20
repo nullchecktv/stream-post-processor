@@ -168,7 +168,6 @@ export const handler = async (event) => {
       await publishNotificationEvent({
         type: 'quote_graphic_ready',
         tenantId,
-        userId: null,
         title: 'Quote Graphic Ready',
         message: `Your quote graphic from ${episodeTitle} has been generated`,
         url: `/episodes/${episodeId}/quotes/${quoteId}`,

@@ -25,9 +25,10 @@ export const activityApi = {
     )
   },
 
-  markAsRead: async (notificationId: string) => {
+  markAsRead: async (notificationId: string, options?: { keepalive?: boolean }) => {
     await apiRequest<void>(`/notifications/${notificationId}?isRead=true`, {
       method: 'DELETE',
+      keepalive: options?.keepalive,
     })
     apiCache.invalidate('GET:/notifications')
   },

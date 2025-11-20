@@ -27,7 +27,7 @@ interface UserProviderProps {
 
 export function UserProvider({ children }: UserProviderProps) {
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const { showSuccess, showError } = useToast()
+  const { showError } = useToast()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -63,7 +63,6 @@ export function UserProvider({ children }: UserProviderProps) {
         ...data,
         updatedAt: new Date().toISOString()
       } : null)
-      showSuccess('Profile updated successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile'
       setError(errorMessage)

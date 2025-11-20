@@ -63,10 +63,9 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
   const markAsRead = async (notificationId: string): Promise<void> => {
     try {
       setError(null)
-      await activityApi.markAsRead(notificationId)
+      await activityApi.markAsRead(notificationId, { keepalive: true })
       setNotifications(prev => prev.filter(n => n.id !== notificationId))
       setUnreadCount(prev => Math.max(0, prev - 1))
-      showSuccess('Activity marked as read')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to mark activity as read'
       setError(errorMessage)
@@ -84,7 +83,6 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
       if (notification && !notification.isRead) {
         setUnreadCount(prev => Math.max(0, prev - 1))
       }
-      showSuccess('Activity deleted')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete activity'
       setError(errorMessage)
@@ -129,10 +127,17 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
         fetchActivity()
       }, POLL_INTERVAL)
 
+      const handleActivityUpdated = () => {
+        fetchActivity()
+      }
+
+      window.addEventListener('activityUpdated', handleActivityUpdated)
+
       return () => {
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current)
         }
+        window.removeEventListener('activityUpdated', handleActivityUpdated)
       }
     } else {
       if (pollIntervalRef.current) {

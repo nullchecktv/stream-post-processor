@@ -13,17 +13,20 @@ export const handler = async (event) => {
   const notification = event.detail;
 
   try {
-    if (notification.persist && notification.userId) {
+    if (notification.persist && notification.tenantId) {
       const notificationId = randomUUID();
       const now = new Date().toISOString();
       const ttl = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
 
       const notificationItem = {
-        pk: notification.userId,
-        sk: `notification#${now}#${notificationId}`,
+        pk: notification.tenantId,
+        sk: `notification#${notificationId}`,
+        GSI1PK: notification.tenantId,
+        GSI1SK: `notification#${now}`,
         id: notificationId,
         type: notification.type,
         title: notification.title,
+        url: notification.url,
         message: notification.message,
         data: notification.metadata || {},
         isRead: false,
@@ -38,7 +41,7 @@ export const handler = async (event) => {
       }));
 
       logger.info('Notification persisted to DynamoDB', {
-        userId: notification.userId,
+        tenantId: notification.tenantId,
         type: notification.type
       });
     }

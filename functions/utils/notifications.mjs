@@ -17,10 +17,11 @@ export const listNotifications = async (tenantId, options = {}) => {
 
   const params = {
     TableName: process.env.TABLE_NAME,
-    KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+    IndexName: 'GSI1',
+    KeyConditionExpression: 'GSI1PK = :pk AND begins_with(GSI1SK, :sk)',
     ExpressionAttributeValues: {
-      ':pk': marshall(tenantId),
-      ':sk': marshall('notification#')
+      ':pk': tenantId,
+      ':sk': 'notification#'
     },
     ScanIndexForward: false,
     Limit: limit
@@ -30,6 +31,8 @@ export const listNotifications = async (tenantId, options = {}) => {
     params.FilterExpression = 'isRead = :isRead';
     params.ExpressionAttributeValues[':isRead'] = marshall(isRead);
   }
+
+  params.ExpressionAttributeValues = marshall(params.ExpressionAttributeValues);
 
   if (cursor) {
     params.ExclusiveStartKey = cursor;
@@ -42,6 +45,8 @@ export const listNotifications = async (tenantId, options = {}) => {
       const notification = unmarshall(item);
       delete notification.pk;
       delete notification.sk;
+      delete notification.GSI1PK;
+      delete notification.GSI1SK;
       delete notification.ttl;
       return notification;
     }) || [];
@@ -61,13 +66,13 @@ export const listNotifications = async (tenantId, options = {}) => {
   }
 };
 
-export const deleteNotification = async (tenantId, sortKey) => {
+export const deleteNotification = async (tenantId, notificationId) => {
   try {
     await ddb.send(new DeleteItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: tenantId,
-        sk: sortKey
+        sk: `notification#${notificationId}`
       }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)'
     }));
@@ -81,13 +86,13 @@ export const deleteNotification = async (tenantId, sortKey) => {
   }
 };
 
-export const markNotificationAsRead = async (tenantId, sortKey) => {
+export const markNotificationAsRead = async (tenantId, notificationId) => {
   try {
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: tenantId,
-        sk: sortKey
+        sk: `notification#${notificationId}`
       }),
       UpdateExpression: 'SET isRead = :isRead',
       ExpressionAttributeValues: {
@@ -105,7 +110,7 @@ export const markNotificationAsRead = async (tenantId, sortKey) => {
       error: error.message,
       stack: error.stack,
       tenantId,
-      sortKey
+      notificationId
     });
     throw new Error('Failed to mark notification as read');
   }
@@ -115,7 +120,6 @@ export const createTeamInvitationNotification = async (userId, teamId, teamName,
   return await publishNotificationEvent({
     type: 'team_invitation',
     tenantId: userId,
-    userId,
     title: 'Team Invitation',
     message: `You have been invited to join ${teamName}`,
     url: `/teams/${teamId}/invitations`,
@@ -131,10 +135,10 @@ export const createTeamInvitationNotification = async (userId, teamId, teamName,
 
 export const removeNotificationsByInvitation = async (tenantId, invitationId) => {
   try {
-    // First, query to find notifications with this invitation ID
     const queryParams = {
       TableName: process.env.TABLE_NAME,
-      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :pk AND begins_with(GSI1SK, :sk)',
       ExpressionAttributeValues: {
         ':pk': marshall(tenantId),
         ':sk': marshall('notification#')
@@ -153,9 +157,8 @@ export const removeNotificationsByInvitation = async (tenantId, invitationId) =>
       return true;
     }
 
-    // Delete each matching notification
     const deletePromises = notificationsToDelete.map(notification =>
-      deleteNotification(tenantId, notification.sk)
+      deleteNotification(tenantId, notification.id)
     );
 
     await Promise.allSettled(deletePromises);
@@ -175,7 +178,6 @@ export const removeNotificationsByInvitation = async (tenantId, invitationId) =>
 export const publishNotificationEvent = async ({
   type,
   tenantId,
-  userId,
   title,
   message,
   url,
@@ -191,7 +193,6 @@ export const publishNotificationEvent = async ({
         Detail: JSON.stringify({
           type,
           tenantId,
-          userId,
           title,
           message,
           url,
@@ -206,8 +207,7 @@ export const publishNotificationEvent = async ({
       error: error.message,
       stack: error.stack,
       type,
-      tenantId,
-      userId
+      tenantId
     });
     throw new Error('Failed to publish notification event');
   }

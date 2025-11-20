@@ -7,15 +7,33 @@ const ddbMock = mockClient(DynamoDBClient);
 // Mock the utilities
 jest.mock('../../../functions/utils/api.mjs', () => ({
   formatResponse: (statusCode, body) => ({ statusCode, body }),
-  getPagingParams: (event) => ({
-    limit: parseInt(event?.queryStringParameters?.limit) || 20,
-    nextToken: event?.queryStringParameters?.nextToken || null
-  }),
-  buildPagingParams: (items, lastKey, hasMore) => ({
-    items,
-    nextToken: lastKey ? 'encoded-cursor' : null,
-    hasMore
-  })
+  getPagingParams: (event) => {
+    const query = event?.queryStringParameters || {};
+    const rawLimit = query.limit;
+    let limit;
+
+    if (rawLimit !== null && rawLimit !== undefined && rawLimit !== '') {
+      const parsed = parseInt(rawLimit, 10);
+      limit = Math.max(1, Math.min(25, Number.isFinite(parsed) ? parsed : 10));
+    } else {
+      limit = 10;
+    }
+
+    return {
+      limit,
+      nextToken: query?.nextToken || undefined
+    };
+  },
+  buildPagingParams: (items, lastKey, hasMore = null) => {
+    const includeNextToken = hasMore !== null ? hasMore : !!lastKey;
+    const response = { items };
+
+    if (includeNextToken && lastKey) {
+      response.nextToken = 'encoded-cursor';
+    }
+
+    return response;
+  }
 }));
 
 jest.mock('../../../functions/utils/notifications.mjs', () => ({
@@ -33,7 +51,7 @@ describe('List Notifications Handler', () => {
   });
 
   describe('Authentication and authorization', () => {
-    test('should require valid userId in authorizer context', async () => {
+    test('should require valid tenantId in authorizer context', async () => {
       const event = {
         requestContext: { authorizer: {} }
       };
@@ -45,10 +63,10 @@ describe('List Notifications Handler', () => {
       expect(listNotifications).not.toHaveBeenCalled();
     });
 
-    test('should accept valid userId', async () => {
+    test('should accept valid tenantId', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         }
       };
 
@@ -61,9 +79,9 @@ describe('List Notifications Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(200);
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
-        cursor: null,
-        limit: 20,
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
+        cursor: undefined,
+        limit: 10,
         isRead: undefined
       });
     });
@@ -73,7 +91,7 @@ describe('List Notifications Handler', () => {
     test('should handle default pagination parameters', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         }
       };
 
@@ -85,9 +103,9 @@ describe('List Notifications Handler', () => {
 
       await handler(event);
 
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
-        cursor: null,
-        limit: 20,
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
+        cursor: undefined,
+        limit: 10,
         isRead: undefined
       });
     });
@@ -95,7 +113,7 @@ describe('List Notifications Handler', () => {
     test('should handle custom limit parameter', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         queryStringParameters: {
           limit: '50'
@@ -110,9 +128,9 @@ describe('List Notifications Handler', () => {
 
       await handler(event);
 
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
-        cursor: null,
-        limit: 50,
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
+        cursor: undefined,
+        limit: 25,
         isRead: undefined
       });
     });
@@ -120,7 +138,7 @@ describe('List Notifications Handler', () => {
     test('should handle nextToken parameter', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         queryStringParameters: {
           nextToken: 'encoded-cursor-123'
@@ -135,9 +153,9 @@ describe('List Notifications Handler', () => {
 
       await handler(event);
 
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
         cursor: 'encoded-cursor-123',
-        limit: 20,
+        limit: 10,
         isRead: undefined
       });
     });
@@ -145,7 +163,7 @@ describe('List Notifications Handler', () => {
     test('should handle isRead filter parameter', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         queryStringParameters: {
           isRead: 'true'
@@ -160,9 +178,9 @@ describe('List Notifications Handler', () => {
 
       await handler(event);
 
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
-        cursor: null,
-        limit: 20,
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
+        cursor: undefined,
+        limit: 10,
         isRead: true
       });
     });
@@ -170,7 +188,7 @@ describe('List Notifications Handler', () => {
     test('should handle isRead=false filter', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         queryStringParameters: {
           isRead: 'false'
@@ -185,9 +203,9 @@ describe('List Notifications Handler', () => {
 
       await handler(event);
 
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
-        cursor: null,
-        limit: 20,
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
+        cursor: undefined,
+        limit: 10,
         isRead: false
       });
     });
@@ -195,7 +213,7 @@ describe('List Notifications Handler', () => {
     test('should ignore invalid isRead values', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         queryStringParameters: {
           isRead: 'maybe'
@@ -210,9 +228,9 @@ describe('List Notifications Handler', () => {
 
       await handler(event);
 
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
-        cursor: null,
-        limit: 20,
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
+        cursor: undefined,
+        limit: 10,
         isRead: undefined
       });
     });
@@ -241,13 +259,13 @@ describe('List Notifications Handler', () => {
 
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         }
       };
 
       listNotifications.mockResolvedValueOnce({
         notifications: mockNotifications,
-        lastEvaluatedKey: { pk: 'user#user-123', sk: 'notification#notif-2' },
+        lastEvaluatedKey: { pk: 'tenant#tenant-123', sk: 'notification#notif-2' },
         hasMore: true
       });
 
@@ -256,15 +274,14 @@ describe('List Notifications Handler', () => {
       expect(result.statusCode).toBe(200);
       expect(result.body).toEqual({
         items: mockNotifications,
-        nextToken: 'encoded-cursor',
-        hasMore: true
+        nextToken: 'encoded-cursor'
       });
     });
 
     test('should handle empty notification list', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         }
       };
 
@@ -278,16 +295,14 @@ describe('List Notifications Handler', () => {
 
       expect(result.statusCode).toBe(200);
       expect(result.body).toEqual({
-        items: [],
-        nextToken: null,
-        hasMore: false
+        items: []
       });
     });
 
     test('should handle missing query parameters gracefully', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         queryStringParameters: null
       };
@@ -301,9 +316,9 @@ describe('List Notifications Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(200);
-      expect(listNotifications).toHaveBeenCalledWith('user-123', {
-        cursor: null,
-        limit: 20,
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', {
+        cursor: undefined,
+        limit: 10,
         isRead: undefined
       });
     });
@@ -313,7 +328,7 @@ describe('List Notifications Handler', () => {
     test('should handle notification service errors', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         }
       };
 
@@ -328,7 +343,7 @@ describe('List Notifications Handler', () => {
     test('should handle unexpected errors gracefully', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         }
       };
 
@@ -356,10 +371,10 @@ describe('List Notifications Handler', () => {
 
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         queryStringParameters: {
-          limit: '100'
+          limit: '25'
         }
       };
 
@@ -381,7 +396,7 @@ describe('List Notifications Handler', () => {
     test('should handle concurrent requests', async () => {
       const events = Array(5).fill().map((_, i) => ({
         requestContext: {
-          authorizer: { userId: `user-${i}` }
+          authorizer: { tenantId: `tenant-${i}` }
         }
       }));
 

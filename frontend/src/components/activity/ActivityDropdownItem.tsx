@@ -148,19 +148,54 @@ export const ActivityDropdownItem = memo(function ActivityDropdownItem({
       onMarkAsRead(item.id)
     }
 
+    const destination = item.url
+    if (destination) {
+      const currentPath = window.location.pathname
+      if (currentPath === destination) {
+        window.dispatchEvent(new CustomEvent('refreshPageContent'))
+      } else {
+        navigate(destination)
+      }
+      return
+    }
+
     if (isActivity) {
       const activity = item as Activity
       if (activity.clipId) {
-        navigate(`/episodes/${activity.episodeId}/clips`)
+        const targetPath = `/episodes/${activity.episodeId}/clips`
+        const currentPath = window.location.pathname
+        if (currentPath === targetPath) {
+          window.dispatchEvent(new CustomEvent('refreshPageContent'))
+        } else {
+          navigate(targetPath)
+        }
       } else {
-        navigate(`/episodes/${activity.episodeId}/overview`)
+        const targetPath = `/episodes/${activity.episodeId}/overview`
+        const currentPath = window.location.pathname
+        if (currentPath === targetPath) {
+          window.dispatchEvent(new CustomEvent('refreshPageContent'))
+        } else {
+          navigate(targetPath)
+        }
       }
     } else if (isNotification) {
       const notification = item as Notification
       if (notification.type === 'team_invitation') {
-        navigate('/activity')
+        const targetPath = '/activity'
+        const currentPath = window.location.pathname
+        if (currentPath === targetPath) {
+          window.dispatchEvent(new CustomEvent('refreshPageContent'))
+        } else {
+          navigate(targetPath)
+        }
       } else if (notification.data?.teamId) {
-        navigate(`/teams/${notification.data.teamId}`)
+        const targetPath = `/teams/${notification.data.teamId}`
+        const currentPath = window.location.pathname
+        if (currentPath === targetPath) {
+          window.dispatchEvent(new CustomEvent('refreshPageContent'))
+        } else {
+          navigate(targetPath)
+        }
       }
     }
   }
@@ -168,7 +203,7 @@ export const ActivityDropdownItem = memo(function ActivityDropdownItem({
   return (
     <button
       onClick={handleClick}
-      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
         !item.isRead ? 'bg-blue-50' : ''
       }`}
     >

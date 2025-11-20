@@ -52,7 +52,7 @@ describe('Notification System Integration Tests', () => {
 
       // Step 1: Create notification
       const notification = await createNotification(
-        'user-123',
+        'tenant-123',
         'team_invitation',
         'Team Invitation',
         'You have been invited to join Test Team',
@@ -63,27 +63,27 @@ describe('Notification System Integration Tests', () => {
       expect(notification.isRead).toBe(false);
 
       // Step 2: List notifications
-      const listResult = await listNotifications('user-123');
+      const listResult = await listNotifications('tenant-123');
 
       expect(listResult.notifications).toHaveLength(1);
       expect(listResult.notifications[0].type).toBe('team_invitation');
       expect(listResult.hasMore).toBe(false);
 
       // Step 3: Delete notification
-      const deleteResult = await deleteNotification('user-123', 'notif-1');
+      const deleteResult = await deleteNotification('tenant-123', 'notif-1');
 
       expect(deleteResult).toBe(true);
 
       // Verify all operations were called correctly
       expect(createNotification).toHaveBeenCalledWith(
-        'user-123',
+        'tenant-123',
         'team_invitation',
         'Team Invitation',
         'You have been invited to join Test Team',
         { teamId: 'team-456', invitationId: 'inv-789' }
       );
-      expect(listNotifications).toHaveBeenCalledWith('user-123');
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-1');
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-1');
     });
 
     test('should handle mark as read workflow', async () => {
@@ -107,18 +107,18 @@ describe('Notification System Integration Tests', () => {
       });
 
       // Create notification
-      const notification = await createNotification('user-123', 'team_invitation', 'Team Invitation', 'Test message');
+      const notification = await createNotification('tenant-123', 'team_invitation', 'Team Invitation', 'Test message');
       expect(notification.isRead).toBe(false);
 
       // Mark as read
-      const markResult = await markNotificationAsRead('user-123', 'notif-1');
+      const markResult = await markNotificationAsRead('tenant-123', 'notif-1');
       expect(markResult).toBe(true);
 
       // List and verify read status
-      const listResult = await listNotifications('user-123');
+      const listResult = await listNotifications('tenant-123');
       expect(listResult.notifications[0].isRead).toBe(true);
 
-      expect(markNotificationAsRead).toHaveBeenCalledWith('user-123', 'notif-1');
+      expect(markNotificationAsRead).toHaveBeenCalledWith('tenant-123', 'notif-1');
     });
   });
 
@@ -142,7 +142,7 @@ describe('Notification System Integration Tests', () => {
         createdAt: `2025-01-15T10:${50 + i}:00Z`
       }));
 
-      const lastKey = { pk: 'user#user-123', sk: 'notification#notif-19' };
+      const lastKey = { pk: 'tenant#tenant-123', sk: 'notification#notif-19' };
 
       // First page
       listNotifications.mockResolvedValueOnce({
@@ -151,7 +151,7 @@ describe('Notification System Integration Tests', () => {
         hasMore: true
       });
 
-      const page1Result = await listNotifications('user-123', { limit: 20 });
+      const page1Result = await listNotifications('tenant-123', { limit: 20 });
 
       expect(page1Result.notifications).toHaveLength(20);
       expect(page1Result.hasMore).toBe(true);
@@ -164,7 +164,7 @@ describe('Notification System Integration Tests', () => {
         hasMore: false
       });
 
-      const page2Result = await listNotifications('user-123', {
+      const page2Result = await listNotifications('tenant-123', {
         cursor: lastKey,
         limit: 20
       });
@@ -174,8 +174,8 @@ describe('Notification System Integration Tests', () => {
       expect(page2Result.lastEvaluatedKey).toBeNull();
 
       // Verify pagination parameters were passed correctly
-      expect(listNotifications).toHaveBeenCalledWith('user-123', { limit: 20 });
-      expect(listNotifications).toHaveBeenCalledWith('user-123', { cursor: lastKey, limit: 20 });
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', { limit: 20 });
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', { cursor: lastKey, limit: 20 });
     });
 
     test('should filter notifications by read status correctly', async () => {
@@ -204,7 +204,7 @@ describe('Notification System Integration Tests', () => {
         lastEvaluatedKey: null
       });
 
-      const unreadResult = await listNotifications('user-123', { isRead: false });
+      const unreadResult = await listNotifications('tenant-123', { isRead: false });
       expect(unreadResult.notifications).toHaveLength(1);
       expect(unreadResult.notifications[0].isRead).toBe(false);
 
@@ -215,13 +215,13 @@ describe('Notification System Integration Tests', () => {
         lastEvaluatedKey: null
       });
 
-      const readResult = await listNotifications('user-123', { isRead: true });
+      const readResult = await listNotifications('tenant-123', { isRead: true });
       expect(readResult.notifications).toHaveLength(1);
       expect(readResult.notifications[0].isRead).toBe(true);
 
       // Verify filter parameters were passed correctly
-      expect(listNotifications).toHaveBeenCalledWith('user-123', { isRead: false });
-      expect(listNotifications).toHaveBeenCalledWith('user-123', { isRead: true });
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', { isRead: false });
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123', { isRead: true });
     });
   });
 
@@ -239,7 +239,7 @@ describe('Notification System Integration Tests', () => {
 
       createNotification.mockResolvedValueOnce(mockNotification);
 
-      const notification = await createNotification('user-123', 'test', 'Test Notification', 'Test message');
+      const notification = await createNotification('tenant-123', 'test', 'Test Notification', 'Test message');
 
       // TTL should be approximately 30 days from now
       const expectedTTL = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
@@ -249,10 +249,10 @@ describe('Notification System Integration Tests', () => {
     test('should handle invitation-based cleanup correctly', async () => {
       removeNotificationsByInvitation.mockResolvedValueOnce(true);
 
-      const result = await removeNotificationsByInvitation('user-123', 'inv-789');
+      const result = await removeNotificationsByInvitation('tenant-123', 'inv-789');
 
       expect(result).toBe(true);
-      expect(removeNotificationsByInvitation).toHaveBeenCalledWith('user-123', 'inv-789');
+      expect(removeNotificationsByInvitation).toHaveBeenCalledWith('tenant-123', 'inv-789');
     });
 
 
@@ -279,7 +279,7 @@ describe('Notification System Integration Tests', () => {
 
       // Create team invitation notification
       const notification = await createTeamInvitationNotification(
-        'user-123',
+        'tenant-123',
         'team-456',
         'Test Team',
         'John Doe',
@@ -292,17 +292,17 @@ describe('Notification System Integration Tests', () => {
       expect(notification.data.invitationId).toBe('inv-789');
 
       // Clean up notifications when invitation is processed
-      const cleanupResult = await removeNotificationsByInvitation('user-123', 'inv-789');
+      const cleanupResult = await removeNotificationsByInvitation('tenant-123', 'inv-789');
       expect(cleanupResult).toBe(true);
 
       expect(createTeamInvitationNotification).toHaveBeenCalledWith(
-        'user-123',
+        'tenant-123',
         'team-456',
         'Test Team',
         'John Doe',
         'inv-789'
       );
-      expect(removeNotificationsByInvitation).toHaveBeenCalledWith('user-123', 'inv-789');
+      expect(removeNotificationsByInvitation).toHaveBeenCalledWith('tenant-123', 'inv-789');
     });
   });
 
@@ -312,13 +312,13 @@ describe('Notification System Integration Tests', () => {
       listNotifications.mockRejectedValueOnce(new Error('Failed to list notifications'));
       deleteNotification.mockRejectedValueOnce(new Error('Failed to delete notification'));
 
-      await expect(createNotification('user-123', 'test', 'Test', 'Message'))
+      await expect(createNotification('tenant-123', 'test', 'Test', 'Message'))
         .rejects.toThrow('Failed to create notification');
 
-      await expect(listNotifications('user-123'))
+      await expect(listNotifications('tenant-123'))
         .rejects.toThrow('Failed to list notifications');
 
-      await expect(deleteNotification('user-123', 'notif-1'))
+      await expect(deleteNotification('tenant-123', 'notif-1'))
         .rejects.toThrow('Failed to delete notification');
     });
 
@@ -326,10 +326,10 @@ describe('Notification System Integration Tests', () => {
       deleteNotification.mockResolvedValueOnce(false);
       markNotificationAsRead.mockResolvedValueOnce(false);
 
-      const deleteResult = await deleteNotification('user-123', 'nonexistent');
+      const deleteResult = await deleteNotification('tenant-123', 'nonexistent');
       expect(deleteResult).toBe(false);
 
-      const markReadResult = await markNotificationAsRead('user-123', 'nonexistent');
+      const markReadResult = await markNotificationAsRead('tenant-123', 'nonexistent');
       expect(markReadResult).toBe(false);
     });
 
@@ -340,7 +340,7 @@ describe('Notification System Integration Tests', () => {
         lastEvaluatedKey: null
       });
 
-      const result = await listNotifications('user-123');
+      const result = await listNotifications('tenant-123');
 
       expect(result.notifications).toEqual([]);
       expect(result.hasMore).toBe(false);
@@ -362,7 +362,7 @@ describe('Notification System Integration Tests', () => {
         lastEvaluatedKey: null
       });
 
-      const result = await listNotifications('user-123');
+      const result = await listNotifications('tenant-123');
 
       expect(result.notifications).toHaveLength(1);
       expect(result.notifications[0]).toBeDefined();
@@ -378,11 +378,11 @@ describe('Notification System Integration Tests', () => {
       createTeamInvitationNotification.mockResolvedValue({ id: 'notif-2', type: 'team_invitation' });
 
       const operations = [
-        createNotification('user-1', 'test', 'Test 1', 'Message 1'),
-        createNotification('user-2', 'test', 'Test 2', 'Message 2'),
-        deleteNotification('user-3', 'notif-3'),
-        markNotificationAsRead('user-4', 'notif-4'),
-        createTeamInvitationNotification('user-5', 'team-1', 'Team 1', 'John', 'inv-1')
+        createNotification('tenant-1', 'test', 'Test 1', 'Message 1'),
+        createNotification('tenant-2', 'test', 'Test 2', 'Message 2'),
+        deleteNotification('tenant-3', 'notif-3'),
+        markNotificationAsRead('tenant-4', 'notif-4'),
+        createTeamInvitationNotification('tenant-5', 'team-1', 'Team 1', 'John', 'inv-1')
       ];
 
       const results = await Promise.allSettled(operations);
@@ -406,12 +406,12 @@ describe('Notification System Integration Tests', () => {
 
       listNotifications.mockResolvedValueOnce({
         notifications: largeDataset.slice(0, 100), // Return first 100 items
-        lastEvaluatedKey: { pk: 'user#user-123', sk: 'notification#notif-99' },
+        lastEvaluatedKey: { pk: 'tenant#tenant-123', sk: 'notification#notif-99' },
         hasMore: true
       });
 
       const startTime = Date.now();
-      const result = await listNotifications('user-123', { limit: 100 });
+      const result = await listNotifications('tenant-123', { limit: 100 });
       const endTime = Date.now();
 
       expect(result.notifications).toHaveLength(100);
@@ -430,11 +430,11 @@ describe('Notification System Integration Tests', () => {
 
       listNotifications.mockResolvedValueOnce({
         notifications: mockNotifications.slice(0, 20),
-        lastEvaluatedKey: { pk: 'user#user-123', sk: 'notification#notif-19' },
+        lastEvaluatedKey: { pk: 'tenant#tenant-123', sk: 'notification#notif-19' },
         hasMore: true
       });
 
-      const result = await listNotifications('user-123', { limit: 20 });
+      const result = await listNotifications('tenant-123', { limit: 20 });
 
       expect(result.notifications).toHaveLength(20);
       expect(result.hasMore).toBe(true);
@@ -444,19 +444,19 @@ describe('Notification System Integration Tests', () => {
     test('should support notification deletion (Requirement 5.2)', async () => {
       deleteNotification.mockResolvedValueOnce(true);
 
-      const result = await deleteNotification('user-123', 'notif-456');
+      const result = await deleteNotification('tenant-123', 'notif-456');
 
       expect(result).toBe(true);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
     });
 
     test('should support marking notifications as read (Requirement 5.3)', async () => {
       markNotificationAsRead.mockResolvedValueOnce(true);
 
-      const result = await markNotificationAsRead('user-123', 'notif-456');
+      const result = await markNotificationAsRead('tenant-123', 'notif-456');
 
       expect(result).toBe(true);
-      expect(markNotificationAsRead).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(markNotificationAsRead).toHaveBeenCalledWith('tenant-123', 'notif-456');
     });
 
     test('should return notifications sorted by creation date (Requirement 5.4)', async () => {
@@ -472,22 +472,22 @@ describe('Notification System Integration Tests', () => {
         lastEvaluatedKey: null
       });
 
-      const result = await listNotifications('user-123');
+      const result = await listNotifications('tenant-123');
 
       expect(result.notifications[0].id).toBe('notif-3'); // Newest first
       expect(result.notifications[2].id).toBe('notif-1'); // Oldest last
     });
 
-    test('should filter notifications by user (Requirement 5.5)', async () => {
+    test('should filter notifications by tenant (Requirement 5.5)', async () => {
       listNotifications.mockResolvedValueOnce({
-        notifications: [{ id: 'notif-1', userId: 'user-123' }],
+        notifications: [{ id: 'notif-1', tenantId: 'tenant-123' }],
         hasMore: false,
         lastEvaluatedKey: null
       });
 
-      await listNotifications('user-123');
+      await listNotifications('tenant-123');
 
-      expect(listNotifications).toHaveBeenCalledWith('user-123');
+      expect(listNotifications).toHaveBeenCalledWith('tenant-123');
     });
   });
 });

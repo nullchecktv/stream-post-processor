@@ -130,29 +130,29 @@ This system uses **single-table design** in DynamoDB because it works well for o
 #### Notification Record
 ```json
 {
-  "pk": "user#user-uuid",
-  "sk": "notification#2025-01-15T10:30:00Z#notification-uuid",
-  "GSI1PK": "user#user-uuid#notifications",
-  "GSI1SK": "2025-01-15T10:30:00Z",
-  "notificationId": "notification-uuid",
+  "pk": "tenant-uuid",
+  "sk": "notification#notification-uuid",
+  "GSI1PK": "tenant-uuid",
+  "GSI1SK": "notification#2025-01-15T10:30:00Z",
+  "id": "notification-uuid",
   "type": "team_invitation|clip_processed|member_added",
   "title": "New team invitation",
   "message": "You've been invited to join My Content Team",
   "isRead": false,
-  "metadata": {
+  "data": {
     "teamId": "team-uuid",
     "invitationId": "invitation-uuid"
   },
-  "expiresAt": "2025-02-15T10:30:00Z",
   "ttl": 1644926400,
   "createdAt": "2025-01-15T10:30:00Z"
 }
 ```
 
 #### Access Patterns
-- **List user notifications**: `pk = user#{userId}` AND `sk` begins with `notification#`
-- **Get notification by ID**: `pk = user#{userId}` AND `sk = notification#{timestamp}#{notificationId}`
-- **Query by read status**: GSI1 query with filters
+- **Get notification by ID**: `pk = {tenantId}` AND `sk = notification#{notificationId}`
+- **List tenant notifications (chronological)**: GSI1 query with `GSI1PK = {tenantId}` AND `GSI1SK` begins with `notification#`
+- **Delete notification**: `pk = {tenantId}` AND `sk = notification#{notificationId}`
+- **Query by read status**: GSI1 query with filter expression on `isRead`
 
 ### Episode Entity
 

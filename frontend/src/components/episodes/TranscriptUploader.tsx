@@ -33,7 +33,7 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
   const [speakerAnalysis, setSpeakerAnalysis] = useState<SpeakerAnalysis | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { addUpload, updateUpload } = useUpload()
-  const { showSuccess, showError } = useToast()
+  const { showError } = useToast()
 
   const validateFile = (file: File): string | null => {
     if (!file.name.toLowerCase().endsWith('.srt')) {
@@ -123,7 +123,6 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
 
       updateUpload(uploadId, { status: 'completed', progress: 100 })
 
-      showSuccess('Transcript uploaded successfully')
       setSelectedFile(null)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
