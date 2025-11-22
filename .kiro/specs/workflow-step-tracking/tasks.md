@@ -27,9 +27,9 @@
   - Test error cases and edge conditions
   - _Requirements: NFR-2_
 
-- [ ] 2. Implement backend API and integrations
+- [x] 2. Implement backend API and integrations
 
-- [ ] 2.1 Create skip plan generation endpoint
+- [x] 2.1 Create skip plan generation endpoint
   - Create `functions/episodes/skip-plan-generation.mjs`
   - Validate episode exists and plan not already generated
   - Update workflow step to "Skipped" using helper
@@ -37,14 +37,14 @@
   - Add to `openapi.yaml` with proper schemas
   - _Requirements: FR-6, US-3_
 
-- [ ] 2.2 Update episode creation with workflow steps
+- [x] 2.2 Update episode creation with workflow steps
   - Update `functions/episodes/create-episode.mjs`
   - Initialize `workflowSteps` with `initializeWorkflowSteps()`
   - Ensure all new episodes have workflow steps initialized
   - Update existing tests
   - _Requirements: FR-1_
 
-- [ ] 2.3 Integrate plan generation status tracking
+- [x] 2.3 Integrate plan generation status tracking
   - Update `functions/tools/set-plan-recommendations.mjs`
   - Set status to "In Progress" at start of generation
   - Set status to "Completed" on successful completion
@@ -52,7 +52,7 @@
   - Update tests
   - _Requirements: FR-4, FR-5, US-2_
 
-- [ ] 2.4 Integrate transcript upload status tracking
+- [x] 2.4 Integrate transcript upload status tracking
   - Update `functions/agents/clip-detector.mjs`
   - Set status to "In Progress" at start of transcript processing
   - Set status to "Completed" when clip detection finishes
@@ -60,7 +60,7 @@
   - Update tests
   - _Requirements: FR-4, FR-5, US-5_
 
-- [ ] 2.5 Integrate track upload status tracking
+- [x] 2.5 Integrate track upload status tracking
   - Update `functions/episodes/complete-track-upload.mjs` to set "In Progress" on first track
   - Update `functions/events/preprocessing-completed.mjs` to check all tracks
   - Set status to "Completed" when all tracks processed
@@ -115,19 +115,9 @@
   - Handle all five status values
   - _Requirements: FR-7, US-1_
 
-- [ ] 4. Data migration and testing
+- [ ] 4. Integration and end-to-end testing
 
-- [ ] 4.1 Create and run data migration script
-  - Create `scripts/migrate-workflow-steps.mjs`
-  - Scan all episodes and initialize workflow steps based on existing data
-  - Set plan status based on plan existence
-  - Set transcript status based on transcript existence
-  - Set tracks status based on track count and processing status
-  - Add dry-run mode and progress logging
-  - Test on dev environment before production
-  - _Requirements: NFR-3_
-
-- [ ] 4.2 Write integration tests
+- [ ] 4.1 Write integration tests
   - Create `tests/integration/workflow-steps.test.mjs`
   - Test complete workflow: create → plan → upload → tracks
   - Test skip plan workflow
@@ -137,7 +127,7 @@
   - Test error scenarios and concurrent updates
   - _Requirements: NFR-2_
 
-- [ ] 4.3 Write end-to-end tests
+- [ ] 4.2 Write end-to-end tests
   - Add E2E tests for workflow progress UI
   - Test plan generation with spinner display
   - Test skip plan functionality
@@ -189,13 +179,6 @@
   - Prevent full page refresh
   - Update only affected item in list
   - _Requirements: FR-10, US-7_
-
-- [ ] 5.6 Migrate existing content item statuses
-  - Update migration script to handle clips, quotes, blogs
-  - Set status based on existence of s3Key or content
-  - Test migration on dev environment
-  - Run migration on production
-  - _Requirements: NFR-3_
 
 - [ ] 6. Deploy and monitor
 

@@ -238,28 +238,12 @@ Add endpoint to update workflow step status:
 - Failed status updates don't leave inconsistent state
 - Notifications are best-effort (UI can poll as fallback)
 
-### NFR-3: Backward Compatibility
-- Existing episodes without workflow steps show "Not Started"
-- Migration handles episodes in various states
-- Old frontend versions continue to work (graceful degradation)
+### NFR-3: Graceful Degradation
+- Frontend handles missing workflow steps gracefully
+- Missing workflow steps default to "Not Started"
+- Missing content item status defaults to "Proposed"
 
-## Data Migration
 
-### Workflow Steps
-Existing episodes need workflow step initialization:
-- If plan exists: `generatePlan.status = "Completed"`
-- If transcript exists: `uploadTranscript.status = "Completed"`
-- If tracks exist and all processed: `uploadTracks.status = "Completed"`
-- Otherwise: status = "Not Started"
-
-### Content Items
-Existing content items need status initialization:
-- Clips with `s3Key`: status = "Created"
-- Clips without `s3Key`: status = "Proposed"
-- Quotes with `s3Key` (graphics): status = "Created"
-- Quotes without `s3Key`: status = "Proposed"
-- Blogs with `content`: status = "Created"
-- Blogs without `content`: status = "Proposed"
 
 ## Success Metrics
 
@@ -284,7 +268,6 @@ Existing content items need status initialization:
 
 ## Risks
 
-1. **Migration complexity**: Existing episodes need careful status initialization
-2. **Notification reliability**: Momento outages could prevent real-time updates
-3. **State synchronization**: Multiple tabs could show different states temporarily
-4. **Backward compatibility**: Old clients won't understand new workflow fields
+1. **Notification reliability**: Momento outages could prevent real-time updates
+2. **State synchronization**: Multiple tabs could show different states temporarily
+3. **Processing failures**: Need clear error messages and retry mechanisms

@@ -1085,6 +1085,62 @@ paths:
         httpMethod: POST
         type: aws_proxy
 
+  /episodes/{episodeId}/plan/skip:
+    parameters:
+      - $ref: "#/components/parameters/EpisodeId"
+    post:
+      summary: Skip plan generation
+      description: Marks the plan generation step as skipped, allowing the user to proceed directly to uploading content without generating a plan
+      tags: [Episodes]
+      responses:
+        200:
+          description: Plan generation skipped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Plan generation skipped"
+                required:
+                  - message
+        404:
+          description: Episode not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "NotFound"
+                message: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+        409:
+          description: Plan already generated or in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                already_generated:
+                  summary: Plan already generated
+                  value:
+                    error: "Conflict"
+                    message: "Plan has already been generated for this episode"
+                in_progress:
+                  summary: Plan generation in progress
+                  value:
+                    error: "Conflict"
+                    message: "Plan generation is currently in progress"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SkipPlanGenerationFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
+
   /episodes/{episodeId}/blog:
     parameters:
       - $ref: "#/components/parameters/EpisodeId"

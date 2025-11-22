@@ -6,6 +6,7 @@ import { formatResponse } from '../utils/api.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { validateRequest } from '../utils/validation.mjs';
 import { EpisodeCreateSchema, EPISODE_STATUS } from '../../schemas/index.mjs';
+import { initializeWorkflowSteps } from '../utils/workflow-steps.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'episodes' });
@@ -41,6 +42,7 @@ export const handler = async (event) => {
       statusHistory,
       userId,
       speakers: normalizedSpeakers,
+      workflowSteps: initializeWorkflowSteps(),
       ...(description && { description }),
       ...(airDate && { airDate }),
       ...(platforms?.length && { platforms }),

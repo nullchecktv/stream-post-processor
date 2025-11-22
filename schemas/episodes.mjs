@@ -28,6 +28,53 @@ export const EPISODE_STATUS_TRANSITIONS = {
   [EPISODE_STATUS.ARCHIVED]: []
 };
 
+export const WorkflowStepStatus = z.enum([
+  'Not Started',
+  'In Progress',
+  'Completed',
+  'Failed',
+  'Skipped'
+]);
+
+export const WORKFLOW_STEP_STATUS = {
+  NOT_STARTED: 'Not Started',
+  IN_PROGRESS: 'In Progress',
+  COMPLETED: 'Completed',
+  FAILED: 'Failed',
+  SKIPPED: 'Skipped'
+};
+
+export const WORKFLOW_STEP_TRANSITIONS = {
+  [WORKFLOW_STEP_STATUS.NOT_STARTED]: [
+    WORKFLOW_STEP_STATUS.IN_PROGRESS,
+    WORKFLOW_STEP_STATUS.SKIPPED
+  ],
+  [WORKFLOW_STEP_STATUS.IN_PROGRESS]: [
+    WORKFLOW_STEP_STATUS.COMPLETED,
+    WORKFLOW_STEP_STATUS.FAILED
+  ],
+  [WORKFLOW_STEP_STATUS.FAILED]: [
+    WORKFLOW_STEP_STATUS.IN_PROGRESS
+  ],
+  [WORKFLOW_STEP_STATUS.SKIPPED]: [
+    WORKFLOW_STEP_STATUS.IN_PROGRESS
+  ],
+  [WORKFLOW_STEP_STATUS.COMPLETED]: []
+};
+
+export const WorkflowStepSchema = z.object({
+  status: WorkflowStepStatus,
+  startedAt: z.string().datetime().optional(),
+  completedAt: z.string().datetime().optional(),
+  error: z.string().optional()
+});
+
+export const WorkflowStepsSchema = z.object({
+  generatePlan: WorkflowStepSchema,
+  uploadTranscript: WorkflowStepSchema,
+  uploadTracks: WorkflowStepSchema
+});
+
 export const EpisodeCreateSchema = z.object({
   title: z.string().min(1).max(200),
   episodeNumber: z.number().int().positive(),
@@ -36,7 +83,8 @@ export const EpisodeCreateSchema = z.object({
   platforms: z.array(Platform).optional(),
   themes: z.array(z.string()).optional(),
   seriesName: z.string().max(100).optional(),
-  speakers: z.array(z.string().min(1).max(100)).optional()
+  speakers: z.array(z.string().min(1).max(100)).optional(),
+  workflowSteps: WorkflowStepsSchema.optional()
 });
 
 export const EpisodeUpdateSchema = EpisodeCreateSchema.partial();

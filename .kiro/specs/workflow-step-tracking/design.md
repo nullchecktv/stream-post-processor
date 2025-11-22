@@ -1135,78 +1135,7 @@ function ClipCard({ clip }: ClipCardProps) {
 }
 ```
 
-## Migration Strategy
 
-### Data Migration Script
-
-```javascript
-// scripts/migrate-workflow-steps.mjs
-
-import { DynamoDBClient, ScanCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { WORKFLOW_STEP_STATUS } from '../schemas/episodes.mjs';
-import { CLIP_STATUS, QUOTE_STATUS, BLOG_STATUS } from '../schemas/index.mjs';
-
-const ddb = new DynamoDBClient();
-
-const migrateEpisode = async (episode) => {
-  const workflowSteps = {
-    generatePlan: {
-      status: episode.plan ? WORKFLOW_STEP_STATUS.COMPLETED : WORKFLOW_STEP_STATUS.NOT_STARTED
-    },
-    uploadTranscript: {
-      status: episode.transcript ? WORKFLOW_STEP_STATUS.COMPLETED : WORKFLOW_STEP_STATUS.NOT_STARTED
-    },
-    uploadTracks: {
-      status: WORKFLOW_STEP_STATUS.NOT_STARTED
-    }
-  };
-
-  if (episode.tracks && episode.tracks.length > 0) {
-    const allProcessed = episode.tracks.every(t => t.status === 'Processed');
-    if (allProcessed) {
-      workflowSteps.uploadTracks.status = WORKFLOW_STEP_STATUS.COMPLETED;
-    }
-  }
-
-  await ddb.send(new UpdateItemCommand({
-    TableName: process.env.TABLE_NAME,
-    Key: marshall({ pk: episode.pk, sk: episode.sk }),
-    UpdateExpression: 'SET workflowSteps = :steps',
-    ExpressionAttributeValues: marshall({
-      ':steps': workflowSteps
-    })
-  }));
-};
-
-const migrateContentItem = async (item, itemType) => {
-  let status;
-  
-  if (itemType === 'clip') {
-    status = item.s3Key ? CLIP_STATUS.CREATED : CLIP_STATUS.PROPOSED;
-  } else if (itemType === 'quote') {
-    status = item.s3Key ? QUOTE_STATUS.CREATED : QUOTE_STATUS.PROPOSED;
-  } else if (itemType === 'blog') {
-    status = item.content ? BLOG_STATUS.CREATED : BLOG_STATUS.PROPOSED;
-  }
-
-  if (item.status !== status) {
-    await ddb.send(new UpdateItemCommand({
-      TableName: process.env.TABLE_NAME,
-      Key: marshall({ pk: item.pk, sk: item.sk }),
-      UpdateExpression: 'SET #status = :status',
-      ExpressionAttributeNames: {
-        '#status': 'status'
-      },
-      ExpressionAttributeValues: marshall({
-        ':status': status
-      })
-    }));
-  }
-};
-
-// Scan and migrate all episodes and content items
-```
 
 ## Testing Strategy
 
@@ -1310,4 +1239,3 @@ If issues arise:
 1. Deploy backend without frontend changes (backward compatible)
 2. Frontend gracefully handles missing workflowSteps field
 3. Can revert to implicit state derivation
-4. Migration script can be reversed if needed

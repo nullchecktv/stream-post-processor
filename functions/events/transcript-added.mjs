@@ -4,6 +4,8 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { parseEpisodeIdFromKey } from '../utils/clips.mjs';
 import { extractSpeakersFromTranscript, matchSpeakers } from '../utils/speakers.mjs';
+import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/episodes.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
@@ -155,6 +157,13 @@ export const handler = async (event) => {
       tenantId,
       hasSpeakerAnalysis: !!speakerAnalysis
     });
+
+    await updateWorkflowStepStatus(
+      tenantId,
+      episodeId,
+      WORKFLOW_STEPS.UPLOAD_TRANSCRIPT,
+      WORKFLOW_STEP_STATUS.COMPLETED
+    );
 
     return { statusCode: 200 };
   } catch (err) {

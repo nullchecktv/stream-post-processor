@@ -4,6 +4,8 @@ import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { addStatusEntry } from '../utils/status-history.mjs';
 import { publishNotificationEvent } from '../utils/notifications.mjs';
+import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/episodes.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 const ddb = new DynamoDBClient();
@@ -46,6 +48,13 @@ export const setPlanRecommendationsTool = {
         return 'Unauthorized: Missing tenant context';
       }
 
+      await updateWorkflowStepStatus(
+        tenantId,
+        episodeId,
+        WORKFLOW_STEPS.GENERATE_PLAN,
+        WORKFLOW_STEP_STATUS.IN_PROGRESS
+      );
+
       const episodeResult = await ddb.send(new GetItemCommand({
         TableName: process.env.TABLE_NAME,
         Key: marshall({
@@ -56,6 +65,13 @@ export const setPlanRecommendationsTool = {
 
       if (!episodeResult.Item) {
         logger.error('Episode not found', { episodeId, tenantId });
+        await updateWorkflowStepStatus(
+          tenantId,
+          episodeId,
+          WORKFLOW_STEPS.GENERATE_PLAN,
+          WORKFLOW_STEP_STATUS.FAILED,
+          'Episode not found'
+        );
         return `Episode with ID '${episodeId}' was not found`;
       }
 
@@ -119,14 +135,38 @@ export const setPlanRecommendationsTool = {
         }
       });
 
+      await updateWorkflowStepStatus(
+        tenantId,
+        episodeId,
+        WORKFLOW_STEPS.GENERATE_PLAN,
+        WORKFLOW_STEP_STATUS.COMPLETED
+      );
+
       return `Successfully stored recommendations for episode ${episodeId}`;
     } catch (err) {
       logger.error('Error storing plan recommendations', {
         error: err.message,
         stack: err.stack,
         episodeId,
-        tenantId
+        tenantId: context?.tenantId
       });
+
+      if (context?.tenantId && episodeId) {
+        try {
+          await updateWorkflowStepStatus(
+            context.tenantId,
+            episodeId,
+            WORKFLOW_STEPS.GENERATE_PLAN,
+            WORKFLOW_STEP_STATUS.FAILED,
+            err.message
+          );
+        } catch (updateErr) {
+          logger.error('Failed to update workflow step status on error', {
+            error: updateErr.message
+          });
+        }
+      }
+
       return 'Something went wrong while storing recommendations';
     }
   }

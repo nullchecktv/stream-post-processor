@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand, PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { S3Client, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { Logger } from '@aws-lambda-powertools/logger';
@@ -6,6 +6,8 @@ import { parseBody, formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { TRACK_STATUS } from '../../schemas/index.mjs';
+import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/episodes.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -169,6 +171,37 @@ export const handler = async (event) => {
         name: e.name,
         episodeId,
         trackName
+      });
+    }
+
+    const tracksResponse = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      ExpressionAttributeValues: marshall({
+        ':pk': `${tenantId}#${episodeId}`,
+        ':sk': 'data#track#'
+      })
+    }));
+
+    const tracks = (tracksResponse.Items || []).map(item => unmarshall(item));
+    const allUploaded = tracks.length > 0 && tracks.every(track =>
+      track.status === TRACK_STATUS.UPLOADED ||
+      track.status === TRACK_STATUS.PROCESSING ||
+      track.status === TRACK_STATUS.PROCESSED
+    );
+
+    if (allUploaded) {
+      await updateWorkflowStepStatus(
+        tenantId,
+        episodeId,
+        WORKFLOW_STEPS.UPLOAD_TRACKS,
+        WORKFLOW_STEP_STATUS.COMPLETED
+      );
+
+      logger.info('All tracks uploaded, workflow step completed', {
+        episodeId,
+        tenantId,
+        trackCount: tracks.length
       });
     }
 
