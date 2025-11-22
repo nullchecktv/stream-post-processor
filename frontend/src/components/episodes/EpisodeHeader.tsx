@@ -369,9 +369,6 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
               )}
             </div>
           </div>
-          <div className="ml-4 flex items-center gap-2">
-            <EpisodeStatusChip status={episode.status as any} size="md" showIcon />
-          </div>
         </div>
 
         <div className="space-y-4">
@@ -593,11 +590,10 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="mb-2">
             <h1 className="text-2xl font-bold text-gray-900">
               Episode #{episode.episodeNumber}: {episode.title}
             </h1>
-            <EpisodeStatusChip status={episode.status as any} size="md" showIcon />
           </div>
           {episode.seriesName && (
             <p className="text-sm text-gray-600">Series: {episode.seriesName}</p>
