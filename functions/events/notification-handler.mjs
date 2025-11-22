@@ -47,10 +47,6 @@ export const handler = async (event) => {
     }
 
     if (process.env.MOMENTO_API_KEY && process.env.MOMENTO_CACHE_NAME) {
-      const topicName = notification.topic === 'tasks'
-        ? `${notification.tenantId}_tasks`
-        : notification.tenantId;
-
       const payload = {
         type: notification.type,
         title: notification.title,
@@ -59,15 +55,32 @@ export const handler = async (event) => {
         timestamp: new Date().toISOString()
       };
 
+      const tenantTopic = notification.tenantId;
+      const tasksTopic = `${notification.tenantId}_tasks`;
+
+      if (notification.topic === 'tasks') {
+        await topics.publish(
+          process.env.MOMENTO_CACHE_NAME,
+          tasksTopic,
+          JSON.stringify(payload)
+        );
+
+        logger.info('Notification published to tasks topic', {
+          notificationType: notification.type,
+          topicName: tasksTopic,
+          cacheName: process.env.MOMENTO_CACHE_NAME
+        });
+      }
+
       await topics.publish(
         process.env.MOMENTO_CACHE_NAME,
-        topicName,
+        tenantTopic,
         JSON.stringify(payload)
       );
 
-      logger.info('Notification published to Momento Topics', {
+      logger.info('Notification published to tenant topic', {
         notificationType: notification.type,
-        topicName,
+        topicName: tenantTopic,
         cacheName: process.env.MOMENTO_CACHE_NAME,
         persist: notification.persist
       });
