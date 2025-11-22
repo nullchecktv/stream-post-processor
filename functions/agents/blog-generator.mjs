@@ -279,17 +279,16 @@ Write the complete blog post now following the outline and brand voice guideline
             pk: `${tenantId}#${episodeId}`,
             sk: 'data#blog#outline'
           }),
-          UpdateExpression: 'SET #status = :status, processingCompletedAt = :completedAt, #updatedAt = :updatedAt, #error = :error',
+          UpdateExpression: 'SET #status = :status, processingCompletedAt = :completedAt, #updatedAt = :updatedAt, errorMessage = :errorMessage',
           ExpressionAttributeNames: {
             '#status': 'status',
-            '#updatedAt': 'updatedAt',
-            '#error': 'error'
+            '#updatedAt': 'updatedAt'
           },
           ExpressionAttributeValues: marshall({
             ':status': BLOG_STATUS.FAILED,
             ':completedAt': failedAt,
             ':updatedAt': failedAt,
-            ':error': err.message
+            ':errorMessage': err.message
           })
         }));
 
