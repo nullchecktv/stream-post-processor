@@ -180,7 +180,7 @@
   - Update only affected item in list
   - _Requirements: FR-10, US-7_
 
-- [ ] 6. Deploy and monitor
+- [-] 6. Deploy and monitor
 
 - [-] 6.1 Commit and push changes
   - Review all changes made for content item status tracking
