@@ -21,22 +21,31 @@ function EpisodePlanPage() {
 
   usePageTitle('Episode Plan')
 
-  useEffect(() => {
-    const fetchPlan = async () => {
-      if (!id) return
+  const fetchPlan = async () => {
+    if (!id) return
 
-      setLoading(true)
-      try {
-        const data = await episodesApi.getPlan(id)
-        setEpisodePlan(data)
-      } catch (err) {
-        console.error('Failed to fetch plan:', err)
-      } finally {
-        setLoading(false)
-      }
+    setLoading(true)
+    try {
+      const data = await episodesApi.getPlan(id)
+      setEpisodePlan(data)
+    } catch (err) {
+      console.error('Failed to fetch plan:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPlan()
+  }, [id])
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchPlan()
     }
 
-    fetchPlan()
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
   }, [id])
 
   const handlePlanSubmit = async (data: PlanFormData) => {
@@ -51,7 +60,9 @@ function EpisodePlanPage() {
 
       setEpisodePlan(result)
       setShowPlanForm(false)
-      showToast(episodePlan?.plan ? 'Plan updated successfully!' : 'Plan created successfully!', 'success')
+      if (!episodePlan?.plan) {
+        showToast('Plan created successfully!', 'success')
+      }
     } catch (err) {
       console.error('Failed to save plan:', err)
       showToast('Failed to save plan. Please try again.', 'error')

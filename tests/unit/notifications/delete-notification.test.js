@@ -6,7 +6,7 @@ const ddbMock = mockClient(DynamoDBClient);
 // Mock the utilities
 jest.mock('../../../functions/utils/api.mjs', () => ({
   formatResponse: (statusCode, body) => ({ statusCode, body }),
-  formatEmptyResponse: () => ({ statusCode: 204, body: '' })
+  formatEmptyResponse: () => ({ statusCode: 204, headers: {} })
 }));
 
 jest.mock('../../../functions/utils/notifications.mjs', () => ({
@@ -17,7 +17,7 @@ jest.mock('../../../functions/utils/notifications.mjs', () => ({
 const { handler } = require('../../../functions/notifications/delete-notification.mjs');
 const { deleteNotification, markNotificationAsRead } = require('../../../functions/utils/notifications.mjs');
 
-describe('De Notification Handler', () => {
+describe('Delete Notification Handler', () => {
   beforeEach(() => {
     ddbMock.reset();
     jest.clearAllMocks();
@@ -25,7 +25,7 @@ describe('De Notification Handler', () => {
   });
 
   describe('Authentication and authorization', () => {
-    test('should require valid userId in authorizer context', async () => {
+    test('should require valid tenantId in authorizer context', async () => {
       const event = {
         requestContext: { authorizer: {} },
         pathParameters: { notificationId: 'notif-123' }
@@ -39,10 +39,10 @@ describe('De Notification Handler', () => {
       expect(markNotificationAsRead).not.toHaveBeenCalled();
     });
 
-    test('should accept valid userId', async () => {
+    test('should accept valid tenantId', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };
@@ -52,7 +52,7 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
     });
   });
 
@@ -60,7 +60,7 @@ describe('De Notification Handler', () => {
     test('should require notificationId parameter', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: {}
       };
@@ -75,7 +75,7 @@ describe('De Notification Handler', () => {
     test('should handle missing pathParameters', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         }
       };
 
@@ -88,7 +88,7 @@ describe('De Notification Handler', () => {
     test('should accept valid notificationId', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };
@@ -98,7 +98,7 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
     });
   });
 
@@ -106,7 +106,7 @@ describe('De Notification Handler', () => {
     test('should delete notification successfully', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };
@@ -116,15 +116,15 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(result.body).toBe('');
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(result.body).toBeUndefined();
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
       expect(markNotificationAsRead).not.toHaveBeenCalled();
     });
 
     test('should handle non-existent notification', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'nonexistent' }
       };
@@ -140,7 +140,7 @@ describe('De Notification Handler', () => {
     test('should handle delete service errors', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };
@@ -158,7 +158,7 @@ describe('De Notification Handler', () => {
     test('should mark notification as read when isRead=true', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' },
         queryStringParameters: { isRead: 'true' }
@@ -169,15 +169,15 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(result.body).toBe('');
-      expect(markNotificationAsRead).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(result.body).toBeUndefined();
+      expect(markNotificationAsRead).toHaveBeenCalledWith('tenant-123', 'notif-456');
       expect(deleteNotification).not.toHaveBeenCalled();
     });
 
     test('should handle non-existent notification when marking as read', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'nonexistent' },
         queryStringParameters: { isRead: 'true' }
@@ -194,7 +194,7 @@ describe('De Notification Handler', () => {
     test('should handle mark as read service errors', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' },
         queryStringParameters: { isRead: 'true' }
@@ -211,7 +211,7 @@ describe('De Notification Handler', () => {
     test('should ignore other isRead values and default to delete', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' },
         queryStringParameters: { isRead: 'false' }
@@ -222,7 +222,7 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
       expect(markNotificationAsRead).not.toHaveBeenCalled();
     });
   });
@@ -231,7 +231,7 @@ describe('De Notification Handler', () => {
     test('should handle missing queryStringParameters', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };
@@ -241,13 +241,13 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
     });
 
     test('should handle null queryStringParameters', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' },
         queryStringParameters: null
@@ -258,13 +258,13 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
     });
 
     test('should handle empty queryStringParameters', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' },
         queryStringParameters: {}
@@ -275,7 +275,7 @@ describe('De Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(204);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-456');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-456');
     });
   });
 
@@ -295,7 +295,7 @@ describe('De Notification Handler', () => {
     test('should handle unexpected errors', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };
@@ -313,7 +313,7 @@ describe('De Notification Handler', () => {
     test('should handle concurrent delete requests', async () => {
       const events = Array(5).fill().map((_, i) => ({
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: `notif-${i}` }
       }));
@@ -333,14 +333,14 @@ describe('De Notification Handler', () => {
     test('should handle mixed operations (delete and mark as read)', async () => {
       const deleteEvent = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-delete' }
       };
 
       const markReadEvent = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-read' },
         queryStringParameters: { isRead: 'true' }
@@ -356,8 +356,8 @@ describe('De Notification Handler', () => {
 
       expect(deleteResult.statusCode).toBe(204);
       expect(markReadResult.statusCode).toBe(204);
-      expect(deleteNotification).toHaveBeenCalledWith('user-123', 'notif-delete');
-      expect(markNotificationAsRead).toHaveBeenCalledWith('user-123', 'notif-read');
+      expect(deleteNotification).toHaveBeenCalledWith('tenant-123', 'notif-delete');
+      expect(markNotificationAsRead).toHaveBeenCalledWith('tenant-123', 'notif-read');
     });
   });
 
@@ -365,7 +365,7 @@ describe('De Notification Handler', () => {
     test('should complete operations quickly', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };
@@ -383,7 +383,7 @@ describe('De Notification Handler', () => {
     test('should handle rapid successive requests', async () => {
       const event = {
         requestContext: {
-          authorizer: { userId: 'user-123' }
+          authorizer: { tenantId: 'tenant-123' }
         },
         pathParameters: { notificationId: 'notif-456' }
       };

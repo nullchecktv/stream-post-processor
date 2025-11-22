@@ -31,6 +31,7 @@ export interface EpisodeListView {
   airDate?: string
   platforms?: Platform[]
   themes?: string[]
+  speakers?: string[]
   createdAt: string
   updatedAt: string
   metrics?: {
@@ -87,6 +88,7 @@ export interface Episode {
   platforms?: Platform[]
   themes?: string[]
   seriesName?: string
+  speakers?: string[]
   metrics: {
     tracksCount: number
     hasTranscript: boolean
@@ -98,6 +100,25 @@ export interface Episode {
   }>
   createdAt: string
   updatedAt: string
+}
+
+export interface SpeakerValidationError {
+  error: 'InvalidSpeakers'
+  message: string
+  invalidSpeakers: string[]
+  validSpeakers: string[]
+}
+
+export interface SpeakerMatch {
+  transcriptName: string
+  episodeName: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
+export interface SpeakerMatchResult {
+  matched: SpeakerMatch[]
+  unmatched: string[]
+  suggestion?: string
 }
 
 export interface Plan {
@@ -126,6 +147,7 @@ export interface Activity {
   type: 'clip_detected' | 'clip_processed' | 'clip_failed' | 'preprocessing_completed' | 'preprocessing_failed' | 'status_changed'
   title: string
   message: string
+  url?: string
   episodeId: string
   clipId?: string
   isRead: boolean
@@ -221,6 +243,7 @@ export interface Notification {
   type: 'team_invitation' | 'member_added' | 'member_removed' | 'role_changed' | 'clip_processed'
   title: string
   message: string
+  url?: string
   data?: {
     teamId?: string
     teamName?: string

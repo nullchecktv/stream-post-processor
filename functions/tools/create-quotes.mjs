@@ -6,6 +6,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { randomUUID } from 'crypto';
 import { createQuoteKey, createQuoteGSIKey } from '../utils/quotes.mjs';
 import { QUOTE_STATUS } from '../../schemas/index.mjs';
+import { validateSpeakers } from '../utils/speakers.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -72,6 +73,27 @@ export const createQuoteTool = {
         });
       }
 
+      const allSpeakers = [...new Set(quotes.map(q => q.speaker).filter(s => s))];
+      const speakerNormalizationMap = {};
+
+      if (allSpeakers.length > 0) {
+        const validation = await validateSpeakers(episodeId, tenantId, allSpeakers);
+
+        if (!validation.valid) {
+          logger.error('Speaker validation failed for quotes', {
+            episodeId,
+            tenantId,
+            invalidSpeakers: validation.invalidSpeakers,
+            validSpeakers: validation.validSpeakers
+          });
+          return `Failed to create quotes: Invalid speakers [${validation.invalidSpeakers.join(', ')}]. Valid speakers for this episode are: [${validation.validSpeakers.join(', ')}]`;
+        }
+
+        allSpeakers.forEach((speaker, index) => {
+          speakerNormalizationMap[speaker.toLowerCase()] = validation.normalizedSpeakers[index];
+        });
+      }
+
       const results = await Promise.allSettled(
         quotes.map(async (quote) => {
           const quoteId = randomUUID();
@@ -79,6 +101,10 @@ export const createQuoteTool = {
 
           const showSpeaker = quote.showSpeaker !== undefined ? quote.showSpeaker : true;
           const showEpisodeTitle = quote.showEpisodeTitle !== undefined ? quote.showEpisodeTitle : true;
+
+          const normalizedSpeaker = quote.speaker
+            ? (speakerNormalizationMap[quote.speaker.toLowerCase()] || quote.speaker)
+            : quote.speaker;
 
           const keys = createQuoteKey(tenantId, episodeId, quoteId);
           const gsiKeys = createQuoteGSIKey(tenantId, quote.timestamp, episodeId, quoteId);
@@ -89,7 +115,7 @@ export const createQuoteTool = {
             quoteId,
             title: quote.title,
             text: quote.text,
-            speaker: quote.speaker,
+            speaker: normalizedSpeaker,
             timestamp: quote.timestamp,
             relevanceScore: quote.relevanceScore,
             showSpeaker,

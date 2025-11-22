@@ -1,11 +1,14 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
-import { marshall } from '@aws-sdk/util-dynamodb';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { parseEpisodeIdFromKey } from '../utils/clips.mjs';
+import { extractSpeakersFromTranscript, matchSpeakers } from '../utils/speakers.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
 const ddb = new DynamoDBClient();
+const eventBridge = new EventBridgeClient();
 
 export const handler = async (event) => {
   try {
@@ -41,30 +44,79 @@ export const handler = async (event) => {
       return { statusCode: 200 };
     }
 
+    const episode = unmarshall(episodeResponse.Item);
+    const episodeSpeakers = episode.speakers || [];
+
+    let speakerAnalysis = null;
+
+    try {
+      const transcriptSpeakers = await extractSpeakersFromTranscript(key);
+      logger.info('Extracted speakers from transcript', {
+        episodeId,
+        transcriptSpeakers,
+        count: transcriptSpeakers.length
+      });
+
+      if (transcriptSpeakers.length > 0) {
+        const matchResult = await matchSpeakers(transcriptSpeakers, episodeSpeakers);
+        logger.info('Speaker matching completed', {
+          episodeId,
+          matchedCount: matchResult.matches?.length || 0,
+          unmatchedCount: matchResult.unmatched?.length || 0
+        });
+
+        speakerAnalysis = {
+          matched: matchResult.matches || [],
+          unmatched: matchResult.unmatched || [],
+          suggestion: matchResult.suggestion || null
+        };
+      }
+    } catch (error) {
+      logger.error('Failed to analyze speakers', {
+        error: error.message,
+        stack: error.stack,
+        episodeId,
+        key
+      });
+    }
+
     const now = new Date().toISOString();
     const newStatus = 'transcript uploaded';
+
+    const updateExpression = speakerAnalysis
+      ? 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt, #speakerAnalysis = :speakerAnalysis, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)'
+      : 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)';
+
+    const expressionAttributeNames = {
+      '#transcriptKey': 'transcriptKey',
+      '#status': 'status',
+      '#updatedAt': 'updatedAt',
+      '#statusHistory': 'statusHistory'
+    };
+
+    const expressionAttributeValues = {
+      ':key': key,
+      ':status': newStatus,
+      ':updatedAt': now,
+      ':emptyList': [],
+      ':newStatusEntry': [{
+        status: newStatus,
+        timestamp: now
+      }]
+    };
+
+    if (speakerAnalysis) {
+      expressionAttributeNames['#speakerAnalysis'] = 'speakerAnalysis';
+      expressionAttributeValues[':speakerAnalysis'] = speakerAnalysis;
+    }
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' }),
       ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
-      UpdateExpression: 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)',
-      ExpressionAttributeNames: {
-        '#transcriptKey': 'transcriptKey',
-        '#status': 'status',
-        '#updatedAt': 'updatedAt',
-        '#statusHistory': 'statusHistory'
-      },
-      ExpressionAttributeValues: marshall({
-        ':key': key,
-        ':status': newStatus,
-        ':updatedAt': now,
-        ':emptyList': [],
-        ':newStatusEntry': [{
-          status: newStatus,
-          timestamp: now
-        }]
-      }),
+      UpdateExpression: updateExpression,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: marshall(expressionAttributeValues),
     }));
 
     try {
@@ -75,6 +127,34 @@ export const handler = async (event) => {
     } catch (e) {
       logger.warn('Failed to delete presigned url record', { episodeId, error: e?.message || e });
     }
+
+    await eventBridge.send(new PutEventsCommand({
+      Entries: [{
+        Source: 'nullcheck',
+        DetailType: 'Notification',
+        Detail: JSON.stringify({
+          type: 'transcript_processed',
+          tenantId,
+          title: 'Transcript Processed',
+          message: speakerAnalysis
+            ? `Found ${speakerAnalysis.matched.length + speakerAnalysis.unmatched.length} speaker${speakerAnalysis.matched.length + speakerAnalysis.unmatched.length !== 1 ? 's' : ''}`
+            : 'Transcript uploaded successfully',
+          url: `/episodes/${episodeId}`,
+          persist: false,
+          topic: 'tasks',
+          metadata: {
+            episodeId,
+            speakerAnalysis
+          }
+        })
+      }]
+    }));
+
+    logger.info('Transcript processing notification sent', {
+      episodeId,
+      tenantId,
+      hasSpeakerAnalysis: !!speakerAnalysis
+    });
 
     return { statusCode: 200 };
   } catch (err) {

@@ -49,7 +49,11 @@ export const handler = async (event) => {
       updatedAt: episode.updatedAt
     };
 
-    return formatResponse(200, response);
+    return formatResponse(200, response, {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
 
   } catch (err) {
     logger.error('Error getting episode status', {

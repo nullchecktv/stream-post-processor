@@ -5,11 +5,14 @@ import type { Team, TeamMember, PendingInvitation, BrandingConfig } from '../typ
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { useToast } from './ToastContext'
+import { useNotifications } from '../hooks/useNotifications'
+import { apiCache } from '../utils/cache'
 
 interface TeamContextType {
   activeTeam: Team | null
   teams: Team[]
   loading: boolean
+  switching: boolean
   error: string | null
   fetchTeams: () => Promise<void>
   createTeam: (data: CreateTeamData) => Promise<Team>
@@ -54,12 +57,14 @@ interface TeamProviderProps {
 }
 
 export function TeamProvider({ children }: TeamProviderProps) {
-  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { isAuthenticated, loading: authLoading, refreshAuthToken } = useAuth()
   const { profile, refreshProfile } = useUser()
   const { showSuccess, showError } = useToast()
+  const { handleTeamSwitch, unsubscribe } = useNotifications()
   const [activeTeam, setActiveTeamState] = useState<Team | null>(null)
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [switching, setSwitching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchTeams = useCallback(async () => {
@@ -145,20 +150,43 @@ export function TeamProvider({ children }: TeamProviderProps) {
   }
 
   const setActiveTeam = async (teamId: string | null): Promise<void> => {
+    setSwitching(true)
+    setError(null)
+
+    if (teamId) {
+      const team = teams.find(t => t.id === teamId)
+      setActiveTeamState(team || null)
+    } else {
+      setActiveTeamState(null)
+    }
+
     try {
-      setError(null)
       await usersApi.setActiveTeam(teamId)
-      await refreshProfile()
+
+      apiCache.clear()
+
+      await refreshAuthToken()
+
       if (teamId) {
-        const team = teams.find(t => t.id === teamId)
-        setActiveTeamState(team || null)
+        handleTeamSwitch(teamId).catch(err => {
+          console.error('Failed to handle team switch notifications:', err)
+        })
       } else {
-        setActiveTeamState(null)
+        unsubscribe().catch(err => {
+          console.error('Failed to unsubscribe from notifications:', err)
+        })
       }
+
+      await refreshProfile()
+
+      window.dispatchEvent(new CustomEvent('team-switched', { detail: { teamId } }))
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to set active team'
       setError(errorMessage)
+      showError(errorMessage)
       throw err
+    } finally {
+      setSwitching(false)
     }
   }
 
@@ -259,6 +287,7 @@ export function TeamProvider({ children }: TeamProviderProps) {
         activeTeam,
         teams,
         loading,
+        switching,
         error,
         fetchTeams,
         createTeam,

@@ -42,6 +42,15 @@ export function useEpisodes() {
     fetchEpisodes(true)
   }, [])
 
+  useEffect(() => {
+    const handleTeamSwitch = () => {
+      fetchEpisodes(true)
+    }
+
+    window.addEventListener('team-switched', handleTeamSwitch)
+    return () => window.removeEventListener('team-switched', handleTeamSwitch)
+  }, [fetchEpisodes])
+
   const loadMore = useCallback(() => {
     if (!loadingMore && hasMore) {
       fetchEpisodes(false)

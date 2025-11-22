@@ -114,6 +114,14 @@ paths:
                 seriesName:
                   type: string
                   description: Name of the series this episode belongs to (optional)
+                speakers:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                  description: List of speaker names for this episode (optional). Speaker names are trimmed and deduplicated automatically.
+                  example: ["Alice Johnson", "Bob Smith"]
               required: [title, episodeNumber]
       responses:
         201:
@@ -221,6 +229,14 @@ paths:
                 seriesName:
                   type: string
                   maxLength: 100
+                speakers:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                  description: List of speaker names for this episode. Speaker names are trimmed and deduplicated automatically.
+                  example: ["Alice Johnson", "Bob Smith"]
       responses:
         204:
           description: Episode updated successfully
@@ -1813,26 +1829,8 @@ paths:
                   nullable: true
                   example: "team-123e4567-e89b-12d3-a456-426614174000"
       responses:
-        200:
-          description: Active team updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  activeTeamId:
-                    type: string
-                    nullable: true
-                    description: Current active team ID
-                  message:
-                    type: string
-                    description: Success message
-                    example: "Active team updated successfully"
-                  requiresTokenRefresh:
-                    type: boolean
-                    description: Always false - cache is automatically flushed server-side
-                    example: false
-                required: [activeTeamId, message, requiresTokenRefresh]
+        204:
+          description: Active team updated successfully
         400:
           $ref: "#/components/responses/BadRequest"
           description: Invalid team ID or user not a member of specified team
@@ -2781,6 +2779,53 @@ components:
           type: string
           description: Name of the series this episode belongs to (optional)
           example: "Tech Talk Series"
+        speakers:
+          type: array
+          description: List of speaker names for this episode (optional)
+          items:
+            type: string
+          example: ["Alice Johnson", "Bob Smith"]
+        speakerAnalysis:
+          type: object
+          description: Speaker analysis results from transcript processing (optional, available after transcript upload)
+          properties:
+            matched:
+              type: array
+              description: Speakers from transcript that matched episode speakers
+              items:
+                type: object
+                properties:
+                  transcriptName:
+                    type: string
+                    description: Speaker name as it appears in the transcript
+                    example: "alice j"
+                  episodeName:
+                    type: string
+                    description: Matched speaker name from episode speakers list
+                    example: "Alice Johnson"
+                  confidence:
+                    type: string
+                    enum: ["high", "medium", "low"]
+                    description: Confidence level of the match
+                    example: "high"
+                required:
+                  - transcriptName
+                  - episodeName
+                  - confidence
+            unmatched:
+              type: array
+              description: Speakers from transcript that did not match any episode speakers
+              items:
+                type: string
+              example: ["Charlie"]
+            suggestion:
+              type: string
+              nullable: true
+              description: Suggestion message for unmatched speakers
+              example: "Consider adding these speakers to the episode: Charlie"
+          required:
+            - matched
+            - unmatched
         metrics:
           type: object
           description: Episode metrics and counts
@@ -2887,7 +2932,7 @@ components:
           example: "Created"
         segments:
           type: array
-          description: Segments that make up this clip
+          description: Segments that make up this clip. Each segment must reference a speaker from the episode's speaker list.
           items:
             type: object
             properties:
@@ -2899,12 +2944,17 @@ components:
                 type: string
                 description: Segment end time (HH:MM:SS format)
                 example: "00:16:15"
+              speaker:
+                type: string
+                description: Speaker name for this segment. Must match a speaker defined in the episode (case-insensitive). Speaker names will be normalized to match the episode's capitalization.
+                example: "Alice Johnson"
               text:
                 type: string
                 description: Transcript text for this segment
             required:
               - startTime
               - endTime
+              - speaker
               - text
         duration:
           type: string
@@ -3828,6 +3878,13 @@ components:
               value:
                 error: "ValidationError"
                 message: "Speaker name cannot be empty or contain only whitespace"
+            invalid_segment_speakers:
+              summary: Invalid speakers in clip segments
+              value:
+                error: "InvalidSpeakers"
+                message: "Segment speakers must exist in episode speaker list"
+                invalidSpeakers: ["Bobby", "Chuck"]
+                validSpeakers: ["Alice Johnson", "Bob Smith", "Charlie Davis"]
             invalid_email:
               summary: Invalid email format
               value:

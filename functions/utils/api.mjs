@@ -7,13 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': process.env.ORIGIN || '*',
 };
 
-export const formatResponse = (statusCode, body) => {
+export const formatResponse = (statusCode, body, additionalHeaders = {}) => {
   return {
     statusCode,
     body: typeof body === 'string' ? JSON.stringify({ message: body }) : JSON.stringify(body),
     headers: {
       'Content-Type': 'application/json',
-      ...corsHeaders
+      ...corsHeaders,
+      ...additionalHeaders
     }
   };
 };

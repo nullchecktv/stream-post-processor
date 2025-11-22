@@ -7,6 +7,7 @@ import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { QuotePathParamsSchema, QuoteCreateSchema } from '../../schemas/index.mjs';
 import { createQuoteKey, createQuoteGSIKey, QUOTE_STATUS } from '../utils/quotes.mjs';
+import { validateSpeakers, formatSpeakerValidationError } from '../utils/speakers.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
 const ddb = new DynamoDBClient();
@@ -26,7 +27,17 @@ export const handler = async (event) => {
 
     const { tenantId, data } = requestValidation;
     const { episodeId } = pathValidation.data;
-    const { text, speaker, timestamp, relevanceScore, context, showSpeaker, showEpisodeTitle, orientation } = data;
+    let { text, speaker, timestamp, relevanceScore, context, showSpeaker, showEpisodeTitle, orientation } = data;
+
+    if (speaker) {
+      const validation = await validateSpeakers(episodeId, tenantId, [speaker]);
+
+      if (!validation.valid) {
+        return formatSpeakerValidationError(validation, episodeId, 'Quote');
+      }
+
+      speaker = validation.normalizedSpeakers[0];
+    }
 
     const quoteId = randomUUID();
     const now = new Date().toISOString();

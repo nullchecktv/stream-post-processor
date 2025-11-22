@@ -16,6 +16,7 @@ import { EpisodeLayout } from './components/episodes/EpisodeLayout'
 import { TeamLayout } from './components/teams/TeamLayout'
 import { LoadingSpinner } from './components/common/LoadingSpinner'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { TeamSwitchingOverlay } from './components/common/TeamSwitchingOverlay'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const SignupPage = lazy(() => import('./pages/SignupPage'))
@@ -54,6 +55,7 @@ function App() {
                   <ActivityProvider>
                     <UploadProvider>
                       <SidebarProvider>
+                    <TeamSwitchingOverlay />
                     <Suspense fallback={<LoadingSpinner variant="page" />}>
                       <Routes>
                         <Route path="/login" element={<LoginPage />} />
@@ -68,18 +70,18 @@ function App() {
                               <Route path="/teams" element={<TeamsListPage />} />
                               <Route path="/activity" element={<ActivityPage />} />
                               <Route path="/profile" element={<ProfilePage />} />
+                              <Route path="/episodes" element={<EpisodesListPage />} />
+                              <Route path="/episodes/:id" element={<EpisodeLayout />}>
+                                <Route path="overview" element={<EpisodeOverviewPage />} />
+                                <Route path="plan" element={<EpisodePlanPage />} />
+                                <Route path="uploads" element={<EpisodeContentPage />} />
+                                <Route path="clips" element={<EpisodeClipsPage />} />
+                                <Route path="blog" element={<BlogPage />} />
+                                <Route path="quotes" element={<EpisodeQuotesPage />} />
+                              </Route>
+                              <Route path="/episodes/:episodeId/clips/:clipId" element={<ClipDetailPage />} />
+                              <Route path="/episodes/:episodeId/quotes/:quoteId" element={<QuoteDetailPage />} />
                               <Route element={<TeamGuard />}>
-                                <Route path="/episodes" element={<EpisodesListPage />} />
-                                <Route path="/episodes/:id" element={<EpisodeLayout />}>
-                                  <Route path="overview" element={<EpisodeOverviewPage />} />
-                                  <Route path="plan" element={<EpisodePlanPage />} />
-                                  <Route path="uploads" element={<EpisodeContentPage />} />
-                                  <Route path="clips" element={<EpisodeClipsPage />} />
-                                  <Route path="blog" element={<BlogPage />} />
-                                  <Route path="quotes" element={<EpisodeQuotesPage />} />
-                                </Route>
-                                <Route path="/episodes/:episodeId/clips/:clipId" element={<ClipDetailPage />} />
-                                <Route path="/episodes/:episodeId/quotes/:quoteId" element={<QuoteDetailPage />} />
                                 <Route path="/teams/:teamId" element={<TeamDetailPage />} />
                                 <Route path="/teams/:teamId/settings" element={<TeamLayout />}>
                                   <Route path="general" element={<TeamGeneralSettingsPage />} />

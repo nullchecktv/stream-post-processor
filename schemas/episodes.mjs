@@ -35,7 +35,8 @@ export const EpisodeCreateSchema = z.object({
   airDate: z.iso.datetime().optional(),
   platforms: z.array(Platform).optional(),
   themes: z.array(z.string()).optional(),
-  seriesName: z.string().max(100).optional()
+  seriesName: z.string().max(100).optional(),
+  speakers: z.array(z.string().min(1).max(100)).optional()
 });
 
 export const EpisodeUpdateSchema = EpisodeCreateSchema.partial();

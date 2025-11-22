@@ -18,7 +18,7 @@ export const handler = async (event) => {
     const tenantId = userProfile?.activeTeamId || userId;
     const activeTeamId = userProfile?.activeTeamId || null;
 
-    const momentoToken = await generateMomentoToken(userId, teams);
+    const momentoToken = await generateMomentoToken(tenantId, userId, teams);
 
     if (!event.response.claimsOverrideDetails) {
       event.response.claimsOverrideDetails = {};

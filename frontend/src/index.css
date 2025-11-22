@@ -6,10 +6,10 @@
   --color-primary-light: #7BA879;
   --color-primary-dark: #4A7349;
   --color-accent: #E6F3D4;
-  --color-success: #E6F3D4;
+  --color-success: var(--color-accent);
   --color-warning: #F59E0B;
   --color-error: #EF4444;
-  --color-info: #3B82F6;
+  --color-info: var(--color-primary-dark);
 }
 
 @layer base {

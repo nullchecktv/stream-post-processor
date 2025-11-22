@@ -6,8 +6,8 @@ const logger = new Logger({ serviceName: 'notifications' });
 
 export const handler = async (event) => {
   try {
-    const userId = event?.requestContext?.authorizer?.userId;
-    if (!userId) {
+    const tenantId = event?.requestContext?.authorizer?.tenantId;
+    if (!tenantId) {
       return formatResponse(401, { message: 'Unauthorized' });
     }
 
@@ -22,7 +22,7 @@ export const handler = async (event) => {
       isRead = false;
     }
 
-    const result = await listNotifications(userId, {
+    const result = await listNotifications(tenantId, {
       cursor: nextToken,
       limit,
       isRead
@@ -34,12 +34,16 @@ export const handler = async (event) => {
       result.hasMore
     );
 
-    return formatResponse(200, response);
+    return formatResponse(200, response, {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
   } catch (error) {
     logger.error('Error listing notifications', {
       error: error.message,
       stack: error.stack,
-      userId: event?.requestContext?.authorizer?.userId
+      tenantId: event?.requestContext?.authorizer?.tenantId
     });
     return formatResponse(500, { message: 'Failed to list notifications' });
   }

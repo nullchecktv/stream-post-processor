@@ -1,6 +1,6 @@
-import { apiRequest } from './client'
+import { apiRequest, ApiError } from './client'
 import { apiCache } from '../utils/cache'
-import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView, EpisodePlan, ClipOrientation, BlogData } from '../types'
+import type { Episode, EpisodeListView, EpisodeDetail, StatusHistoryEntry, ClipListView, EpisodePlan, ClipOrientation, BlogData, SpeakerValidationError } from '../types'
 import type { EpisodeCreate, EpisodeUpdate } from '@schemas/episodes'
 
 interface ListEpisodesParams {
@@ -29,6 +29,15 @@ interface UploadTranscriptResponse {
   uploadUrl: string
   expiresAt: string
   requiredHeaders?: Record<string, string>
+  speakerAnalysis?: {
+    matched: Array<{
+      transcriptName: string
+      episodeName: string
+      confidence: 'high' | 'medium' | 'low'
+    }>
+    unmatched: string[]
+    suggestion?: string
+  }
 }
 
 interface InitiateTrackUploadResponse {
@@ -77,6 +86,31 @@ interface PlayClipResponse {
   viewCount: number
 }
 
+function isSpeakerValidationError(error: unknown): error is ApiError & { details: SpeakerValidationError } {
+  return error instanceof ApiError &&
+         error.errorType === 'InvalidSpeakers' &&
+         error.details !== undefined &&
+         typeof error.details === 'object' &&
+         error.details !== null &&
+         'invalidSpeakers' in error.details &&
+         'validSpeakers' in error.details
+}
+
+function handleSpeakerValidationError(error: unknown): never {
+  if (isSpeakerValidationError(error)) {
+    const details = error.details as SpeakerValidationError
+    const invalidList = details.invalidSpeakers.join(', ')
+    const validList = details.validSpeakers.join(', ')
+    throw new ApiError(
+      error.status,
+      `Invalid speakers: ${invalidList}. Valid speakers for this episode: ${validList}`,
+      error.errorType,
+      details
+    )
+  }
+  throw error
+}
+
 export const episodesApi = {
   list: (params?: ListEpisodesParams) => {
     const query = new URLSearchParams()
@@ -93,21 +127,29 @@ export const episodesApi = {
   getStatus: (id: string) => apiRequest<EpisodeStatusResponse>(`/episodes/${id}/statuses`),
 
   create: async (data: EpisodeCreate) => {
-    const result = await apiRequest<CreateEpisodeResponse>('/episodes', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-    apiCache.invalidatePattern('/episodes')
-    return result
+    try {
+      const result = await apiRequest<CreateEpisodeResponse>('/episodes', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      apiCache.invalidatePattern('/episodes')
+      return result
+    } catch (error) {
+      handleSpeakerValidationError(error)
+    }
   },
 
   update: async (id: string, data: EpisodeUpdate) => {
-    await apiRequest<void>(`/episodes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
-    apiCache.invalidate(`GET:/episodes/${id}`)
-    apiCache.invalidatePattern('/episodes?')
+    try {
+      await apiRequest<void>(`/episodes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+      apiCache.invalidate(`GET:/episodes/${id}`)
+      apiCache.invalidatePattern('/episodes?')
+    } catch (error) {
+      handleSpeakerValidationError(error)
+    }
   },
 
   uploadTranscript: async (id: string, filename: string) => {
@@ -118,10 +160,14 @@ export const episodesApi = {
   },
 
   initiateTrackUpload: async (id: string, trackName: string, filename: string, speakers?: string[]) => {
-    return apiRequest<InitiateTrackUploadResponse>(`/episodes/${id}/tracks`, {
-      method: 'POST',
-      body: JSON.stringify({ trackName, filename, speakers }),
-    })
+    try {
+      return await apiRequest<InitiateTrackUploadResponse>(`/episodes/${id}/tracks`, {
+        method: 'POST',
+        body: JSON.stringify({ trackName, filename, speakers }),
+      })
+    } catch (error) {
+      handleSpeakerValidationError(error)
+    }
   },
 
   signTrackParts: async (id: string, trackName: string, data: SignTrackPartsRequest) => {
@@ -136,6 +182,18 @@ export const episodesApi = {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  },
+
+  updateTrack: async (id: string, trackName: string, data: { speakers: string[] }) => {
+    try {
+      await apiRequest<void>(`/episodes/${id}/tracks/${trackName}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+      apiCache.invalidate(`GET:/episodes/${id}`)
+    } catch (error) {
+      handleSpeakerValidationError(error)
+    }
   },
 
   listClips: (id: string) => apiRequest<ListClipsResponse>(`/episodes/${id}/clips`),

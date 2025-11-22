@@ -105,7 +105,6 @@ export const handler = async (event) => {
     await publishNotificationEvent({
       type: 'preprocessing_completed',
       tenantId,
-      userId: null,
       title: 'Video Preprocessing Complete',
       message: `Track "${trackName}" has been processed`,
       url: `/episodes/${episodeId}`,

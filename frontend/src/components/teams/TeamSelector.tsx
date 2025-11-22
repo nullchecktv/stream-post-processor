@@ -5,11 +5,10 @@ import { useTeams } from '../../hooks/useTeams'
 import { useToast } from '../../hooks/useToast'
 
 export function TeamSelector() {
-  const { activeTeam, teams, setActiveTeam, loading } = useTeams()
+  const { activeTeam, teams, setActiveTeam, loading, switching } = useTeams()
   const { showToast } = useToast()
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
-  const [switching, setSwitching] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -37,21 +36,12 @@ export function TeamSelector() {
   }, [isOpen])
 
   const handleTeamSwitch = async (teamId: string | null) => {
-    try {
-      setSwitching(true)
-      await setActiveTeam(teamId)
-      setIsOpen(false)
+    setIsOpen(false)
 
-      if (teamId) {
-        const team = teams.find(t => t.id === teamId)
-        showToast(`Switched to ${team?.name}`, 'success')
-      } else {
-        showToast('Switched to Individual Mode', 'success')
-      }
+    try {
+      await setActiveTeam(teamId)
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Failed to switch team', 'error')
-    } finally {
-      setSwitching(false)
     }
   }
 
@@ -73,17 +63,24 @@ export function TeamSelector() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white/30"
+        className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="Select team"
         aria-expanded={isOpen}
         aria-haspopup="true"
         disabled={switching}
       >
-        <Users className="w-4 h-4" />
+        {switching ? (
+          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        ) : (
+          <Users className="w-4 h-4" />
+        )}
         <span className="text-sm font-medium max-w-32 truncate">
-          {activeTeam ? activeTeam.name : 'Individual Mode'}
+          {switching ? 'Switching...' : activeTeam ? activeTeam.name : 'Individual Mode'}
         </span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        {!switching && <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
       </button>
 
       {isOpen && (
@@ -101,7 +98,7 @@ export function TeamSelector() {
                   handleTeamSwitch(null)
                 }
               }}
-              className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors flex items-center justify-between group"
+              className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={switching}
             >
               <div className="flex items-center gap-2">
@@ -130,7 +127,7 @@ export function TeamSelector() {
                         handleTeamSwitch(team.id)
                       }
                     }}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors flex items-center justify-between group"
+                    className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={switching}
                   >
                     <div className="flex items-center gap-2">

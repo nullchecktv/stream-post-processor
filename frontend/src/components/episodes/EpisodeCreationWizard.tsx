@@ -22,6 +22,7 @@ interface WizardFormData {
   seriesName: string
   platforms: string[]
   themes: string[]
+  speakers: string[]
 }
 
 const WIZARD_STEPS = [
@@ -50,6 +51,7 @@ export function EpisodeCreationWizard({ isOpen, onClose, onComplete }: EpisodeCr
     seriesName: '',
     platforms: [],
     themes: [],
+    speakers: [],
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -165,6 +167,7 @@ export function EpisodeCreationWizard({ isOpen, onClose, onComplete }: EpisodeCr
         ...(formData.seriesName && { seriesName: formData.seriesName }),
         ...(formData.platforms.length > 0 && { platforms: formData.platforms }),
         ...(formData.themes.length > 0 && { themes: formData.themes }),
+        ...(formData.speakers.length > 0 && { speakers: formData.speakers }),
       }
 
       const response = await episodesApi.create(episodeData)

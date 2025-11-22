@@ -171,6 +171,16 @@ function EpisodeOverviewPage() {
     return () => clearInterval(pollInterval)
   }, [episode, clips, fetchContent])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchEpisode()
+      fetchContent()
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh)
+    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+  }, [fetchEpisode, fetchContent])
+
   if (loading || (episode && contentLoading)) {
     return <EpisodeOverviewSkeleton />
   }

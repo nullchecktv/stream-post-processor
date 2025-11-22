@@ -20,7 +20,7 @@ export function FormatToggle({ value, onChange, disabled = false }: FormatToggle
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
       >
-        Markdown
+        Edit
       </button>
       <button
         type="button"

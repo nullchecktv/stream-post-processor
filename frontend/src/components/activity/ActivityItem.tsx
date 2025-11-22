@@ -1,4 +1,5 @@
 import { useState, memo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Notification } from '../../types'
 
 interface ActivityItemProps {
@@ -18,6 +19,7 @@ export const ActivityItem = memo(function ActivityItem({
   onRejectInvitation,
   isProcessing = false,
 }: ActivityItemProps) {
+  const navigate = useNavigate()
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null)
 
   const getNotificationIcon = () => {
@@ -144,6 +146,13 @@ export const ActivityItem = memo(function ActivityItem({
   }
 
   const isInvitation = notification.type === 'team_invitation'
+  const hasDestination = Boolean(notification.url)
+
+  const handleNavigate = () => {
+    if (!notification.url || isProcessing) return
+    void onMarkAsRead(notification.id)
+    navigate(notification.url)
+  }
 
   return (
     <div
@@ -151,7 +160,8 @@ export const ActivityItem = memo(function ActivityItem({
         notification.isRead
           ? 'bg-white border-gray-200'
           : 'bg-blue-50 border-blue-200'
-      } ${isProcessing ? 'opacity-50' : ''}`}
+      } ${isProcessing ? 'opacity-50 cursor-not-allowed' : hasDestination ? 'cursor-pointer' : ''}`}
+      onClick={handleNavigate}
     >
       <div className="flex gap-4">
         <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${getIconColor()}`}>
@@ -174,10 +184,14 @@ export const ActivityItem = memo(function ActivityItem({
           {isInvitation && notification.data?.invitationId && (
             <div className="mt-4 flex gap-2">
               <button
-                onClick={handleAccept}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleAccept()
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
+                    e.stopPropagation()
                     handleAccept()
                   }
                 }}
@@ -188,10 +202,14 @@ export const ActivityItem = memo(function ActivityItem({
                 {actionLoading === 'accept' ? 'Accepting...' : 'Accept'}
               </button>
               <button
-                onClick={handleReject}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleReject()
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
+                    e.stopPropagation()
                     handleReject()
                   }
                 }}
@@ -207,10 +225,14 @@ export const ActivityItem = memo(function ActivityItem({
           <div className="mt-4 flex gap-2">
             {!notification.isRead && (
               <button
-                onClick={() => onMarkAsRead(notification.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onMarkAsRead(notification.id)
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
+                    e.stopPropagation()
                     onMarkAsRead(notification.id)
                   }
                 }}
@@ -222,10 +244,14 @@ export const ActivityItem = memo(function ActivityItem({
               </button>
             )}
             <button
-              onClick={() => onDelete(notification.id)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(notification.id)
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
+                  e.stopPropagation()
                   onDelete(notification.id)
                 }
               }}

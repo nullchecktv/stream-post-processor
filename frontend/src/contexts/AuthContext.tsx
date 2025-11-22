@@ -1,12 +1,16 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react'
 import { getCurrentUser, signOut as amplifySignOut, fetchAuthSession, signIn as amplifySignIn, resetPassword as amplifyResetPassword, confirmResetPassword as amplifyConfirmResetPassword } from 'aws-amplify/auth'
 import { Hub } from 'aws-amplify/utils'
+import { useNavigate } from 'react-router-dom'
 import { refreshMomentoToken } from '../api/tokens'
+import { refreshCognitoToken } from '../api/auth'
 
 interface AuthUser {
   userId: string
   username: string
   email?: string
+  tenantId?: string
+  momentoToken?: string
 }
 
 interface AuthContextType {
@@ -20,6 +24,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>
   confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<void>
   updateMomentoToken: (token: string) => void
+  refreshAuthToken: () => Promise<string>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -29,6 +34,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const navigate = useNavigate()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [momentoToken, setMomentoToken] = useState<string | null>(null)
@@ -39,26 +45,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const currentUser = await getCurrentUser()
       const session = await fetchAuthSession()
 
-      if (currentUser && session.tokens) {
+      if (currentUser && session.tokens?.idToken) {
+        const idTokenPayload = session.tokens.idToken.payload
+        const extractedMomentoToken = idTokenPayload.momentoToken as string | undefined
+        const extractedTenantId = idTokenPayload.tenantId as string | undefined
+
         setIsAuthenticated(true)
         setUser({
           userId: currentUser.userId,
           username: currentUser.username,
-          email: session.tokens.idToken?.payload.email as string | undefined,
+          email: idTokenPayload.email as string | undefined,
+          tenantId: extractedTenantId,
+          momentoToken: extractedMomentoToken,
         })
 
-        const tokenFromSession = session.tokens.idToken?.payload.momentoToken as string | null
-
-        if (!tokenFromSession) {
+        if (!extractedMomentoToken) {
           try {
             const { momentoToken: refreshedToken } = await refreshMomentoToken()
             setMomentoToken(refreshedToken)
+            setUser(prev => prev ? { ...prev, momentoToken: refreshedToken } : null)
           } catch (error) {
             console.error('Failed to refresh Momento token:', error)
             setMomentoToken(null)
           }
         } else {
-          setMomentoToken(tokenFromSession)
+          setMomentoToken(extractedMomentoToken)
         }
       } else {
         setIsAuthenticated(false)
@@ -130,6 +141,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setMomentoToken(token)
   }
 
+  const refreshAuthToken = async (): Promise<string> => {
+    try {
+      const newJwt = await refreshCognitoToken()
+      const session = await fetchAuthSession()
+
+      if (session.tokens?.idToken) {
+        const idTokenPayload = session.tokens.idToken.payload
+        const extractedMomentoToken = idTokenPayload.momentoToken as string | undefined
+        const extractedTenantId = idTokenPayload.tenantId as string | undefined
+
+        setUser(prev => prev ? {
+          ...prev,
+          tenantId: extractedTenantId,
+        } : null)
+
+        setMomentoToken(extractedMomentoToken || null)
+      }
+
+      localStorage.setItem('jwt_token', newJwt)
+
+      return newJwt
+    } catch (error) {
+      console.error('Auth token refresh failed:', error)
+      await signOut()
+      navigate('/login')
+      throw error
+    }
+  }
+
   useEffect(() => {
     checkAuth()
 
@@ -154,7 +194,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     })
 
-    return () => hubListener()
+    const handleMomentoTokenRefresh = async () => {
+      try {
+        const { momentoToken: refreshedToken } = await refreshMomentoToken()
+        setMomentoToken(refreshedToken)
+      } catch (error) {
+        console.error('Failed to update Momento token after refresh:', error)
+      }
+    }
+
+    window.addEventListener('momento-token-refreshed', handleMomentoTokenRefresh)
+
+    return () => {
+      hubListener()
+      window.removeEventListener('momento-token-refreshed', handleMomentoTokenRefresh)
+    }
   }, [])
 
   return (
@@ -170,6 +224,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         resetPassword,
         confirmResetPassword,
         updateMomentoToken,
+        refreshAuthToken,
       }}
     >
       {children}

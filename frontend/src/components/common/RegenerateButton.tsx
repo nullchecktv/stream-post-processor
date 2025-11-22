@@ -17,7 +17,7 @@ export function RegenerateButton({ onClick, disabled, loading }: Readonly<Regene
         ${
           disabled || loading
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+            : 'bg-primary text-white hover:bg-primary-dark active:bg-primary-darker'
         }
       `}
     >

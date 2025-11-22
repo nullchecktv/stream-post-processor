@@ -14,16 +14,11 @@ export const usersApi = {
   },
 
   setActiveTeam: async (teamId: string | null) => {
-    const result = await apiRequest<{
-      activeTeamId: string | null
-      message: string
-      requiresTokenRefresh: boolean
-    }>('/me/teams', {
+    await apiRequest<void>('/me/teams', {
       method: 'POST',
       body: JSON.stringify({ teamId }),
     })
     apiCache.invalidate('GET:/me')
     apiCache.invalidate('GET:/teams')
-    return result
   },
 }

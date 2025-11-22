@@ -6,8 +6,8 @@ const logger = new Logger({ serviceName: 'notifications' });
 
 export const handler = async (event) => {
   try {
-    const userId = event?.requestContext?.authorizer?.userId;
-    if (!userId) {
+    const tenantId = event?.requestContext?.authorizer?.tenantId;
+    if (!tenantId) {
       return formatResponse(401, { message: 'Unauthorized' });
     }
 
@@ -21,7 +21,7 @@ export const handler = async (event) => {
 
     // If isRead query parameter is provided, mark as read instead of deleting
     if (isReadParam === 'true') {
-      const success = await markNotificationAsRead(userId, notificationId);
+      const success = await markNotificationAsRead(tenantId, notificationId);
 
       if (!success) {
         return formatResponse(404, { message: 'Notification not found' });
@@ -31,7 +31,7 @@ export const handler = async (event) => {
     }
 
     // Default behavior: delete the notification
-    const success = await deleteNotification(userId, notificationId);
+    const success = await deleteNotification(tenantId, notificationId);
 
     if (!success) {
       return formatResponse(404, { message: 'Notification not found' });

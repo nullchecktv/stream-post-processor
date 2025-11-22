@@ -6,6 +6,7 @@ import crypto, { randomUUID } from 'crypto';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { CLIP_STATUS } from '../../schemas/index.mjs';
+import { validateSpeakers } from '../utils/speakers.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -20,7 +21,7 @@ const segmentSchema = z.object({
   endTime: z.string()
     .regex(/^\d{2}:\d{2}:\d{2}$/)
     .describe('End time in hh:mm:ss format (required)'),
-  speaker: z.string().min(1).describe('Speaker name (required)'),
+  speaker: z.string().min(1).describe('Speaker name - must match a speaker defined in the episode (required, case-insensitive)'),
   order: z.number().int().min(1).describe('Order of segment for reassembly (required, starting from 1)'),
   transcript: z.string().min(1).describe('Transcript text for this segment (required)'),
   notes: z.string().optional().describe('Optional contextual notes for this segment')
@@ -30,7 +31,7 @@ export const createClipTool = {
   isMultiTenant: true,
   name: 'createClip',
   description:
-    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps, speaker information, and transcript text',
+    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps, speaker information, and transcript text. IMPORTANT: All speaker names in segments must match speakers defined in the episode. Speaker names are case-insensitive but will be normalized to match the episode\'s capitalization. If invalid speakers are provided, the operation will fail with a detailed error listing valid speakers.',
   schema: z.object({
     episodeId: z.string().describe('The ID of the episode for which to create clips'),
     clips: z.array(
@@ -55,6 +56,49 @@ export const createClipTool = {
           episodeId
         });
         return 'Unauthorized: Missing tenant context';
+      }
+
+      const allSpeakers = new Set();
+      clips.forEach(clip => {
+        clip.segments.forEach(segment => {
+          if (segment.speaker) {
+            allSpeakers.add(segment.speaker);
+          }
+        });
+      });
+
+      const uniqueSpeakers = Array.from(allSpeakers);
+
+      if (uniqueSpeakers.length > 0) {
+        const validation = await validateSpeakers(episodeId, tenantId, uniqueSpeakers);
+
+        if (!validation.valid) {
+          logger.error('Clip segment speaker validation failed', {
+            episodeId,
+            tenantId,
+            invalidSpeakers: validation.invalidSpeakers,
+            validSpeakers: validation.validSpeakers
+          });
+          return `Error: Invalid speakers found in clip segments. Invalid speakers: ${validation.invalidSpeakers.join(', ')}. Valid episode speakers: ${validation.validSpeakers.join(', ')}. Please use only speakers from the episode's speaker list.`;
+        }
+
+        const speakerMap = new Map();
+        uniqueSpeakers.forEach(speaker => {
+          const normalized = validation.normalizedSpeakers.find(ns =>
+            ns.toLowerCase() === speaker.toLowerCase()
+          );
+          if (normalized) {
+            speakerMap.set(speaker.toLowerCase(), normalized);
+          }
+        });
+
+        clips = clips.map(clip => ({
+          ...clip,
+          segments: clip.segments.map(segment => ({
+            ...segment,
+            speaker: speakerMap.get(segment.speaker.toLowerCase()) || segment.speaker
+          }))
+        }));
       }
 
       const results = await Promise.allSettled(

@@ -97,8 +97,13 @@ export const handler = async (event) => {
     if (episode.platforms) response.platforms = episode.platforms;
     if (episode.themes) response.themes = episode.themes;
     if (episode.seriesName) response.seriesName = episode.seriesName;
+    if (episode.speakers) response.speakers = episode.speakers;
 
-    return formatResponse(200, response);
+    return formatResponse(200, response, {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
 
   } catch (err) {
     logger.error('Error getting episode', {

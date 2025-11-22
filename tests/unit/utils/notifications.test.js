@@ -30,7 +30,6 @@ describe('Notification Utilities', () => {
       await publishNotificationEvent({
         type: 'team_invitation',
         tenantId: 'tenant-123',
-        userId: 'user-123',
         title: 'Team Invitation',
         message: 'You have been invited to join Test Team',
         url: '/teams/team-456',
@@ -46,7 +45,6 @@ describe('Notification Utilities', () => {
       const detail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);
       expect(detail.type).toBe('team_invitation');
       expect(detail.tenantId).toBe('tenant-123');
-      expect(detail.userId).toBe('user-123');
       expect(detail.persist).toBe(true);
     });
 
@@ -56,7 +54,6 @@ describe('Notification Utilities', () => {
       await expect(publishNotificationEvent({
         type: 'test',
         tenantId: 'tenant-123',
-        userId: 'user-123',
         title: 'Test',
         message: 'Test message'
       })).rejects.toThrow('Failed to publish notification event');
@@ -67,8 +64,10 @@ describe('Notification Utilities', () => {
     test('should list notifications successfully', async () => {
       const mockNotifications = [
         {
-          pk: 'user-123',
-          sk: 'notification#2025-01-15T10:30:00.000Z#notif-1',
+          pk: 'tenant-123',
+          sk: 'notification#notif-1',
+          GSI1PK: 'tenant-123',
+          GSI1SK: 'notification#2025-01-15T10:30:00.000Z',
           id: 'notif-1',
           type: 'team_invitation',
           title: 'Team Invitation',
@@ -84,7 +83,7 @@ describe('Notification Utilities', () => {
         LastEvaluatedKey: undefined
       });
 
-      const result = await listNotifications('user-123');
+      const result = await listNotifications('tenant-123');
 
       expect(result.notifications).toHaveLength(1);
       expect(result.notifications[0]).toMatchObject({
@@ -94,6 +93,10 @@ describe('Notification Utilities', () => {
         isRead: false
       });
       expect(result.hasMore).toBe(false);
+
+      const queryCall = ddbMock.calls()[0];
+      expect(queryCall.args[0].input.IndexName).toBe('GSI1');
+      expect(queryCall.args[0].input.KeyConditionExpression).toBe('GSI1PK = :pk AND begins_with(GSI1SK, :sk)');
     });
 
     test('should filter by isRead status', async () => {
@@ -102,21 +105,26 @@ describe('Notification Utilities', () => {
         LastEvaluatedKey: undefined
       });
 
-      await listNotifications('user-123', { isRead: true });
+      await listNotifications('tenant-123', { isRead: true });
 
       const queryCall = ddbMock.calls()[0];
       expect(queryCall.args[0].input.FilterExpression).toBe('isRead = :isRead');
     });
 
     test('should handle pagination', async () => {
-      const mockKey = { pk: 'user-123', sk: 'notification#2025-01-15T10:30:00.000Z#notif-1' };
+      const mockKey = {
+        pk: 'tenant-123',
+        sk: 'notification#notif-1',
+        GSI1PK: 'tenant-123',
+        GSI1SK: 'notification#2025-01-15T10:30:00.000Z'
+      };
 
       ddbMock.on(QueryCommand).resolves({
         Items: [],
         LastEvaluatedKey: marshall(mockKey)
       });
 
-      const result = await listNotifications('user-123');
+      const result = await listNotifications('tenant-123');
 
       expect(result.hasMore).toBe(true);
       expect(result.lastEvaluatedKey).toBeDefined();
@@ -127,10 +135,15 @@ describe('Notification Utilities', () => {
     test('should delete notification successfully', async () => {
       ddbMock.on(DeleteItemCommand).resolves({});
 
-      const result = await deleteNotification('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
+      const result = await deleteNotification('tenant-123', 'notif-456');
 
       expect(result).toBe(true);
       expect(ddbMock.calls()).toHaveLength(1);
+
+      const deleteCall = ddbMock.calls()[0];
+      const key = unmarshall(deleteCall.args[0].input.Key);
+      expect(key.pk).toBe('tenant-123');
+      expect(key.sk).toBe('notification#notif-456');
     });
 
     test('should return false if notification does not exist', async () => {
@@ -138,7 +151,7 @@ describe('Notification Utilities', () => {
       error.name = 'ConditionalCheckFailedException';
       ddbMock.on(DeleteItemCommand).rejects(error);
 
-      const result = await deleteNotification('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
+      const result = await deleteNotification('tenant-123', 'notif-456');
 
       expect(result).toBe(false);
     });
@@ -148,10 +161,15 @@ describe('Notification Utilities', () => {
     test('should mark notification as read successfully', async () => {
       ddbMock.on(UpdateItemCommand).resolves({});
 
-      const result = await markNotificationAsRead('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
+      const result = await markNotificationAsRead('tenant-123', 'notif-456');
 
       expect(result).toBe(true);
       expect(ddbMock.calls()).toHaveLength(1);
+
+      const updateCall = ddbMock.calls()[0];
+      const key = unmarshall(updateCall.args[0].input.Key);
+      expect(key.pk).toBe('tenant-123');
+      expect(key.sk).toBe('notification#notif-456');
     });
 
     test('should return false if notification does not exist', async () => {
@@ -159,7 +177,7 @@ describe('Notification Utilities', () => {
       error.name = 'ConditionalCheckFailedException';
       ddbMock.on(UpdateItemCommand).rejects(error);
 
-      const result = await markNotificationAsRead('user-123', 'notification#2025-01-15T10:30:00.000Z#notif-456');
+      const result = await markNotificationAsRead('tenant-123', 'notif-456');
 
       expect(result).toBe(false);
     });
@@ -175,7 +193,7 @@ describe('Notification Utilities', () => {
       const detail = JSON.parse(eventCall.args[0].input.Entries[0].Detail);
 
       expect(detail.type).toBe('team_invitation');
-      expect(detail.userId).toBe('user-123');
+      expect(detail.tenantId).toBe('user-123');
       expect(detail.metadata.teamId).toBe('team-456');
       expect(detail.metadata.invitationId).toBe('inv-789');
     });
@@ -185,8 +203,11 @@ describe('Notification Utilities', () => {
     test('should remove notifications by invitation ID', async () => {
       const mockNotifications = [
         {
-          pk: 'user-123',
-          sk: 'notification#2025-01-15T10:30:00.000Z#notif-1',
+          pk: 'tenant-123',
+          sk: 'notification#notif-1',
+          GSI1PK: 'tenant-123',
+          GSI1SK: 'notification#2025-01-15T10:30:00.000Z',
+          id: 'notif-1',
           data: { invitationId: 'inv-789' }
         }
       ];
@@ -196,11 +217,14 @@ describe('Notification Utilities', () => {
       });
       ddbMock.on(DeleteItemCommand).resolves({});
 
-      const result = await removeNotificationsByInvitation('user-123', 'inv-789');
+      const result = await removeNotificationsByInvitation('tenant-123', 'inv-789');
 
       expect(result).toBe(true);
       const deleteCalls = ddbMock.calls().filter(c => c.args[0] instanceof DeleteItemCommand);
       expect(deleteCalls).toHaveLength(1);
+
+      const queryCall = ddbMock.calls()[0];
+      expect(queryCall.args[0].input.IndexName).toBe('GSI1');
     });
 
     test('should handle no matching notifications', async () => {
@@ -208,7 +232,7 @@ describe('Notification Utilities', () => {
         Items: []
       });
 
-      const result = await removeNotificationsByInvitation('user-123', 'inv-789');
+      const result = await removeNotificationsByInvitation('tenant-123', 'inv-789');
 
       expect(result).toBe(true);
     });

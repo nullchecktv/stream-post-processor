@@ -108,7 +108,6 @@ export const setPlanRecommendationsTool = {
       await publishNotificationEvent({
         type: 'plan_generated',
         tenantId,
-        userId: null,
         title: 'Episode Plan Ready',
         message: `Your episode plan for ${episodeTitle} has been generated`,
         url: `/episodes/${episodeId}/plan`,
