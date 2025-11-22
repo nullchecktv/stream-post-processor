@@ -77,9 +77,6 @@ export function EpisodeCard({
             </div>
           </div>
         </div>
-        {episode.status && (
-          <EpisodeStatusChip status={episode.status as any} size="sm" />
-        )}
       </div>
     )
   }
@@ -107,9 +104,6 @@ export function EpisodeCard({
               <MiniWorkflowProgress currentStep={currentStep} />
             </div>
           </div>
-          {episode.status && (
-            <EpisodeStatusChip status={episode.status as any} size="md" showIcon />
-          )}
         </div>
 
         <div className="space-y-3 mb-4">
