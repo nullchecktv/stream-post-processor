@@ -13,7 +13,7 @@ import { WorkflowProgress } from '../components/episodes/WorkflowProgress'
 import { NextActionCard } from '../components/episodes/NextActionCard'
 import { ContentCardsGrid } from '../components/episodes/ContentCardsGrid'
 import { EpisodeOverviewSkeleton } from '../components/episodes/EpisodeOverviewSkeleton'
-import type { EpisodeDetail, EpisodePlan, BlogData, ClipListView, Quote, EpisodeStatus, Episode } from '../types'
+import type { EpisodeDetail, EpisodePlan, BlogData, ClipListView, Quote, EpisodeStatus, Episode, WorkflowSteps } from '../types'
 import type { EpisodeUpdate } from '@schemas/episodes'
 
 function EpisodeOverviewPage() {
@@ -50,18 +50,28 @@ function EpisodeOverviewPage() {
       platforms: episode.platforms,
       themes: episode.themes,
       seriesName: episode.seriesName,
+      speakers: episode.speakers,
       metrics: {
         tracksCount: episode.tracks?.length || 0,
         hasTranscript: !!episode.transcript,
         clipsCount: episode.clips?.length || 0
       },
       statusHistory: episode.statusHistory,
+      workflowSteps: episode.workflowSteps,
       createdAt: episode.createdAt,
       updatedAt: episode.updatedAt
     }
   }, [episode])
 
-  const workflowState = useWorkflowState(episodeForWorkflow, !!plan)
+  const workflowState = useWorkflowState(episodeForWorkflow)
+
+  const defaultWorkflowSteps: WorkflowSteps = useMemo(() => ({
+    generatePlan: { status: 'Not Started' },
+    uploadTranscript: { status: 'Not Started' },
+    uploadTracks: { status: 'Not Started' }
+  }), [])
+
+  const workflowSteps = episode?.workflowSteps || defaultWorkflowSteps
 
   const fetchEpisode = useCallback(async () => {
     if (!id) {
@@ -172,14 +182,27 @@ function EpisodeOverviewPage() {
   }, [episode, clips, fetchContent])
 
   useEffect(() => {
-    const handleRefresh = () => {
-      fetchEpisode()
+    if (!id) return
+
+    const handleWorkflowUpdate = (event: CustomEvent) => {
+      const message = event.detail?.message
+      if (message?.metadata?.episodeId === id) {
+        fetchEpisode()
+      }
+    }
+
+    const handleContentUpdate = () => {
       fetchContent()
     }
 
-    window.addEventListener('refreshPageContent', handleRefresh)
-    return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [fetchEpisode, fetchContent])
+    globalThis.addEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+    globalThis.addEventListener('refreshPageContent', handleContentUpdate)
+
+    return () => {
+      globalThis.removeEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+      globalThis.removeEventListener('refreshPageContent', handleContentUpdate)
+    }
+  }, [id, fetchEpisode, fetchContent])
 
   if (loading || (episode && contentLoading)) {
     return <EpisodeOverviewSkeleton />
@@ -242,19 +265,13 @@ function EpisodeOverviewPage() {
           />
         )}
 
-        {workflowState && (
-          <WorkflowProgress
-            currentStep={workflowState.currentStep}
-            completedSteps={workflowState.completedSteps}
-            onStepClick={(step) => {
-              if (step === 1) {
-                navigate(`/episodes/${id}/plan`)
-              } else if (step === 2 || step === 3) {
-                navigate(`/episodes/${id}/uploads`)
-              }
-            }}
-          />
-        )}
+        <WorkflowProgress
+          episodeId={id!}
+          workflowSteps={workflowSteps}
+          onSkipPlan={() => {
+            fetchEpisode()
+          }}
+        />
 
         <ContentCardsGrid
           episodeId={id!}

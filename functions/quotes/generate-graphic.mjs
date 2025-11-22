@@ -70,6 +70,35 @@ export const handler = async (event) => {
     try {
       const quoteKey = createQuoteKey(tenantId, episodeId, quoteId);
 
+      await ddb.send(new UpdateItemCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: marshall(quoteKey),
+        UpdateExpression: 'SET #status = :status, processingStartedAt = :startedAt, updatedAt = :updatedAt',
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        },
+        ExpressionAttributeValues: marshall({
+          ':status': QUOTE_STATUS.PROCESSING,
+          ':startedAt': new Date().toISOString(),
+          ':updatedAt': new Date().toISOString()
+        })
+      }));
+
+      await publishNotificationEvent({
+        type: 'quote_status_updated',
+        tenantId,
+        title: 'Quote Processing',
+        message: 'Generating quote graphic',
+        url: `/episodes/${episodeId}`,
+        persist: false,
+        topic: 'tenant',
+        metadata: {
+          episodeId,
+          quoteId,
+          status: QUOTE_STATUS.PROCESSING
+        }
+      });
+
       const isPortrait = quote.orientation === 'portrait';
       const width = isPortrait ? 1080 : 1920;
       const height = isPortrait ? 1920 : 1080;
@@ -151,7 +180,7 @@ export const handler = async (event) => {
       await ddb.send(new UpdateItemCommand({
         TableName: process.env.TABLE_NAME,
         Key: marshall(quoteKey),
-        UpdateExpression: 'SET s3Key = :s3Key, fileSize = :fileSize, #status = :status, updatedAt = :updatedAt',
+        UpdateExpression: 'SET s3Key = :s3Key, fileSize = :fileSize, #status = :status, processingCompletedAt = :completedAt, updatedAt = :updatedAt',
         ExpressionAttributeNames: {
           '#status': 'status'
         },
@@ -159,6 +188,7 @@ export const handler = async (event) => {
           ':s3Key': s3Key,
           ':fileSize': buffer.length,
           ':status': QUOTE_STATUS.CREATED,
+          ':completedAt': new Date().toISOString(),
           ':updatedAt': new Date().toISOString()
         })
       }));
@@ -166,17 +196,17 @@ export const handler = async (event) => {
       const episodeTitle = episode.title || `Episode ${episode.episodeNumber || ''}`;
 
       await publishNotificationEvent({
-        type: 'quote_graphic_ready',
+        type: 'quote_status_updated',
         tenantId,
-        title: 'Quote Graphic Ready',
-        message: `Your quote graphic from ${episodeTitle} has been generated`,
-        url: `/episodes/${episodeId}/quotes/${quoteId}`,
-        persist: false,
-        topic: 'tasks',
+        title: 'Quote Graphic Created',
+        message: `Quote graphic from ${episodeTitle} is ready`,
+        url: `/episodes/${episodeId}`,
+        persist: true,
+        topic: 'tenant',
         metadata: {
           episodeId,
           quoteId,
-          quoteText: quote.text
+          status: QUOTE_STATUS.CREATED
         }
       });
 
@@ -204,15 +234,34 @@ export const handler = async (event) => {
         await ddb.send(new UpdateItemCommand({
           TableName: process.env.TABLE_NAME,
           Key: marshall(quoteKey),
-          UpdateExpression: 'SET #status = :status, updatedAt = :updatedAt',
+          UpdateExpression: 'SET #status = :status, #error = :error, processingCompletedAt = :completedAt, updatedAt = :updatedAt',
           ExpressionAttributeNames: {
-            '#status': 'status'
+            '#status': 'status',
+            '#error': 'error'
           },
           ExpressionAttributeValues: marshall({
             ':status': QUOTE_STATUS.FAILED,
+            ':error': err.message,
+            ':completedAt': new Date().toISOString(),
             ':updatedAt': new Date().toISOString()
           })
         }));
+
+        await publishNotificationEvent({
+          type: 'quote_status_updated',
+          tenantId,
+          title: 'Quote Processing Failed',
+          message: err.message,
+          url: `/episodes/${episodeId}`,
+          persist: true,
+          topic: 'tenant',
+          metadata: {
+            episodeId,
+            quoteId,
+            status: QUOTE_STATUS.FAILED,
+            error: err.message
+          }
+        });
       } catch (updateErr) {
         logger.error('Error updating quote status to failed', {
           error: updateErr.message

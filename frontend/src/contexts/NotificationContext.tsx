@@ -97,10 +97,36 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   }, []);
 
   const handleTaskMessage = useCallback((message: MomentoMessage) => {
-
     const currentPath = location.pathname;
     const messageUrl = message.url;
     console.log(currentPath, messageUrl);
+
+    if (message.type === 'workflow_step_updated') {
+      window.dispatchEvent(new CustomEvent('workflowStepUpdated', {
+        detail: { message }
+      }));
+      window.dispatchEvent(new CustomEvent('activityUpdated'));
+      return;
+    }
+
+    if (message.type === 'clip_status_updated' || message.type === 'quote_status_updated' || message.type === 'blog_status_updated') {
+      window.dispatchEvent(new CustomEvent('contentItemStatusUpdated', {
+        detail: { message }
+      }));
+      window.dispatchEvent(new CustomEvent('activityUpdated'));
+
+      if (message.metadata?.status === 'Created' || message.metadata?.status === 'Failed') {
+        if (currentPath !== messageUrl) {
+          showToast(
+            message.title,
+            message.metadata?.status === 'Failed' ? 'error' : 'success',
+            () => navigate(messageUrl)
+          );
+        }
+      }
+      return;
+    }
+
     if (currentPath === messageUrl) {
       window.dispatchEvent(new CustomEvent('refreshPageContent', {
         detail: { url: messageUrl, message }

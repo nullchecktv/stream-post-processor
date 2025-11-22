@@ -10,22 +10,38 @@ interface ClipCardProps {
   onRetry?: (clipId: string) => void
 }
 
-const statusConfig: Record<string, { colors: string; label: string }> = {
+const statusConfig: Record<string, { colors: string; label: string; icon?: JSX.Element }> = {
   Proposed: {
     colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     label: 'Proposed'
   },
   Processing: {
     colors: 'bg-blue-50 text-blue-700 border-blue-200',
-    label: 'Processing'
+    label: 'Processing',
+    icon: (
+      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+    )
   },
   Created: {
     colors: 'bg-green-50 text-green-700 border-green-200',
-    label: 'Created'
+    label: 'Created',
+    icon: (
+      <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+        <path d="M5 13l4 4L19 7" />
+      </svg>
+    )
   },
   Failed: {
     colors: 'bg-red-50 text-red-700 border-red-200',
-    label: 'Failed'
+    label: 'Failed',
+    icon: (
+      <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+        <path d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    )
   }
 }
 
@@ -68,8 +84,10 @@ export function ClipCard({ clip, episodeId, onPlay, onApprove, onReject, onRetry
           </p>
         </div>
         <span
-          className={`ml-3 inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-lg border ${config.colors}`}
+          className={`ml-3 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border ${config.colors}`}
+          title={clip.status === 'Failed' && clip.error ? clip.error : undefined}
         >
+          {config.icon}
           {config.label}
         </span>
       </div>

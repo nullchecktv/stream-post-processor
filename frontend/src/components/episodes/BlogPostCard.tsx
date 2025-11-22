@@ -9,11 +9,37 @@ interface BlogPostCardProps {
   readonly error?: string | null
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  'Draft': { bg: 'bg-gray-100', text: 'text-gray-800' },
-  'Generating': { bg: 'bg-blue-100', text: 'text-blue-800' },
-  'Published': { bg: 'bg-green-100', text: 'text-green-800' },
-  'Failed': { bg: 'bg-red-100', text: 'text-red-800' }
+const STATUS_STYLES: Record<string, { bg: string; text: string; icon?: JSX.Element }> = {
+  'Proposed': { bg: 'bg-gray-100', text: 'text-gray-800' },
+  'Processing': {
+    bg: 'bg-blue-100',
+    text: 'text-blue-800',
+    icon: (
+      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+    )
+  },
+  'Created': {
+    bg: 'bg-green-100',
+    text: 'text-green-800',
+    icon: (
+      <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+        <path d="M5 13l4 4L19 7" />
+      </svg>
+    )
+  },
+  'Failed': {
+    bg: 'bg-red-100',
+    text: 'text-red-800',
+    icon: (
+      <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+        <path d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    )
+  },
+  'Edited': { bg: 'bg-purple-100', text: 'text-purple-800' }
 }
 
 function BlogPostCardComponent({ episodeId, blog, isLoading = false, error = null }: BlogPostCardProps) {
@@ -79,7 +105,7 @@ function BlogPostCardComponent({ episodeId, blog, isLoading = false, error = nul
     )
   }
 
-  const statusStyle = STATUS_STYLES[blog.status] || STATUS_STYLES.Draft
+  const statusStyle = STATUS_STYLES[blog.status] || STATUS_STYLES.Proposed
 
   const lines = blog.content.split('\n').filter(line => line.trim())
   const title = lines[0]?.replace(/^#+\s*/, '').trim() || 'Blog Post'
@@ -107,7 +133,11 @@ function BlogPostCardComponent({ episodeId, blog, isLoading = false, error = nul
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-base font-semibold text-gray-900">Blog Post</h3>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}
+                title={blog.status === 'Failed' && blog.error ? blog.error : undefined}
+              >
+                {statusStyle.icon}
                 {blog.status}
               </span>
             </div>

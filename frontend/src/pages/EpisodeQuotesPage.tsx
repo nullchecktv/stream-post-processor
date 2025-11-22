@@ -87,8 +87,31 @@ function EpisodeQuotesPage() {
       }
     }
 
+    const handleContentItemStatusUpdate = (event: CustomEvent) => {
+      const { message } = event.detail
+      if (message.type === 'quote_status_updated' && message.metadata?.quoteId) {
+        setQuotes(prevQuotes =>
+          prevQuotes.map(quote =>
+            quote.id === message.metadata.quoteId
+              ? {
+                  ...quote,
+                  status: message.metadata.status,
+                  error: message.metadata.error,
+                  updatedAt: message.timestamp
+                }
+              : quote
+          )
+        )
+      }
+    }
+
     window.addEventListener('refreshPageContent', handleRefresh)
-    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+    window.addEventListener('contentItemStatusUpdated', handleContentItemStatusUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener('refreshPageContent', handleRefresh)
+      window.removeEventListener('contentItemStatusUpdated', handleContentItemStatusUpdate as EventListener)
+    }
   }, [])
 
   const handleDelete = async (quoteId: string) => {

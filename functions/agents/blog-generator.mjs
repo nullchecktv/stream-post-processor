@@ -149,22 +149,39 @@ ${outline}
 Write the complete blog post now following the outline and brand voice guidelines. Use the quotes as supporting evidence and to add authenticity to the content.
 `;
 
+    const processingStartedAt = new Date().toISOString();
+
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
         sk: 'data#blog#outline'
       }),
-      UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt',
+      UpdateExpression: 'SET #status = :status, processingStartedAt = :startedAt, #updatedAt = :updatedAt',
       ExpressionAttributeNames: {
         '#status': 'status',
         '#updatedAt': 'updatedAt'
       },
       ExpressionAttributeValues: marshall({
         ':status': BLOG_STATUS.PROCESSING,
-        ':updatedAt': new Date().toISOString()
+        ':startedAt': processingStartedAt,
+        ':updatedAt': processingStartedAt
       })
     }));
+
+    await publishNotificationEvent({
+      type: 'blog_status_updated',
+      tenantId,
+      title: 'Blog Processing',
+      message: 'Generating blog post',
+      url: `/episodes/${episodeId}`,
+      persist: false,
+      topic: 'tenant',
+      metadata: {
+        episodeId,
+        status: BLOG_STATUS.PROCESSING
+      }
+    });
 
     logger.info('Starting blog content generation', {
       episodeId,
@@ -192,6 +209,7 @@ Write the complete blog post now following the outline and brand voice guideline
         content,
         status: BLOG_STATUS.CREATED,
         wordCount,
+        processingCompletedAt: now,
         generatedAt: now,
         updatedAt: now
       })
@@ -203,13 +221,14 @@ Write the complete blog post now following the outline and brand voice guideline
         pk: `${tenantId}#${episodeId}`,
         sk: 'data#blog#outline'
       }),
-      UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt',
+      UpdateExpression: 'SET #status = :status, processingCompletedAt = :completedAt, #updatedAt = :updatedAt',
       ExpressionAttributeNames: {
         '#status': 'status',
         '#updatedAt': 'updatedAt'
       },
       ExpressionAttributeValues: marshall({
         ':status': BLOG_STATUS.CREATED,
+        ':completedAt': now,
         ':updatedAt': now
       })
     }));
@@ -223,15 +242,16 @@ Write the complete blog post now following the outline and brand voice guideline
     const episodeTitle = episodeMetadata.title || `Episode ${episodeMetadata.episodeNumber || ''}`;
 
     await publishNotificationEvent({
-      type: 'blog_generated',
+      type: 'blog_status_updated',
       tenantId,
-      title: 'Blog Post Ready',
-      message: `Your blog post for ${episodeTitle} has been generated`,
-      url: `/episodes/${episodeId}/blog`,
+      title: 'Blog Post Created',
+      message: `Blog post for ${episodeTitle} is ready`,
+      url: `/episodes/${episodeId}`,
       persist: true,
-      topic: 'tasks',
+      topic: 'tenant',
       metadata: {
         episodeId,
+        status: BLOG_STATUS.CREATED,
         wordCount
       }
     });
@@ -251,24 +271,42 @@ Write the complete blog post now following the outline and brand voice guideline
 
     if (episodeId && tenantId) {
       try {
+        const failedAt = new Date().toISOString();
+
         await ddb.send(new UpdateItemCommand({
           TableName: process.env.TABLE_NAME,
           Key: marshall({
             pk: `${tenantId}#${episodeId}`,
             sk: 'data#blog#outline'
           }),
-          UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt, #errorMessage = :errorMessage',
+          UpdateExpression: 'SET #status = :status, processingCompletedAt = :completedAt, #updatedAt = :updatedAt, #error = :error',
           ExpressionAttributeNames: {
             '#status': 'status',
             '#updatedAt': 'updatedAt',
-            '#errorMessage': 'errorMessage'
+            '#error': 'error'
           },
           ExpressionAttributeValues: marshall({
             ':status': BLOG_STATUS.FAILED,
-            ':updatedAt': new Date().toISOString(),
-            ':errorMessage': err.message
+            ':completedAt': failedAt,
+            ':updatedAt': failedAt,
+            ':error': err.message
           })
         }));
+
+        await publishNotificationEvent({
+          type: 'blog_status_updated',
+          tenantId,
+          title: 'Blog Processing Failed',
+          message: err.message,
+          url: `/episodes/${episodeId}`,
+          persist: true,
+          topic: 'tenant',
+          metadata: {
+            episodeId,
+            status: BLOG_STATUS.FAILED,
+            error: err.message
+          }
+        });
       } catch (updateErr) {
         logger.error('Failed to update error status', {
           error: updateErr.message,

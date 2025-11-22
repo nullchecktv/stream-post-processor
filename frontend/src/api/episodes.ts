@@ -278,4 +278,13 @@ export const episodesApi = {
     apiCache.invalidate(`GET:/episodes/${id}/blog`)
     return result
   },
+
+  skipPlanGeneration: async (id: string) => {
+    const result = await apiRequest<{ message: string }>(`/episodes/${id}/plan/skip`, {
+      method: 'POST',
+    })
+    apiCache.invalidate(`GET:/episodes/${id}`)
+    apiCache.invalidate(`GET:/episodes/${id}/plan`)
+    return result
+  },
 }

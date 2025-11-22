@@ -62,8 +62,31 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
       fetchClipsRef.current?.()
     }
 
+    const handleContentItemStatusUpdate = (event: CustomEvent) => {
+      const { message } = event.detail
+      if (message.type === 'clip_status_updated' && message.metadata?.clipId) {
+        setClips(prevClips =>
+          prevClips.map(clip =>
+            clip.id === message.metadata.clipId
+              ? {
+                  ...clip,
+                  status: message.metadata.status,
+                  error: message.metadata.error,
+                  updatedAt: message.timestamp
+                }
+              : clip
+          )
+        )
+      }
+    }
+
     window.addEventListener('refreshPageContent', handleRefresh)
-    return () => window.removeEventListener('refreshPageContent', handleRefresh)
+    window.addEventListener('contentItemStatusUpdated', handleContentItemStatusUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener('refreshPageContent', handleRefresh)
+      window.removeEventListener('contentItemStatusUpdated', handleContentItemStatusUpdate as EventListener)
+    }
   }, [])
 
   const handlePlay = (clipId: string) => {
@@ -109,13 +132,19 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     setSelectedClipId(null)
   }
 
-  const filteredClips = clips.filter(clip => {
-    if (statusFilter === 'all') return true
-    if (statusFilter === 'proposed') return clip.status === 'Proposed'
-    if (statusFilter === 'processing') return clip.status === 'Processing'
-    if (statusFilter === 'created') return clip.status === 'Created'
-    return false
-  })
+  const filteredClips = clips
+    .filter(clip => {
+      if (statusFilter === 'all') return true
+      if (statusFilter === 'proposed') return clip.status === 'Proposed'
+      if (statusFilter === 'processing') return clip.status === 'Processing'
+      if (statusFilter === 'created') return clip.status === 'Created'
+      return false
+    })
+    .sort((a, b) => {
+      if (a.status === 'Processing' && b.status !== 'Processing') return -1
+      if (a.status !== 'Processing' && b.status === 'Processing') return 1
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    })
 
   const statusCounts = {
     all: clips.length,
@@ -211,6 +240,23 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
             </button>
           </div>
         </div>
+
+      {statusCounts.processing > 0 && statusFilter === 'all' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-blue-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-blue-900">
+              Processing {statusCounts.processing} {statusCounts.processing === 1 ? 'clip' : 'clips'}
+            </p>
+            <p className="text-xs text-blue-700">
+              Clips are being generated and will appear when ready
+            </p>
+          </div>
+        </div>
+      )}
 
       {filteredClips.length === 0 ? (
         <EmptyState

@@ -1,15 +1,18 @@
-import { memo } from 'react'
-import { type WorkflowStep } from '../../hooks/useWorkflowState'
+import { memo, useState } from 'react'
+import type { WorkflowSteps } from '../../types'
+import { episodesApi } from '../../api/episodes'
+import { useToast } from '../../hooks/useToast'
 
 interface WorkflowProgressProps {
-  readonly currentStep: WorkflowStep
-  readonly completedSteps: readonly number[]
-  readonly onStepClick?: (step: number) => void
+  readonly episodeId: string
+  readonly workflowSteps: WorkflowSteps
+  readonly onSkipPlan?: () => void
 }
 
 const WORKFLOW_STEPS = [
   {
     number: 1,
+    key: 'generatePlan' as const,
     label: 'Generate Plan',
     shortLabel: 'Plan',
     icon: (
@@ -20,6 +23,7 @@ const WORKFLOW_STEPS = [
   },
   {
     number: 2,
+    key: 'uploadTranscript' as const,
     label: 'Upload Transcript',
     shortLabel: 'Transcript',
     icon: (
@@ -30,6 +34,7 @@ const WORKFLOW_STEPS = [
   },
   {
     number: 3,
+    key: 'uploadTracks' as const,
     label: 'Upload Tracks',
     shortLabel: 'Tracks',
     icon: (
@@ -40,26 +45,64 @@ const WORKFLOW_STEPS = [
   }
 ]
 
-function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }: WorkflowProgressProps) {
-  const getStepState = (stepNumber: number): 'complete' | 'current' | 'locked' => {
-    if (completedSteps.includes(stepNumber)) return 'complete'
-    if (currentStep === 0) return 'locked'
-    if (stepNumber === currentStep) return 'current'
-    return 'locked'
-  }
+function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: WorkflowProgressProps) {
+  const [isSkipping, setIsSkipping] = useState(false)
+  const { showToast } = useToast()
 
-  const handleKeyDown = (event: React.KeyboardEvent, stepNumber: number) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      if (isClickable()) {
-        onStepClick?.(stepNumber)
-      }
+  const getStepState = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
+    const step = workflowSteps[stepKey]
+    if (!step) return 'not-started'
+
+    switch (step.status) {
+      case 'Completed':
+        return 'complete'
+      case 'In Progress':
+        return 'in-progress'
+      case 'Failed':
+        return 'failed'
+      case 'Skipped':
+        return 'skipped'
+      default:
+        return 'not-started'
     }
   }
 
-  const getStepIcon = (stepNumber: number) => {
-    const state = getStepState(stepNumber)
-    const step = WORKFLOW_STEPS.find(s => s.number === stepNumber)
+  const canAccessUploads = () => {
+    const planStatus = workflowSteps.generatePlan?.status
+    return ['Completed', 'Skipped', 'Failed'].includes(planStatus || '')
+  }
+
+  const isUploadDisabled = () => {
+    return !canAccessUploads()
+  }
+
+  const getDisabledTooltip = () => {
+    const planStatus = workflowSteps.generatePlan?.status
+    if (planStatus === 'Not Started') {
+      return 'Complete or skip the Generate Plan step first'
+    }
+    if (planStatus === 'In Progress') {
+      return 'Wait for plan generation to complete or skip it'
+    }
+    return ''
+  }
+
+  const handleSkipPlan = async () => {
+    try {
+      setIsSkipping(true)
+      await episodesApi.skipPlanGeneration(episodeId)
+      showToast('Plan generation skipped', 'success')
+      onSkipPlan?.()
+    } catch (error) {
+      showToast('Failed to skip plan generation', 'error')
+    } finally {
+      setIsSkipping(false)
+    }
+  }
+
+  const getStepIcon = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
+    const state = getStepState(stepKey)
+    const step = WORKFLOW_STEPS.find(s => s.key === stepKey)
 
     if (state === 'complete') {
       return (
@@ -69,43 +112,92 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
       )
     }
 
+    if (state === 'in-progress') {
+      return (
+        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      )
+    }
+
+    if (state === 'failed') {
+      return (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      )
+    }
+
+    if (state === 'skipped') {
+      return (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+        </svg>
+      )
+    }
+
     return step?.icon
   }
 
-  const getStepClasses = (stepNumber: number) => {
-    const state = getStepState(stepNumber)
+  const getStepClasses = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
+    const state = getStepState(stepKey)
+    const disabled = stepKey !== 'generatePlan' && isUploadDisabled()
     const baseClasses = 'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm'
-    const clickable = isClickable()
+
+    if (disabled) {
+      return `${baseClasses} bg-gray-100 text-gray-300 border border-gray-200 cursor-not-allowed opacity-50`
+    }
 
     if (state === 'complete') {
-      return `${baseClasses} bg-gradient-to-br from-emerald-500 to-emerald-600 text-white ${clickable ? 'hover:shadow-md hover:scale-105 cursor-pointer' : ''}`
+      return `${baseClasses} bg-gradient-to-br from-emerald-500 to-emerald-600 text-white`
     }
-    if (state === 'current') {
-      return `${baseClasses} bg-gradient-to-br from-blue-500 to-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 shadow-lg ${clickable ? 'hover:shadow-xl hover:scale-105 cursor-pointer' : ''}`
+    if (state === 'in-progress') {
+      return `${baseClasses} bg-gradient-to-br from-blue-500 to-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 shadow-lg`
     }
-    return `${baseClasses} bg-gray-100 text-gray-400 border border-gray-200 ${clickable ? 'hover:bg-gray-200 hover:border-gray-300 hover:scale-105 cursor-pointer' : ''}`
+    if (state === 'failed') {
+      return `${baseClasses} bg-gradient-to-br from-red-500 to-red-600 text-white ring-2 ring-red-400 ring-offset-2`
+    }
+    if (state === 'skipped') {
+      return `${baseClasses} bg-gradient-to-br from-gray-400 to-gray-500 text-white`
+    }
+    return `${baseClasses} bg-gray-100 text-gray-400 border border-gray-200`
   }
 
-  const getConnectorClasses = (stepNumber: number) => {
-    const isComplete = completedSteps.includes(stepNumber + 1)
+  const getConnectorClasses = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
+    const nextStep = stepKey === 'generatePlan' ? 'uploadTranscript' : 'uploadTracks'
+    const isComplete = getStepState(nextStep) === 'complete'
     return `flex-1 h-0.5 mx-3 transition-all duration-300 ${
       isComplete ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gray-200'
     }`
   }
 
-  const isClickable = () => {
-    return onStepClick !== undefined
-  }
+  const getLabelClasses = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
+    const state = getStepState(stepKey)
+    const disabled = stepKey !== 'generatePlan' && isUploadDisabled()
 
-  const getLabelClasses = (stepNumber: number) => {
-    const state = getStepState(stepNumber)
+    if (disabled) return 'text-gray-400'
     if (state === 'complete') return 'text-gray-900 font-medium'
-    if (state === 'current') return 'text-gray-900 font-semibold'
+    if (state === 'in-progress') return 'text-gray-900 font-semibold'
+    if (state === 'failed') return 'text-red-700 font-medium'
+    if (state === 'skipped') return 'text-gray-600 font-medium'
     return 'text-gray-500'
   }
 
-  const getStatusBadge = (stepNumber: number) => {
-    const state = getStepState(stepNumber)
+  const getStatusBadge = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
+    const state = getStepState(stepKey)
+    const disabled = stepKey !== 'generatePlan' && isUploadDisabled()
+    const step = workflowSteps[stepKey]
+
+    if (disabled) {
+      return (
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400 cursor-help"
+          title={getDisabledTooltip()}
+        >
+          Locked
+        </span>
+      )
+    }
 
     if (state === 'complete') {
       return (
@@ -114,19 +206,38 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
         </span>
       )
     }
-    if (state === 'current') {
+    if (state === 'in-progress') {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
           In Progress
         </span>
       )
     }
+    if (state === 'failed') {
+      return (
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 cursor-help"
+          title={step?.error || 'Processing failed'}
+        >
+          Failed
+        </span>
+      )
+    }
+    if (state === 'skipped') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+          Skipped
+        </span>
+      )
+    }
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-        Pending
-      </span>
+        Not Started
+        </span>
     )
   }
+
+  const completedCount = Object.values(workflowSteps).filter(step => step.status === 'Completed').length
 
   return (
     <section
@@ -136,7 +247,7 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Workflow Progress</h2>
         <div className="text-xs text-gray-500">
-          {completedSteps.length} of {WORKFLOW_STEPS.length} complete
+          {completedCount} of {WORKFLOW_STEPS.length} complete
         </div>
       </div>
 
@@ -151,23 +262,24 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
           <div className="flex items-center justify-center">
             {WORKFLOW_STEPS.filter(s => s.number === 1).map((step) => (
               <div key={step.number} className="flex flex-col items-center">
-                <button
-                  type="button"
-                  className={getStepClasses(step.number)}
-                  onClick={() => isClickable() && onStepClick?.(step.number)}
-                  onKeyDown={(e) => handleKeyDown(e, step.number)}
-                  disabled={!isClickable()}
-                  aria-label={`${step.label}`}
-                  aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                  tabIndex={isClickable() ? 0 : -1}
-                >
-                  {getStepIcon(step.number)}
-                </button>
+                <div className={getStepClasses(step.key)}>
+                  {getStepIcon(step.key)}
+                </div>
                 <div className="mt-3 text-center max-w-[120px]">
-                  <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                  <div className={`text-sm mb-1.5 ${getLabelClasses(step.key)}`}>
                     {step.label}
                   </div>
-                  {getStatusBadge(step.number)}
+                  {getStatusBadge(step.key)}
+                  {step.key === 'generatePlan' && getStepState(step.key) === 'not-started' && (
+                    <button
+                      type="button"
+                      onClick={handleSkipPlan}
+                      disabled={isSkipping}
+                      className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                    >
+                      {isSkipping ? 'Skipping...' : 'Skip'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -185,28 +297,22 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
             {WORKFLOW_STEPS.filter(s => s.number > 1).map((step, index, arr) => (
               <div key={step.number} className="flex items-center flex-1 last:flex-none">
                 <div className="flex flex-col items-center min-w-0">
-                  <button
-                    type="button"
-                    className={getStepClasses(step.number)}
-                    onClick={() => isClickable() && onStepClick?.(step.number)}
-                    onKeyDown={(e) => handleKeyDown(e, step.number)}
-                    disabled={!isClickable()}
-                    aria-label={`${step.label}`}
-                    aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                    tabIndex={isClickable() ? 0 : -1}
+                  <div
+                    className={getStepClasses(step.key)}
+                    title={step.key !== 'generatePlan' && isUploadDisabled() ? getDisabledTooltip() : undefined}
                   >
-                    {getStepIcon(step.number)}
-                  </button>
+                    {getStepIcon(step.key)}
+                  </div>
                   <div className="mt-3 text-center max-w-[120px]">
-                    <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                    <div className={`text-sm mb-1.5 ${getLabelClasses(step.key)}`}>
                       {step.label}
                     </div>
-                    {getStatusBadge(step.number)}
+                    {getStatusBadge(step.key)}
                   </div>
                 </div>
 
                 {index < arr.length - 1 && (
-                  <div className={getConnectorClasses(step.number)} aria-hidden="true" />
+                  <div className={getConnectorClasses(step.key)} aria-hidden="true" />
                 )}
               </div>
             ))}
@@ -224,23 +330,24 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
           </div>
           {WORKFLOW_STEPS.filter(s => s.number === 1).map((step) => (
             <div key={step.number} className="flex items-start">
-              <button
-                type="button"
-                className={getStepClasses(step.number)}
-                onClick={() => isClickable() && onStepClick?.(step.number)}
-                onKeyDown={(e) => handleKeyDown(e, step.number)}
-                disabled={!isClickable()}
-                aria-label={`${step.label}`}
-                aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                tabIndex={isClickable() ? 0 : -1}
-              >
-                {getStepIcon(step.number)}
-              </button>
+              <div className={getStepClasses(step.key)}>
+                {getStepIcon(step.key)}
+              </div>
               <div className="flex-1 pt-2 ml-3">
-                <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                <div className={`text-sm mb-1.5 ${getLabelClasses(step.key)}`}>
                   {step.label}
                 </div>
-                {getStatusBadge(step.number)}
+                {getStatusBadge(step.key)}
+                {step.key === 'generatePlan' && getStepState(step.key) === 'not-started' && (
+                  <button
+                    type="button"
+                    onClick={handleSkipPlan}
+                    disabled={isSkipping}
+                    className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                  >
+                    {isSkipping ? 'Skipping...' : 'Skip'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -257,23 +364,17 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
             {WORKFLOW_STEPS.filter(s => s.number > 1).map((step, index, arr) => (
               <div key={step.number} className="flex items-start">
                 <div className="flex flex-col items-center mr-3">
-                  <button
-                    type="button"
-                    className={getStepClasses(step.number)}
-                    onClick={() => isClickable() && onStepClick?.(step.number)}
-                    onKeyDown={(e) => handleKeyDown(e, step.number)}
-                    disabled={!isClickable()}
-                    aria-label={`${step.label}`}
-                    aria-current={getStepState(step.number) === 'current' ? 'step' : undefined}
-                    tabIndex={isClickable() ? 0 : -1}
+                  <div
+                    className={getStepClasses(step.key)}
+                    title={step.key !== 'generatePlan' && isUploadDisabled() ? getDisabledTooltip() : undefined}
                   >
-                    {getStepIcon(step.number)}
-                  </button>
+                    {getStepIcon(step.key)}
+                  </div>
 
                   {index < arr.length - 1 && (
                     <div
                       className={`w-0.5 h-8 mt-2 transition-all duration-300 rounded-full ${
-                        completedSteps.includes(step.number + 1)
+                        getStepState(arr[index + 1].key) === 'complete'
                           ? 'bg-gradient-to-b from-emerald-500 to-emerald-600'
                           : 'bg-gray-200'
                       }`}
@@ -283,10 +384,10 @@ function WorkflowProgressComponent({ currentStep, completedSteps, onStepClick }:
                 </div>
 
                 <div className="flex-1 pt-2">
-                  <div className={`text-sm mb-1.5 ${getLabelClasses(step.number)}`}>
+                  <div className={`text-sm mb-1.5 ${getLabelClasses(step.key)}`}>
                     {step.label}
                   </div>
-                  {getStatusBadge(step.number)}
+                  {getStatusBadge(step.key)}
                 </div>
               </div>
             ))}

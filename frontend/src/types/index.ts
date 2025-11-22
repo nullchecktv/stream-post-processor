@@ -8,6 +8,7 @@ import type { ClipStatusType, ClipOrientationType } from '@schemas/clips'
 import type { QuoteStatusType, QuoteOrientationType } from '@schemas/quotes'
 import type { TeamStatusType, MembershipStatusType, MemberRoleType } from '@schemas/teams'
 import type { BlogStatusType } from '@schemas/blogs'
+import type { WorkflowSteps } from './workflow'
 
 export type Platform = PlatformType
 export type EpisodeStatus = EpisodeStatusType
@@ -22,6 +23,7 @@ export type BlogStatus = BlogStatusType
 export type BrandingConfig = Branding
 
 export type { StatusHistoryEntry }
+export type { WorkflowSteps, WorkflowStep, WorkflowStepStatus } from './workflow'
 
 export interface EpisodeListView {
   id: string
@@ -76,6 +78,7 @@ export interface EpisodeDetail extends EpisodeListView {
   tracks: TrackInfo[]
   transcript?: TranscriptInfo
   clips: ClipListView[]
+  workflowSteps?: WorkflowSteps
 }
 
 export interface Episode {
@@ -98,6 +101,7 @@ export interface Episode {
     status: string
     timestamp: string
   }>
+  workflowSteps?: WorkflowSteps
   createdAt: string
   updatedAt: string
 }

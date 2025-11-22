@@ -13,16 +13,17 @@ export const handler = async (event) => {
     }
 
     await publishNotificationEvent({
-      type: 'clip_generation_failed',
+      type: 'clip_status_updated',
       tenantId,
-      title: 'Clip Generation Failed',
+      title: 'Clip Processing Failed',
       message: `Failed to generate clip: ${error?.message || 'Unknown error'}`,
-      url: `/episodes/${episodeId}/clips`,
+      url: `/episodes/${episodeId}`,
       persist: true,
       topic: 'tenant',
       metadata: {
         episodeId,
         clipId,
+        status: 'Failed',
         error: error?.message || 'Unknown error'
       }
     });

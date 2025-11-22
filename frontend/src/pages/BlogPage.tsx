@@ -143,9 +143,39 @@ function BlogPage() {
       fetchBlog()
     }
 
+    const handleContentItemStatusUpdate = (event: CustomEvent) => {
+      const { message } = event.detail
+      if (message.type === 'blog_status_updated' && message.metadata?.episodeId === id) {
+        setBlogData(prevBlog =>
+          prevBlog
+            ? {
+                ...prevBlog,
+                status: message.metadata.status,
+                error: message.metadata.error,
+                updatedAt: message.timestamp
+              }
+            : null
+        )
+
+        if (message.metadata.status === 'Created') {
+          setIsRegenerating(false)
+          setIsDirty(false)
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current)
+            pollingIntervalRef.current = null
+          }
+        }
+      }
+    }
+
     window.addEventListener('refreshPageContent', handleRefresh)
-    return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [fetchBlog])
+    window.addEventListener('contentItemStatusUpdated', handleContentItemStatusUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener('refreshPageContent', handleRefresh)
+      window.removeEventListener('contentItemStatusUpdated', handleContentItemStatusUpdate as EventListener)
+    }
+  }, [fetchBlog, id])
 
   useEffect(() => {
     if (!blogData) return

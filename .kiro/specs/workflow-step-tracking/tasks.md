@@ -68,21 +68,21 @@
   - Update tests
   - _Requirements: FR-4, FR-5, US-5_
 
-- [ ] 3. Implement frontend updates
+- [x] 3. Implement frontend updates
 
-- [ ] 3.1 Add TypeScript type definitions
+- [x] 3.1 Add TypeScript type definitions
   - Create `frontend/src/types/workflow.ts`
   - Define `WorkflowStepStatus`, `WorkflowStep`, and `WorkflowSteps` types
   - Update `Episode` type to include `workflowSteps`
   - _Requirements: FR-7_
 
-- [ ] 3.2 Update API client for skip functionality
+- [x] 3.2 Update API client for skip functionality
   - Update `frontend/src/api/episodes.ts`
   - Add `skipPlanGeneration()` method
   - Add proper TypeScript types and error handling
   - _Requirements: FR-6, US-3_
 
-- [ ] 3.3 Update workflow progress component
+- [x] 3.3 Update workflow progress component
   - Update `frontend/src/components/episodes/WorkflowProgress.tsx`
   - Accept `workflowSteps` prop instead of deriving state
   - Add spinner icon for "In Progress" status
@@ -93,7 +93,7 @@
   - Add skip button for plan generation
   - _Requirements: FR-7, FR-8, US-1, US-3, US-4_
 
-- [ ] 3.4 Update episode overview page
+- [x] 3.4 Update episode overview page
   - Update `frontend/src/pages/EpisodeOverviewPage.tsx`
   - Pass `workflowSteps` to WorkflowProgress component
   - Remove full page refresh on task notifications
@@ -101,23 +101,23 @@
   - Handle workflow step update notifications
   - _Requirements: FR-7, US-6_
 
-- [ ] 3.5 Update notification context
+- [x] 3.5 Update notification context
   - Update `frontend/src/contexts/NotificationContext.tsx`
   - Add handler for `workflow_step_updated` notifications
   - Update episode state with new workflow step status
   - Prevent full page refresh on workflow updates
   - _Requirements: FR-5, FR-7, US-6_
 
-- [ ] 3.6 Update useWorkflowState hook
+- [x] 3.6 Update useWorkflowState hook
   - Update `frontend/src/hooks/useWorkflowState.ts`
   - Use explicit `workflowSteps` instead of deriving state
   - Update `currentStep`, `completedSteps`, and `nextAction` logic
   - Handle all five status values
   - _Requirements: FR-7, US-1_
 
-- [ ] 4. Integration and end-to-end testing
+- [x] 4. Integration and end-to-end testing
 
-- [ ] 4.1 Write integration tests
+- [x] 4.1 Write integration tests
   - Create `tests/integration/workflow-steps.test.mjs`
   - Test complete workflow: create → plan → upload → tracks
   - Test skip plan workflow
@@ -127,7 +127,7 @@
   - Test error scenarios and concurrent updates
   - _Requirements: NFR-2_
 
-- [ ] 4.2 Write end-to-end tests
+- [x] 4.2 Write end-to-end tests
   - Add E2E tests for workflow progress UI
   - Test plan generation with spinner display
   - Test skip plan functionality
@@ -136,9 +136,9 @@
   - Test error states and multiple browser tabs
   - _Requirements: NFR-1, US-6_
 
-- [ ] 5. Implement content item status tracking
+- [x] 5. Implement content item status tracking
 
-- [ ] 5.1 Update clip generation workflow
+- [x] 5.1 Update clip generation workflow
   - Update Step Functions state machine to set status to "Processing" at start
   - Update state machine to set status to "Created"/"Failed" at completion
   - Add status update steps with DynamoDB UpdateItem
@@ -146,7 +146,7 @@
   - Update tests
   - _Requirements: FR-9, FR-10, FR-11, US-7_
 
-- [ ] 5.2 Update quote generation
+- [x] 5.2 Update quote generation
   - Update `functions/events/generate-quote-graphic.mjs`
   - Set status to "Processing" at start
   - Set status to "Created"/"Failed" at completion
@@ -155,7 +155,7 @@
   - Update tests
   - _Requirements: FR-9, FR-10, FR-11, US-7_
 
-- [ ] 5.3 Update blog generation
+- [x] 5.3 Update blog generation
   - Update `functions/blogs/generate-blog.mjs`
   - Set status to "Processing" at start
   - Set status to "Created"/"Failed" at completion
@@ -164,7 +164,7 @@
   - Update tests
   - _Requirements: FR-9, FR-10, FR-11, US-7_
 
-- [ ] 5.4 Update frontend content item display
+- [x] 5.4 Update frontend content item display
   - Create `ClipCard`, `QuoteCard`, `BlogCard` components with status badges
   - Add spinner for "Processing" status
   - Add checkmark for "Created" status
@@ -173,7 +173,7 @@
   - Show processing count summary
   - _Requirements: FR-12, US-7, US-8_
 
-- [ ] 5.5 Update notification context for content items
+- [x] 5.5 Update notification context for content items
   - Add handlers for `clip_status_updated`, `quote_status_updated`, `blog_status_updated`
   - Update content item state on notification
   - Prevent full page refresh
@@ -182,24 +182,34 @@
 
 - [ ] 6. Deploy and monitor
 
-- [ ] 6.1 Deploy backend changes
-  - Deploy backend changes to dev environment
-  - Run smoke tests and monitor logs
-  - Deploy to production
-  - Monitor CloudWatch logs and metrics
+- [-] 6.1 Commit and push changes
+  - Review all changes made for content item status tracking
+  - Commit changes with descriptive message
+  - Push to GitHub repository
+  - CI/CD pipeline will automatically deploy to dev environment
   - _Requirements: NFR-1, NFR-2_
 
-- [ ] 6.2 Deploy frontend changes
-  - Deploy frontend changes to dev environment
-  - Test in dev environment
-  - Deploy to production
-  - Monitor for errors and real-time update functionality
+- [ ] 6.2 Monitor dev deployment
+  - Wait for GitHub Actions workflow to complete
+  - Check deployment logs for any errors
+  - Run smoke tests in dev environment
+  - Monitor CloudWatch logs and metrics
+  - Test real-time status updates for clips, quotes, and blog posts
+  - _Requirements: NFR-1, NFR-2_
+
+- [ ] 6.3 Deploy to production
+  - Create pull request from dev branch to main
+  - Review and approve PR
+  - Merge to main branch
+  - CI/CD pipeline will automatically deploy to production
+  - Monitor CloudWatch logs and metrics
+  - Verify real-time update functionality in production
   - _Requirements: NFR-1_
 
-- [ ] 6.3 Update documentation
-  - Update API documentation with new endpoint
+- [ ] 6.4 Update documentation
+  - Document content item status tracking feature
   - Document workflow step statuses and transitions
-  - Document content item statuses and transitions
-  - Document notification schemas for all types
-  - Add troubleshooting section
+  - Document content item statuses and transitions (Proposed, Processing, Created, Failed)
+  - Document notification schemas for clip_status_updated, quote_status_updated, blog_status_updated
+  - Add troubleshooting section for real-time updates
   - _Requirements: All_
