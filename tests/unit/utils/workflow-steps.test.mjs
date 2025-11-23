@@ -244,8 +244,9 @@ describe('Workflow Steps Utilities', () => {
       );
 
       const updateCalls = ddbMock.commandCalls(UpdateCommand);
-      const updateCall = updateCalls[0].args[0].input;
+      expect(updateCalls).toHaveLength(1);
 
+      const updateCall = updateCalls[0].args[0].input;
       expect(updateCall.ExpressionAttributeValues[':stepData'].status).toBe(
         WORKFLOW_STEP_STATUS.COMPLETED
       );
@@ -265,8 +266,9 @@ describe('Workflow Steps Utilities', () => {
       );
 
       const updateCalls = ddbMock.commandCalls(UpdateCommand);
-      const updateCall = updateCalls[0].args[0].input;
+      expect(updateCalls).toHaveLength(1);
 
+      const updateCall = updateCalls[0].args[0].input;
       expect(updateCall.ExpressionAttributeValues[':stepData'].status).toBe(
         WORKFLOW_STEP_STATUS.FAILED
       );
@@ -283,8 +285,9 @@ describe('Workflow Steps Utilities', () => {
       );
 
       const updateCalls = ddbMock.commandCalls(UpdateCommand);
-      const updateCall = updateCalls[0].args[0].input;
+      expect(updateCalls).toHaveLength(1);
 
+      const updateCall = updateCalls[0].args[0].input;
       expect(updateCall.ExpressionAttributeValues[':stepData'].status).toBe(
         WORKFLOW_STEP_STATUS.SKIPPED
       );

@@ -3,7 +3,7 @@ import { PlanCard } from './PlanCard'
 import { BlogPostCard } from './BlogPostCard'
 import { ClipsCard } from './ClipsCard'
 import { QuotesCard } from './QuotesCard'
-import type { Plan, BlogData, ClipListView, Quote } from '../../types'
+import type { Plan, BlogData, ClipListView, Quote, WorkflowSteps } from '../../types'
 
 interface ContentCardsGridProps {
   readonly episodeId: string
@@ -12,6 +12,7 @@ interface ContentCardsGridProps {
   readonly clips?: ClipListView[]
   readonly quotes?: Quote[]
   readonly isLoading?: boolean
+  readonly workflowSteps?: WorkflowSteps
   readonly errors?: {
     plan?: string | null
     blog?: string | null
@@ -27,8 +28,13 @@ function ContentCardsGridComponent({
   clips = [],
   quotes = [],
   isLoading = false,
+  workflowSteps,
   errors = {}
 }: ContentCardsGridProps) {
+  const isTranscriptProcessing = workflowSteps?.uploadTranscript?.status === 'In Progress'
+  const isTracksProcessing = workflowSteps?.uploadTracks?.status === 'In Progress'
+  const transcriptComplete = workflowSteps?.uploadTranscript?.status === 'Completed'
+  const tracksComplete = workflowSteps?.uploadTracks?.status === 'Completed'
   if (isLoading) {
     return (
       <section aria-label="Created content" aria-busy="true">
@@ -78,16 +84,21 @@ function ContentCardsGridComponent({
           episodeId={episodeId}
           blog={blog ?? null}
           error={errors.blog}
+          isProcessing={isTranscriptProcessing}
         />
         <ClipsCard
           episodeId={episodeId}
           clips={clips}
           error={errors.clips}
+          isProcessing={isTranscriptProcessing || isTracksProcessing}
+          canGenerate={transcriptComplete && tracksComplete}
         />
         <QuotesCard
           episodeId={episodeId}
           quotes={quotes}
           error={errors.quotes}
+          isProcessing={isTranscriptProcessing}
+          canGenerate={transcriptComplete}
         />
       </div>
     </section>

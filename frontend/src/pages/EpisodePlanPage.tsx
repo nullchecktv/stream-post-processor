@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -21,7 +21,7 @@ function EpisodePlanPage() {
 
   usePageTitle('Episode Plan')
 
-  const fetchPlan = async () => {
+  const fetchPlan = useCallback(async () => {
     if (!id) return
 
     setLoading(true)
@@ -33,20 +33,34 @@ function EpisodePlanPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchPlan()
   }, [id])
 
   useEffect(() => {
+    fetchPlan()
+  }, [fetchPlan])
+
+  useEffect(() => {
+    if (!id) return
+
     const handleRefresh = () => {
       fetchPlan()
     }
 
+    const handleWorkflowUpdate = (event: CustomEvent) => {
+      const message = event.detail?.message
+      if (message?.metadata?.episodeId === id && message?.metadata?.step === 'generatePlan') {
+        fetchPlan()
+      }
+    }
+
     window.addEventListener('refreshPageContent', handleRefresh)
-    return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [id])
+    globalThis.addEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener('refreshPageContent', handleRefresh)
+      globalThis.removeEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+    }
+  }, [id, fetchPlan])
 
   const handlePlanSubmit = async (data: PlanFormData) => {
     if (!id) return
@@ -182,7 +196,7 @@ function EpisodePlanPage() {
         <>
           <PlanRecommendations
             recommendations={episodePlan.recommendations}
-            isLoading={false}
+            isLoading={!episodePlan.recommendations}
           />
 
           {episodePlan.recommendations?.detailedOutline && (

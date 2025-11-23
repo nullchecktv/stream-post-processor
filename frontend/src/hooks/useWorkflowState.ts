@@ -16,7 +16,7 @@ export interface NextAction {
 export interface WorkflowState {
   currentStep: WorkflowStep
   completedSteps: number[]
-  nextAction: NextAction
+  nextAction: NextAction | null
 }
 
 export function computeWorkflowState(episode: Episode): WorkflowState {
@@ -24,7 +24,7 @@ export function computeWorkflowState(episode: Episode): WorkflowState {
   const completedSteps: number[] = []
 
   if (workflowSteps) {
-    if (workflowSteps.generatePlan.status === 'Completed') completedSteps.push(1)
+    if (['Completed', 'Skipped'].includes(workflowSteps.generatePlan.status)) completedSteps.push(1)
     if (workflowSteps.uploadTranscript.status === 'Completed') completedSteps.push(2)
     if (workflowSteps.uploadTracks.status === 'Completed') completedSteps.push(3)
   } else {
@@ -44,7 +44,7 @@ export function computeWorkflowState(episode: Episode): WorkflowState {
   }
 }
 
-export function determineNextAction(workflowSteps: WorkflowSteps | undefined, episodeId: string): NextAction {
+export function determineNextAction(workflowSteps: WorkflowSteps | undefined, episodeId: string): NextAction | null {
   if (!workflowSteps) {
     return {
       title: 'Generate Content Plan',
@@ -61,11 +61,7 @@ export function determineNextAction(workflowSteps: WorkflowSteps | undefined, ep
   const transcriptStatus = workflowSteps.uploadTranscript.status
   const tracksStatus = workflowSteps.uploadTracks.status
 
-  const planComplete = planStatus === 'Completed' || planStatus === 'Skipped'
-  const transcriptComplete = transcriptStatus === 'Completed'
-  const tracksComplete = tracksStatus === 'Completed'
-
-  if (!planComplete && planStatus !== 'In Progress' && planStatus !== 'Failed') {
+  if (planStatus === 'Not Started') {
     return {
       title: 'Generate Content Plan',
       description: 'Create a structured plan with objectives and concepts for this episode',
@@ -87,7 +83,19 @@ export function determineNextAction(workflowSteps: WorkflowSteps | undefined, ep
     }
   }
 
-  if (!transcriptComplete && transcriptStatus !== 'In Progress') {
+  if (planStatus === 'Failed') {
+    return {
+      title: 'Plan Generation Failed',
+      description: 'There was an error generating your plan. You can retry or skip to uploads.',
+      buttonText: 'Retry Plan',
+      route: `/episodes/${episodeId}/plan`,
+      icon: 'lightbulb',
+      skipRoute: `/episodes/${episodeId}/uploads`,
+      skipText: 'Skip to Uploads'
+    }
+  }
+
+  if (transcriptStatus === 'Not Started') {
     return {
       title: 'Upload Transcript',
       description: 'Upload the SRT transcript file to enable AI-powered clip detection',
@@ -107,7 +115,17 @@ export function determineNextAction(workflowSteps: WorkflowSteps | undefined, ep
     }
   }
 
-  if (!tracksComplete && tracksStatus !== 'In Progress') {
+  if (transcriptStatus === 'Failed') {
+    return {
+      title: 'Transcript Processing Failed',
+      description: 'There was an error processing your transcript. Please try uploading again.',
+      buttonText: 'Upload Transcript',
+      route: `/episodes/${episodeId}/uploads`,
+      icon: 'document'
+    }
+  }
+
+  if (tracksStatus === 'Not Started') {
     return {
       title: 'Upload Video Tracks',
       description: 'Upload video tracks to generate clips from detected moments',
@@ -127,13 +145,17 @@ export function determineNextAction(workflowSteps: WorkflowSteps | undefined, ep
     }
   }
 
-  return {
-    title: 'All Set!',
-    description: 'Your episode is ready. View generated content below.',
-    buttonText: 'View Content',
-    route: `/episodes/${episodeId}/content`,
-    icon: 'check-circle'
+  if (tracksStatus === 'Failed') {
+    return {
+      title: 'Track Processing Failed',
+      description: 'There was an error processing your video tracks. Please try uploading again.',
+      buttonText: 'Upload Tracks',
+      route: `/episodes/${episodeId}/uploads`,
+      icon: 'video'
+    }
   }
+
+  return null
 }
 
 export function getWorkflowStepFromEpisode(episode: Episode): WorkflowStep {

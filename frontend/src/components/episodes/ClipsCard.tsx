@@ -6,10 +6,19 @@ interface ClipsCardProps {
   readonly episodeId: string
   readonly clips: ClipListView[]
   readonly isLoading?: boolean
+  readonly isProcessing?: boolean
+  readonly canGenerate?: boolean
   readonly error?: string | null
 }
 
-function ClipsCardComponent({ episodeId, clips, isLoading = false, error = null }: ClipsCardProps) {
+function ClipsCardComponent({
+  episodeId,
+  clips,
+  isLoading = false,
+  isProcessing = false,
+  canGenerate = false,
+  error = null
+}: ClipsCardProps) {
   const navigate = useNavigate()
 
   const handleViewClips = useCallback(() => {
@@ -49,6 +58,29 @@ function ClipsCardComponent({ episodeId, clips, isLoading = false, error = null 
     )
   }
 
+  if (isProcessing) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-start space-x-3 mb-4">
+          <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Clips</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              Processing...
+            </p>
+            <p className="text-sm text-gray-500">
+              AI is analyzing your transcript to detect clips. This may take a moment.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!clips || clips.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -64,7 +96,9 @@ function ClipsCardComponent({ episodeId, clips, isLoading = false, error = null 
               0 clips
             </p>
             <p className="text-sm text-gray-500">
-              Clips will appear here after AI detection and processing.
+              {canGenerate
+                ? 'Clips will appear here after AI detection and processing.'
+                : 'Upload transcript and video tracks to generate clips.'}
             </p>
           </div>
         </div>

@@ -98,6 +98,8 @@ export const handler = async (event) => {
     if (episode.themes) response.themes = episode.themes;
     if (episode.seriesName) response.seriesName = episode.seriesName;
     if (episode.speakers) response.speakers = episode.speakers;
+    if (episode.workflowSteps) response.workflowSteps = episode.workflowSteps;
+    if (episode.statusHistory) response.statusHistory = episode.statusHistory;
 
     return formatResponse(200, response, {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',

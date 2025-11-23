@@ -258,7 +258,7 @@ function EpisodeOverviewPage() {
           isUpdating={isUpdating}
         />
 
-        {workflowState && workflowState.completedSteps.length < 4 && (
+        {workflowState?.nextAction && (
           <NextActionCard
             action={workflowState.nextAction}
             isLoading={false}
@@ -280,6 +280,7 @@ function EpisodeOverviewPage() {
           clips={clips}
           quotes={quotes}
           errors={contentErrors}
+          workflowSteps={workflowSteps}
         />
       </div>
     </ErrorBoundary>

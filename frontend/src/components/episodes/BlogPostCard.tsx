@@ -7,6 +7,7 @@ interface BlogPostCardProps {
   readonly episodeId: string
   readonly blog: BlogData | null
   readonly isLoading?: boolean
+  readonly isProcessing?: boolean
   readonly error?: string | null
 }
 
@@ -43,7 +44,13 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; icon?: ReactNode
   'Edited': { bg: 'bg-purple-100', text: 'text-purple-800' }
 }
 
-function BlogPostCardComponent({ episodeId, blog, isLoading = false, error = null }: BlogPostCardProps) {
+function BlogPostCardComponent({
+  episodeId,
+  blog,
+  isLoading = false,
+  isProcessing = false,
+  error = null
+}: BlogPostCardProps) {
   const navigate = useNavigate()
 
   const handleViewPost = useCallback(() => {
@@ -77,6 +84,29 @@ function BlogPostCardComponent({ episodeId, blog, isLoading = false, error = nul
           <div>
             <h3 className="text-sm font-semibold text-red-900 mb-1">Error Loading Blog Post</h3>
             <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isProcessing) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-start space-x-3 mb-4">
+          <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Blog Post</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              Processing...
+            </p>
+            <p className="text-sm text-gray-500">
+              AI is generating your blog post. This may take a moment.
+            </p>
           </div>
         </div>
       </div>
