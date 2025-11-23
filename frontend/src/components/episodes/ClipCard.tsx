@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import type { ClipListView } from '../../types'
 
 interface ClipCardProps {
@@ -10,7 +11,7 @@ interface ClipCardProps {
   onRetry?: (clipId: string) => void
 }
 
-const statusConfig: Record<string, { colors: string; label: string; icon?: JSX.Element }> = {
+const statusConfig: Record<string, { colors: string; label: string; icon?: ReactNode }> = {
   Proposed: {
     colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     label: 'Proposed'

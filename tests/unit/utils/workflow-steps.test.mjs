@@ -220,9 +220,10 @@ describe('Workflow Steps Utilities', () => {
         sk: 'metadata'
       });
       expect(updateCall.UpdateExpression).toBe(
-        'SET workflowSteps.#step = :stepData, updatedAt = :updatedAt'
+        'SET #workflowSteps = if_not_exists(#workflowSteps, :emptyMap), #workflowSteps.#step = :stepData, updatedAt = :updatedAt'
       );
       expect(updateCall.ExpressionAttributeNames).toEqual({
+        '#workflowSteps': 'workflowSteps',
         '#step': WORKFLOW_STEPS.GENERATE_PLAN
       });
       expect(updateCall.ExpressionAttributeValues[':stepData'].status).toBe(
@@ -230,6 +231,7 @@ describe('Workflow Steps Utilities', () => {
       );
       expect(updateCall.ExpressionAttributeValues[':stepData'].startedAt).toBeDefined();
       expect(updateCall.ExpressionAttributeValues[':stepData'].completedAt).toBeUndefined();
+      expect(updateCall.ExpressionAttributeValues[':emptyMap']).toEqual({});
     });
 
     it('should update status to Completed with completedAt timestamp', async () => {

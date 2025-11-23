@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Quote, QuoteStatus } from '../../types'
 
@@ -8,7 +9,7 @@ interface QuoteCardProps {
   onDownload: (id: string, imageUrl: string) => void
 }
 
-const statusConfig: Record<QuoteStatus | 'approved' | 'rejected', { colors: string; label: string; icon?: JSX.Element }> = {
+const statusConfig: Record<QuoteStatus | 'approved' | 'rejected', { colors: string; label: string; icon?: ReactNode }> = {
   Proposed: {
     colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     label: 'Proposed'

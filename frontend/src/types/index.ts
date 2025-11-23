@@ -67,6 +67,7 @@ export interface ClipListView {
   segmentCount: number
   summary?: string
   clipType?: string
+  error?: string
   createdAt: string
   updatedAt: string
 }
@@ -268,6 +269,7 @@ export interface Quote {
   status: QuoteStatus
   imageUrl?: string
   orientation: QuoteOrientation
+  error?: string
   createdAt: string
 }
 
@@ -289,6 +291,7 @@ export interface BlogData {
   content: string | null
   status: BlogStatus
   wordCount: number | null
+  error?: string
   createdAt: string | null
   updatedAt: string | null
 }

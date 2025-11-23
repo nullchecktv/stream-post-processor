@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import type { EpisodeListView } from '../../types'
 import { formatDate } from '../../utils/date'
-import { EpisodeStatusChip } from './EpisodeStatusChip'
 import { MiniWorkflowProgress } from './MiniWorkflowProgress'
 
 interface EpisodeCardProps {

@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { BlogData } from '../../types'
 
@@ -9,7 +10,7 @@ interface BlogPostCardProps {
   readonly error?: string | null
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; icon?: JSX.Element }> = {
+const STATUS_STYLES: Record<string, { bg: string; text: string; icon?: ReactNode }> = {
   'Proposed': { bg: 'bg-gray-100', text: 'text-gray-800' },
   'Processing': {
     bg: 'bg-blue-100',

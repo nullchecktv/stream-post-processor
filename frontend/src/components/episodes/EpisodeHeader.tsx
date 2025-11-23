@@ -1,6 +1,5 @@
 import { useState, useEffect, memo, useCallback } from 'react'
 import { Button } from '../common/Button'
-import { EpisodeStatusChip } from './EpisodeStatusChip'
 import { formatDate } from '../../utils/date'
 import type { EpisodeDetail, Platform } from '../../types'
 import type { EpisodeUpdate } from '@schemas/episodes'
