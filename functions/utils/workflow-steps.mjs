@@ -93,15 +93,16 @@ export const updateWorkflowStepStatus = async (
         pk: `${tenantId}#${episodeId}`,
         sk: 'metadata'
       },
-      UpdateExpression: 'SET #workflowSteps = if_not_exists(#workflowSteps, :emptyMap), #workflowSteps.#step = :stepData, updatedAt = :updatedAt',
+      UpdateExpression: 'SET #workflowSteps.#step = :stepData, #updatedAt = :updatedAt',
+      ConditionExpression: 'attribute_exists(pk)',
       ExpressionAttributeNames: {
         '#workflowSteps': 'workflowSteps',
-        '#step': step
+        '#step': step,
+        '#updatedAt': 'updatedAt'
       },
       ExpressionAttributeValues: {
         ':stepData': stepData,
-        ':updatedAt': now,
-        ':emptyMap': {}
+        ':updatedAt': now
       }
     }));
 
