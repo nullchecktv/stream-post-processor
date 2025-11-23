@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -220,18 +220,19 @@ describe('Workflow Steps Utilities', () => {
         sk: 'metadata'
       });
       expect(updateCall.UpdateExpression).toBe(
-        'SET #workflowSteps = if_not_exists(#workflowSteps, :emptyMap), #workflowSteps.#step = :stepData, updatedAt = :updatedAt'
+        'SET #workflowSteps.#step = :stepData, #updatedAt = :updatedAt'
       );
+      expect(updateCall.ConditionExpression).toBe('attribute_exists(pk)');
       expect(updateCall.ExpressionAttributeNames).toEqual({
         '#workflowSteps': 'workflowSteps',
-        '#step': WORKFLOW_STEPS.GENERATE_PLAN
+        '#step': WORKFLOW_STEPS.GENERATE_PLAN,
+        '#updatedAt': 'updatedAt'
       });
       expect(updateCall.ExpressionAttributeValues[':stepData'].status).toBe(
         WORKFLOW_STEP_STATUS.IN_PROGRESS
       );
       expect(updateCall.ExpressionAttributeValues[':stepData'].startedAt).toBeDefined();
       expect(updateCall.ExpressionAttributeValues[':stepData'].completedAt).toBeUndefined();
-      expect(updateCall.ExpressionAttributeValues[':emptyMap']).toEqual({});
     });
 
     it('should update status to Completed with completedAt timestamp', async () => {
