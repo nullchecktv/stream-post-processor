@@ -19,9 +19,14 @@ jest.mock('../../../functions/tools/web-search.mjs', () => ({
   webSearchTool: { name: 'webSearch' }
 }));
 
+jest.mock('../../../functions/utils/workflow-steps.mjs', () => ({
+  updateWorkflowStep: jest.fn()
+}));
+
 import { handler } from '../../../functions/agents/blog-generator.mjs';
 import { converse } from '../../../functions/utils/agents.mjs';
 import { convertToBedrockTools } from '../../../functions/utils/tools.mjs';
+import { updateWorkflowStep } from '../../../functions/utils/workflow-steps.mjs';
 
 describe('Blog Generator Agent', () => {
   beforeEach(() => {
@@ -29,6 +34,7 @@ describe('Blog Generator Agent', () => {
     eventBridgeMock.reset();
     converse.mockReset();
     convertToBedrockTools.mockReturnValue([]);
+    updateWorkflowStep.mockResolvedValue();
     process.env.TABLE_NAME = 'test-table';
     process.env.MODEL_ID = 'amazon.nova-pro-v1:0';
 
