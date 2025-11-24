@@ -48,12 +48,25 @@ function EpisodeContentPage() {
       setRefreshKey(prev => prev + 1)
     }
 
+    const handleWorkflowUpdate = (event: CustomEvent) => {
+      const message = event.detail?.message
+      if (message?.metadata?.episodeId === id) {
+        setRefreshKey(prev => prev + 1)
+      }
+    }
+
     window.addEventListener('refreshPageContent', handleRefresh)
-    return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [])
+    window.addEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+    return () => {
+      window.removeEventListener('refreshPageContent', handleRefresh)
+      window.removeEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+    }
+  }, [id])
 
   const handleUploadComplete = () => {
-    setRefreshKey(prev => prev + 1)
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1)
+    }, 1000)
   }
 
   if (loading) {

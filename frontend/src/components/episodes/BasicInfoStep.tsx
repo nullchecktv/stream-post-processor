@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { Input } from '../common/Input'
 import { z } from 'zod'
 
@@ -22,12 +24,49 @@ const basicInfoSchema = z.object({
 })
 
 export function BasicInfoStep({ formData, onChange, errors, onValidate }: BasicInfoStepProps) {
+  const [speakerInput, setSpeakerInput] = useState('')
+  const [speakerError, setSpeakerError] = useState('')
+
   const handleChange = (field: keyof BasicInfoStepProps['formData'], value: string) => {
     onChange({ [field]: value })
 
     const updatedData = { ...formData, [field]: value }
     const result = basicInfoSchema.safeParse(updatedData)
     onValidate(result.success)
+  }
+
+  const handleAddSpeaker = (speaker: string) => {
+    const trimmedSpeaker = speaker.trim()
+
+    if (!trimmedSpeaker) {
+      setSpeakerError('Speaker name cannot be empty')
+      return
+    }
+
+    if (trimmedSpeaker.length > 100) {
+      setSpeakerError('Speaker name must be less than 100 characters')
+      return
+    }
+
+    if (formData.speakers.some(s => s.toLowerCase() === trimmedSpeaker.toLowerCase())) {
+      setSpeakerError('This speaker has already been added')
+      return
+    }
+
+    onChange({ speakers: [...formData.speakers, trimmedSpeaker] })
+    setSpeakerInput('')
+    setSpeakerError('')
+  }
+
+  const handleSpeakerKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddSpeaker(speakerInput)
+    }
+  }
+
+  const handleRemoveSpeaker = (speakerToRemove: string) => {
+    onChange({ speakers: formData.speakers.filter(s => s !== speakerToRemove) })
   }
 
   return (
@@ -81,6 +120,51 @@ export function BasicInfoStep({ formData, onChange, errors, onValidate }: BasicI
           placeholder="e.g., Tech Talk Series"
           helperText="Group episodes together by series"
         />
+
+        <div>
+          <Input
+            label="Speakers"
+            type="text"
+            value={speakerInput}
+            onChange={(e) => {
+              setSpeakerInput(e.target.value)
+              setSpeakerError('')
+            }}
+            onKeyDown={handleSpeakerKeyDown}
+            error={speakerError}
+            placeholder="Type a speaker name and press Enter"
+            helperText="Add the names of people appearing in this episode"
+          />
+
+          {formData.speakers.length > 0 && (
+            <div className="mt-3">
+              <div className="flex flex-wrap gap-2">
+                {formData.speakers.map((speaker) => (
+                  <span
+                    key={speaker}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                  >
+                    {speaker}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSpeaker(speaker)}
+                      className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      aria-label={`Remove ${speaker}`}
+                    >
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

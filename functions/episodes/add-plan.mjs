@@ -60,11 +60,20 @@ export const handler = async (event) => {
 
     const updatedStatusHistory = addStatusEntry(episode.statusHistory || [], 'plan_added', now);
 
+    const updatedWorkflowSteps = {
+      ...(episode.workflowSteps || {}),
+      generatePlan: {
+        status: 'Completed',
+        completedAt: now
+      }
+    };
+
     await ddb.send(new PutItemCommand({
       TableName: process.env.TABLE_NAME,
       Item: marshall({
         ...episode,
         statusHistory: updatedStatusHistory,
+        workflowSteps: updatedWorkflowSteps,
         status: 'plan_added',
         updatedAt: now
       })

@@ -24,9 +24,9 @@ export function computeWorkflowState(episode: Episode): WorkflowState {
   const completedSteps: number[] = []
 
   if (workflowSteps) {
-    if (['Completed', 'Skipped'].includes(workflowSteps.generatePlan.status)) completedSteps.push(1)
-    if (workflowSteps.uploadTranscript.status === 'Completed') completedSteps.push(2)
-    if (workflowSteps.uploadTracks.status === 'Completed') completedSteps.push(3)
+    if (workflowSteps.generatePlan && ['Completed', 'Skipped'].includes(workflowSteps.generatePlan.status)) completedSteps.push(1)
+    if (workflowSteps.uploadTranscript && workflowSteps.uploadTranscript.status === 'Completed') completedSteps.push(2)
+    if (workflowSteps.uploadTracks && workflowSteps.uploadTracks.status === 'Completed') completedSteps.push(3)
   } else {
     const hasTranscript = episode.metrics?.hasTranscript || false
     const hasTracks = (episode.metrics?.tracksCount || 0) > 0
@@ -57,9 +57,9 @@ export function determineNextAction(workflowSteps: WorkflowSteps | undefined, ep
     }
   }
 
-  const planStatus = workflowSteps.generatePlan.status
-  const transcriptStatus = workflowSteps.uploadTranscript.status
-  const tracksStatus = workflowSteps.uploadTracks.status
+  const planStatus = workflowSteps.generatePlan?.status || 'Not Started'
+  const transcriptStatus = workflowSteps.uploadTranscript?.status || 'Not Started'
+  const tracksStatus = workflowSteps.uploadTracks?.status || 'Not Started'
 
   if (planStatus === 'Not Started') {
     return {
@@ -162,9 +162,9 @@ export function getWorkflowStepFromEpisode(episode: Episode): WorkflowStep {
   if (episode.workflowSteps) {
     const { generatePlan, uploadTranscript, uploadTracks } = episode.workflowSteps
 
-    if (uploadTracks.status === 'Completed') return 3
-    if (uploadTranscript.status === 'Completed') return 2
-    if (generatePlan.status === 'Completed' || generatePlan.status === 'Skipped') return 1
+    if (uploadTracks && uploadTracks.status === 'Completed') return 3
+    if (uploadTranscript && uploadTranscript.status === 'Completed') return 2
+    if (generatePlan && (generatePlan.status === 'Completed' || generatePlan.status === 'Skipped')) return 1
     return 1
   }
 
@@ -180,11 +180,11 @@ export function isStepComplete(step: number, episode: Episode): boolean {
   if (episode.workflowSteps) {
     switch (step) {
       case 1:
-        return ['Completed', 'Skipped'].includes(episode.workflowSteps.generatePlan.status)
+        return episode.workflowSteps.generatePlan ? ['Completed', 'Skipped'].includes(episode.workflowSteps.generatePlan.status) : false
       case 2:
-        return episode.workflowSteps.uploadTranscript.status === 'Completed'
+        return episode.workflowSteps.uploadTranscript ? episode.workflowSteps.uploadTranscript.status === 'Completed' : false
       case 3:
-        return episode.workflowSteps.uploadTracks.status === 'Completed'
+        return episode.workflowSteps.uploadTracks ? episode.workflowSteps.uploadTracks.status === 'Completed' : false
       default:
         return false
     }

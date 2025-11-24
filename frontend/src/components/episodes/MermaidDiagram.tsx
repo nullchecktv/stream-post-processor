@@ -90,7 +90,7 @@ export function MermaidDiagram({ diagram, className = '' }: MermaidDiagramProps)
       )}
       <div
         ref={containerRef}
-        className="mermaid-container overflow-x-auto bg-white rounded-lg border border-gray-200 p-4"
+        className="mermaid-container overflow-x-auto bg-white rounded-lg border border-gray-200 p-4 flex justify-center"
       />
     </div>
   )

@@ -18,6 +18,7 @@ function EpisodePlanPage() {
   const [loading, setLoading] = useState(true)
   const [isPlanSubmitting, setIsPlanSubmitting] = useState(false)
   const [showPlanForm, setShowPlanForm] = useState(false)
+  const [activeTab, setActiveTab] = useState<'flow' | 'outline'>('flow')
 
   usePageTitle('Episode Plan')
 
@@ -42,23 +43,40 @@ function EpisodePlanPage() {
   useEffect(() => {
     if (!id) return
 
-    const handleRefresh = () => {
-      fetchPlan()
-    }
+    const handleRefresh = (event: Event) => {
+      const customEvent = event as CustomEvent
+      const message = customEvent.detail?.message
+      console.log('Plan page: refreshPageContent event received', message)
 
-    const handleWorkflowUpdate = (event: CustomEvent) => {
-      const message = event.detail?.message
-      if (message?.metadata?.episodeId === id && message?.metadata?.step === 'generatePlan') {
+      if (message?.type === 'plan_generated') {
+        const urlMatch = message.url?.match(/\/episodes\/([^/]+)\/plan/)
+        const messageEpisodeId = urlMatch?.[1]
+        console.log('Plan page: Extracted episode ID from URL:', messageEpisodeId, 'Current ID:', id)
+
+        if (messageEpisodeId === id) {
+          console.log('Plan page: Fetching plan due to plan_generated event')
+          fetchPlan()
+        }
+      } else if (!message) {
         fetchPlan()
       }
     }
 
-    window.addEventListener('refreshPageContent', handleRefresh)
-    globalThis.addEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+    const handleWorkflowUpdate = (event: CustomEvent) => {
+      const message = event.detail?.message
+      console.log('Plan page: workflowStepUpdated event received', message)
+      if (message?.metadata?.episodeId === id && message?.metadata?.step === 'generatePlan') {
+        console.log('Plan page: Fetching plan due to workflow update')
+        fetchPlan()
+      }
+    }
+
+    window.addEventListener('refreshPageContent', handleRefresh as EventListener)
+    window.addEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
 
     return () => {
-      window.removeEventListener('refreshPageContent', handleRefresh)
-      globalThis.removeEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
+      window.removeEventListener('refreshPageContent', handleRefresh as EventListener)
+      window.removeEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
     }
   }, [id, fetchPlan])
 
@@ -199,11 +217,192 @@ function EpisodePlanPage() {
             isLoading={!episodePlan.recommendations}
           />
 
-          {episodePlan.recommendations?.detailedOutline && (
+          {episodePlan.recommendations?.detailedOutline && episodePlan.recommendations?.suggestedFlow && (
+            <>
+              <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="grid grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Detailed Episode Outline
+                    </h3>
+                    <div className="space-y-6">
+                      {episodePlan.recommendations.detailedOutline.map((section, index) => (
+                        <div
+                          key={index}
+                          className="border-l-4 border-primary pl-4 py-2"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="text-base font-semibold text-gray-900">
+                              {index + 1}. {section.section}
+                            </h4>
+                            <span className="text-sm text-gray-500 font-medium whitespace-nowrap ml-4">
+                              {section.duration}
+                            </span>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-700 mb-1">
+                                Talking Points:
+                              </h5>
+                              <ul className="list-disc list-inside space-y-1">
+                                {section.talkingPoints.map((point, pointIndex) => (
+                                  <li key={pointIndex} className="text-sm text-gray-600">
+                                    {point}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            {section.demoArtifacts && section.demoArtifacts.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-medium text-gray-700 mb-1">
+                                  Demo Artifacts:
+                                </h5>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {section.demoArtifacts.map((artifact, artifactIndex) => (
+                                    <li key={artifactIndex} className="text-sm text-primary">
+                                      {artifact}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <span>Total Sections: {episodePlan.recommendations.detailedOutline.length}</span>
+                        <span>
+                          Estimated Duration:{' '}
+                          {episodePlan.recommendations.detailedOutline.reduce((total, section) => {
+                            const match = section.duration.match(/(\d+)-?(\d+)?/)
+                            if (match) {
+                              const min = parseInt(match[1])
+                              const max = match[2] ? parseInt(match[2]) : min
+                              return total + (min + max) / 2
+                            }
+                            return total
+                          }, 0).toFixed(0)}{' '}
+                          minutes
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-l border-gray-200 pl-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                      Suggested Episode Flow
+                    </h3>
+                    <div className="flex items-center justify-center">
+                      <MermaidDiagram diagram={episodePlan.recommendations.suggestedFlow} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:hidden">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="border-b border-gray-200">
+                    <nav className="flex -mb-px">
+                      <button
+                        onClick={() => setActiveTab('flow')}
+                        className={`flex-1 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                          activeTab === 'flow'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        Episode Flow
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('outline')}
+                        className={`flex-1 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                          activeTab === 'outline'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        Detailed Outline
+                      </button>
+                    </nav>
+                  </div>
+                  <div className="p-6">
+                    {activeTab === 'flow' ? (
+                      <>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                          Suggested Episode Flow
+                        </h3>
+                        <MermaidDiagram diagram={episodePlan.recommendations.suggestedFlow} />
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                          Detailed Episode Outline
+                        </h3>
+                        <div className="space-y-6">
+                          {episodePlan.recommendations.detailedOutline.map((section, index) => (
+                            <div
+                              key={index}
+                              className="border-l-4 border-primary pl-4 py-2"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="text-base font-semibold text-gray-900">
+                                  {index + 1}. {section.section}
+                                </h4>
+                                <span className="text-sm text-gray-500 font-medium whitespace-nowrap ml-4">
+                                  {section.duration}
+                                </span>
+                              </div>
+
+                              <div className="space-y-3">
+                                <div>
+                                  <h5 className="text-sm font-medium text-gray-700 mb-1">
+                                    Talking Points:
+                                  </h5>
+                                  <ul className="list-disc list-inside space-y-1">
+                                    {section.talkingPoints.map((point, pointIndex) => (
+                                      <li key={pointIndex} className="text-sm text-gray-600">
+                                        {point}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+
+                                {section.demoArtifacts && section.demoArtifacts.length > 0 && (
+                                  <div>
+                                    <h5 className="text-sm font-medium text-gray-700 mb-1">
+                                      Demo Artifacts:
+                                    </h5>
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {section.demoArtifacts.map((artifact, artifactIndex) => (
+                                        <li key={artifactIndex} className="text-sm text-primary">
+                                          {artifact}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {episodePlan.recommendations?.detailedOutline && !episodePlan.recommendations?.suggestedFlow && (
             <DetailedOutline outline={episodePlan.recommendations.detailedOutline} />
           )}
 
-          {episodePlan.recommendations?.suggestedFlow && (
+          {episodePlan.recommendations?.suggestedFlow && !episodePlan.recommendations?.detailedOutline && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Suggested Episode Flow

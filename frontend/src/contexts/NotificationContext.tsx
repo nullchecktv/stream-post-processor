@@ -106,6 +106,28 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         detail: { message }
       }));
       window.dispatchEvent(new CustomEvent('activityUpdated'));
+
+      if (message.metadata?.step === 'generatePlan' && currentPath.includes('/plan')) {
+        window.dispatchEvent(new CustomEvent('refreshPageContent', {
+          detail: { url: currentPath, message }
+        }));
+      }
+      return;
+    }
+
+    if (message.type === 'plan_generated') {
+      window.dispatchEvent(new CustomEvent('refreshPageContent', {
+        detail: { url: messageUrl, message }
+      }));
+      window.dispatchEvent(new CustomEvent('activityUpdated'));
+
+      if (currentPath !== messageUrl) {
+        showToast(
+          message.title,
+          'success',
+          () => navigate(messageUrl)
+        );
+      }
       return;
     }
 
@@ -167,7 +189,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           try {
             const message = JSON.parse(item.value().toString());
             if (isValidMessage(message)) {
-              handleTenantMessage();
+              if (message.type === 'plan_generated') {
+                handleTaskMessage(message);
+              } else {
+                handleTenantMessage();
+              }
             }
           } catch (error) {
             console.error('Failed to parse tenant message:', error);

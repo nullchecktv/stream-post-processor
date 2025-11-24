@@ -87,24 +87,65 @@ export const updateWorkflowStepStatus = async (
   }
 
   try {
-    await docClient.send(new UpdateCommand({
-      TableName: process.env.TABLE_NAME,
-      Key: {
-        pk: `${tenantId}#${episodeId}`,
-        sk: 'metadata'
-      },
-      UpdateExpression: 'SET #workflowSteps.#step = :stepData, #updatedAt = :updatedAt',
-      ConditionExpression: 'attribute_exists(pk)',
-      ExpressionAttributeNames: {
-        '#workflowSteps': 'workflowSteps',
-        '#step': step,
-        '#updatedAt': 'updatedAt'
-      },
-      ExpressionAttributeValues: {
-        ':stepData': stepData,
-        ':updatedAt': now
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: {
+          pk: `${tenantId}#${episodeId}`,
+          sk: 'metadata'
+        },
+        UpdateExpression: 'SET #workflowSteps.#step = :stepData, #updatedAt = :updatedAt',
+        ConditionExpression: 'attribute_exists(pk)',
+        ExpressionAttributeNames: {
+          '#workflowSteps': 'workflowSteps',
+          '#step': step,
+          '#updatedAt': 'updatedAt'
+        },
+        ExpressionAttributeValues: {
+          ':stepData': stepData,
+          ':updatedAt': now
+        }
+      }));
+    } catch (err) {
+      if (err.name === 'ValidationException' && err.message.includes('document path')) {
+        await docClient.send(new UpdateCommand({
+          TableName: process.env.TABLE_NAME,
+          Key: {
+            pk: `${tenantId}#${episodeId}`,
+            sk: 'metadata'
+          },
+          UpdateExpression: 'SET workflowSteps = :emptyMap, #updatedAt = :updatedAt',
+          ConditionExpression: 'attribute_exists(pk)',
+          ExpressionAttributeNames: {
+            '#updatedAt': 'updatedAt'
+          },
+          ExpressionAttributeValues: {
+            ':emptyMap': {},
+            ':updatedAt': now
+          }
+        }));
+
+        await docClient.send(new UpdateCommand({
+          TableName: process.env.TABLE_NAME,
+          Key: {
+            pk: `${tenantId}#${episodeId}`,
+            sk: 'metadata'
+          },
+          UpdateExpression: 'SET workflowSteps.#step = :stepData, #updatedAt = :updatedAt',
+          ConditionExpression: 'attribute_exists(pk)',
+          ExpressionAttributeNames: {
+            '#step': step,
+            '#updatedAt': 'updatedAt'
+          },
+          ExpressionAttributeValues: {
+            ':stepData': stepData,
+            ':updatedAt': now
+          }
+        }));
+      } else {
+        throw err;
       }
-    }));
+    }
 
     await publishNotificationEvent({
       type: 'workflow_step_updated',

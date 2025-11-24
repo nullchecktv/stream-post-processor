@@ -188,6 +188,7 @@ function EpisodeOverviewPage() {
       const message = event.detail?.message
       if (message?.metadata?.episodeId === id) {
         fetchEpisode()
+        fetchContent()
       }
     }
 
