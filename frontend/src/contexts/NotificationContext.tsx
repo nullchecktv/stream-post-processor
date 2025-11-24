@@ -120,14 +120,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         detail: { url: messageUrl, message }
       }));
       window.dispatchEvent(new CustomEvent('activityUpdated'));
-
-      if (currentPath !== messageUrl) {
-        showToast(
-          message.title,
-          'success',
-          () => navigate(messageUrl)
-        );
-      }
       return;
     }
 
@@ -189,11 +181,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           try {
             const message = JSON.parse(item.value().toString());
             if (isValidMessage(message)) {
-              if (message.type === 'plan_generated') {
-                handleTaskMessage(message);
-              } else {
-                handleTenantMessage();
-              }
+              handleTenantMessage();
             }
           } catch (error) {
             console.error('Failed to parse tenant message:', error);

@@ -6,6 +6,7 @@ import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { PlanCreateSchema, PlanPathParamsSchema } from '../../schemas/index.mjs';
 import { addStatusEntry } from '../utils/status-history.mjs';
+import { publishNotificationEvent } from '../utils/notifications.mjs';
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
@@ -63,8 +64,8 @@ export const handler = async (event) => {
     const updatedWorkflowSteps = {
       ...(episode.workflowSteps || {}),
       generatePlan: {
-        status: 'Completed',
-        completedAt: now
+        status: 'In Progress',
+        startedAt: now
       }
     };
 
@@ -78,6 +79,21 @@ export const handler = async (event) => {
         updatedAt: now
       })
     }));
+
+    await publishNotificationEvent({
+      type: 'workflow_step_updated',
+      tenantId,
+      title: 'Workflow Step Updated',
+      message: 'Generate Plan is now In Progress',
+      url: `/episodes/${episodeId}`,
+      persist: false,
+      topic: 'tasks',
+      metadata: {
+        episodeId,
+        step: 'generatePlan',
+        status: 'In Progress'
+      }
+    });
 
     try {
       await eventBridge.send(new PutEventsCommand({

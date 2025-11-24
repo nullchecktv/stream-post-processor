@@ -88,6 +88,10 @@ function EpisodeOverviewPage() {
         episodesApi.getDetail(id),
         episodesApi.getStatus(id),
       ])
+      console.log('Overview: Fetched episode data', {
+        workflowSteps: (episodeData as any).workflowSteps,
+        statusHistory: statusData.statusHistory
+      })
       setEpisode({ ...(episodeData as any), statusHistory: statusData.statusHistory } as EpisodeDetail)
       setError(null)
     } catch (err) {
@@ -186,13 +190,16 @@ function EpisodeOverviewPage() {
 
     const handleWorkflowUpdate = (event: CustomEvent) => {
       const message = event.detail?.message
+      console.log('Overview: workflowStepUpdated event received', { message, currentId: id })
       if (message?.metadata?.episodeId === id) {
+        console.log('Overview: Fetching episode and content due to workflow update')
         fetchEpisode()
         fetchContent()
       }
     }
 
     const handleContentUpdate = () => {
+      console.log('Overview: refreshPageContent event received')
       fetchContent()
     }
 

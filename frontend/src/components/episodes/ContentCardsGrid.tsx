@@ -31,6 +31,7 @@ function ContentCardsGridComponent({
   workflowSteps,
   errors = {}
 }: ContentCardsGridProps) {
+  const isPlanProcessing = workflowSteps?.generatePlan?.status === 'In Progress'
   const isTranscriptProcessing = workflowSteps?.uploadTranscript?.status === 'In Progress'
   const isTracksProcessing = workflowSteps?.uploadTracks?.status === 'In Progress'
   const transcriptComplete = workflowSteps?.uploadTranscript?.status === 'Completed'
@@ -79,6 +80,7 @@ function ContentCardsGridComponent({
           episodeId={episodeId}
           plan={plan ?? null}
           error={errors.plan}
+          isProcessing={isPlanProcessing}
         />
         <BlogPostCard
           episodeId={episodeId}
