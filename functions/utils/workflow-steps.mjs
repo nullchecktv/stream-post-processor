@@ -12,7 +12,10 @@ const docClient = DynamoDBDocumentClient.from(client);
 export const WORKFLOW_STEPS = {
   GENERATE_PLAN: 'generatePlan',
   UPLOAD_TRANSCRIPT: 'uploadTranscript',
-  UPLOAD_TRACKS: 'uploadTracks'
+  UPLOAD_TRACKS: 'uploadTracks',
+  GENERATE_CLIPS: 'generateClips',
+  GENERATE_QUOTES: 'generateQuotes',
+  GENERATE_BLOG: 'generateBlog'
 };
 
 export const validateWorkflowStepTransition = (currentStatus, newStatus) => {

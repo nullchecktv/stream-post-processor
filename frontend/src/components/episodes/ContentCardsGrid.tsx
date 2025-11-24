@@ -36,6 +36,14 @@ function ContentCardsGridComponent({
   const isTracksProcessing = workflowSteps?.uploadTracks?.status === 'In Progress'
   const transcriptComplete = workflowSteps?.uploadTranscript?.status === 'Completed'
   const tracksComplete = workflowSteps?.uploadTracks?.status === 'Completed'
+
+  const isBlogGenerating = workflowSteps?.generateBlog?.status === 'In Progress'
+  const areClipsGenerating = workflowSteps?.generateClips?.status === 'In Progress'
+  const areQuotesGenerating = workflowSteps?.generateQuotes?.status === 'In Progress'
+
+  const isBlogProcessing = blog?.status === 'Processing' || isBlogGenerating
+  const areClipsProcessing = clips.some(clip => clip.status === 'Processing') || areClipsGenerating
+  const areQuotesProcessing = quotes.some(quote => quote.status === 'Processing') || areQuotesGenerating
   if (isLoading) {
     return (
       <section aria-label="Created content" aria-busy="true">
@@ -86,20 +94,20 @@ function ContentCardsGridComponent({
           episodeId={episodeId}
           blog={blog ?? null}
           error={errors.blog}
-          isProcessing={isTranscriptProcessing}
+          isProcessing={isBlogProcessing}
         />
         <ClipsCard
           episodeId={episodeId}
           clips={clips}
           error={errors.clips}
-          isProcessing={isTranscriptProcessing || isTracksProcessing}
+          isProcessing={areClipsProcessing}
           canGenerate={transcriptComplete && tracksComplete}
         />
         <QuotesCard
           episodeId={episodeId}
           quotes={quotes}
           error={errors.quotes}
-          isProcessing={isTranscriptProcessing}
+          isProcessing={areQuotesProcessing}
           canGenerate={transcriptComplete}
         />
       </div>

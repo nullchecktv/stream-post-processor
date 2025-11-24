@@ -9,6 +9,8 @@ import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 import { EPISODE_STATUS } from '../../schemas/index.mjs';
+import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
+import { WORKFLOW_STEP_STATUS } from '../../schemas/episodes.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 
@@ -69,6 +71,27 @@ export const handler = async (event) => {
         tenantId
       });
     }
+
+    await updateWorkflowStepStatus(
+      tenantId,
+      episodeId,
+      WORKFLOW_STEPS.GENERATE_CLIPS,
+      WORKFLOW_STEP_STATUS.IN_PROGRESS
+    );
+
+    await updateWorkflowStepStatus(
+      tenantId,
+      episodeId,
+      WORKFLOW_STEPS.GENERATE_QUOTES,
+      WORKFLOW_STEP_STATUS.IN_PROGRESS
+    );
+
+    await updateWorkflowStepStatus(
+      tenantId,
+      episodeId,
+      WORKFLOW_STEPS.GENERATE_BLOG,
+      WORKFLOW_STEP_STATUS.IN_PROGRESS
+    );
 
     const hasDescription = Boolean(episodeMeta?.description);
     const hasThemes = Array.isArray(episodeMeta?.themes) && episodeMeta.themes.length > 0;
@@ -313,6 +336,27 @@ ${transcript}
         }]
       })
     }));
+
+    await updateWorkflowStepStatus(
+      tenantId,
+      episodeId,
+      WORKFLOW_STEPS.GENERATE_CLIPS,
+      WORKFLOW_STEP_STATUS.COMPLETED
+    );
+
+    await updateWorkflowStepStatus(
+      tenantId,
+      episodeId,
+      WORKFLOW_STEPS.GENERATE_QUOTES,
+      WORKFLOW_STEP_STATUS.COMPLETED
+    );
+
+    await updateWorkflowStepStatus(
+      tenantId,
+      episodeId,
+      WORKFLOW_STEPS.GENERATE_BLOG,
+      WORKFLOW_STEP_STATUS.COMPLETED
+    );
 
     return { message: response };
   } catch (err) {

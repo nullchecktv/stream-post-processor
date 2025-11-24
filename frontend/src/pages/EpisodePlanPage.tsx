@@ -28,6 +28,11 @@ function EpisodePlanPage() {
     setLoading(true)
     try {
       const data = await episodesApi.getPlan(id)
+      console.log('Plan page: Fetched plan data', {
+        hasPlan: !!data.plan,
+        hasRecommendations: !!data.recommendations,
+        data
+      })
       setEpisodePlan(data)
     } catch (err) {
       console.error('Failed to fetch plan:', err)
@@ -62,21 +67,10 @@ function EpisodePlanPage() {
       }
     }
 
-    const handleWorkflowUpdate = (event: CustomEvent) => {
-      const message = event.detail?.message
-      console.log('Plan page: workflowStepUpdated event received', message)
-      if (message?.metadata?.episodeId === id && message?.metadata?.step === 'generatePlan') {
-        console.log('Plan page: Fetching plan due to workflow update')
-        fetchPlan()
-      }
-    }
-
     window.addEventListener('refreshPageContent', handleRefresh as EventListener)
-    window.addEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
 
     return () => {
       window.removeEventListener('refreshPageContent', handleRefresh as EventListener)
-      window.removeEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
     }
   }, [id, fetchPlan])
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { quotesApi } from '../api/quotes'
+import { apiCache } from '../utils/cache'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useWorkflowState } from '../hooks/useWorkflowState'
 import { useToast } from '../contexts/ToastContext'
@@ -73,14 +74,16 @@ function EpisodeOverviewPage() {
 
   const workflowSteps = episode?.workflowSteps || defaultWorkflowSteps
 
-  const fetchEpisode = useCallback(async () => {
+  const fetchEpisode = useCallback(async (showLoading = true) => {
     if (!id) {
       setError('Episode ID is required')
       setLoading(false)
       return
     }
 
-    setLoading(true)
+    if (showLoading) {
+      setLoading(true)
+    }
     setError(null)
 
     try {
@@ -98,7 +101,9 @@ function EpisodeOverviewPage() {
       console.error('Failed to fetch episode or status history:', err)
       setError('Failed to load episode. Please try again.')
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }, [id])
 
@@ -193,7 +198,9 @@ function EpisodeOverviewPage() {
       console.log('Overview: workflowStepUpdated event received', { message, currentId: id })
       if (message?.metadata?.episodeId === id) {
         console.log('Overview: Fetching episode and content due to workflow update')
-        fetchEpisode()
+        apiCache.invalidate(`GET:/episodes/${id}`)
+        apiCache.invalidate(`GET:/episodes/${id}/statuses`)
+        fetchEpisode(false)
         fetchContent()
       }
     }
@@ -203,12 +210,26 @@ function EpisodeOverviewPage() {
       fetchContent()
     }
 
+    const handleContentStatusUpdate = (event: CustomEvent) => {
+      const message = event.detail?.message
+      console.log('Overview: contentItemStatusUpdated event received', { message, currentId: id })
+      if (message?.metadata?.episodeId === id) {
+        console.log('Overview: Fetching content due to status update')
+        apiCache.invalidate(`GET:/episodes/${id}/clips`)
+        apiCache.invalidate(`GET:/episodes/${id}/blog`)
+        apiCache.invalidate(`GET:/quotes?episodeId=${id}`)
+        fetchContent()
+      }
+    }
+
     globalThis.addEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
     globalThis.addEventListener('refreshPageContent', handleContentUpdate)
+    globalThis.addEventListener('contentItemStatusUpdated', handleContentStatusUpdate as EventListener)
 
     return () => {
       globalThis.removeEventListener('workflowStepUpdated', handleWorkflowUpdate as EventListener)
       globalThis.removeEventListener('refreshPageContent', handleContentUpdate)
+      globalThis.removeEventListener('contentItemStatusUpdated', handleContentStatusUpdate as EventListener)
     }
   }, [id, fetchEpisode, fetchContent])
 
