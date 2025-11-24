@@ -87,7 +87,6 @@ export const handler = async (event) => {
       message: 'Generate Plan is now In Progress',
       url: `/episodes/${episodeId}`,
       persist: false,
-      topic: 'tasks',
       metadata: {
         episodeId,
         step: 'generatePlan',

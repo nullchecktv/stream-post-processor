@@ -128,7 +128,6 @@ export const setPlanRecommendationsTool = {
         message: `Your episode plan for ${episodeTitle} has been generated`,
         url: `/episodes/${episodeId}/plan`,
         persist: true,
-        topic: 'tasks',
         metadata: {
           episodeId,
           sectionsCount: detailedOutline.length

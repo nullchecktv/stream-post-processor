@@ -143,7 +143,6 @@ export const handler = async (event) => {
             : 'Transcript uploaded successfully',
           url: `/episodes/${episodeId}`,
           persist: false,
-          topic: 'tasks',
           metadata: {
             episodeId,
             speakerAnalysis

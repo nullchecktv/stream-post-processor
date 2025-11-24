@@ -57,22 +57,6 @@ export const handler = async (event) => {
       };
 
       const tenantTopic = notification.tenantId;
-      const tasksTopic = `${notification.tenantId}_tasks`;
-
-      if (notification.topic === 'tasks') {
-        await topics.publish(
-          process.env.MOMENTO_CACHE_NAME,
-          tasksTopic,
-          JSON.stringify(payload)
-        );
-
-        logger.info('Notification published to tasks topic', {
-          notificationType: notification.type,
-          topicName: tasksTopic,
-          cacheName: process.env.MOMENTO_CACHE_NAME,
-          metadata: notification.metadata
-        });
-      }
 
       await topics.publish(
         process.env.MOMENTO_CACHE_NAME,
@@ -84,7 +68,8 @@ export const handler = async (event) => {
         notificationType: notification.type,
         topicName: tenantTopic,
         cacheName: process.env.MOMENTO_CACHE_NAME,
-        persist: notification.persist
+        persist: notification.persist,
+        metadata: notification.metadata
       });
     }
   } catch (error) {

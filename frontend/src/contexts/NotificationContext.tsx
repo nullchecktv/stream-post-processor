@@ -54,8 +54,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [proactiveRefreshTimer, setProactiveRefreshTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const tenantSubscriptionRef = useRef<any>(null);
-  const tasksSubscriptionRef = useRef<any>(null);
+  const subscriptionRef = useRef<any>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isValidMessage = (msg: unknown): msg is MomentoMessage => {
@@ -85,33 +84,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, []);
 
-  const handleTenantMessage = useCallback(async () => {
-    try {
-      const response = await apiRequest<{ unreadCount: number; }>('/notifications');
-      setUnreadCount(response.unreadCount || 0);
-
-      window.dispatchEvent(new CustomEvent('activityUpdated'));
-    } catch (error) {
-      console.error('Failed to refresh notifications:', error);
-    }
-  }, []);
-
-  const handleTaskMessage = useCallback((message: MomentoMessage) => {
+  const handleMessage = useCallback(async (message: MomentoMessage) => {
     const currentPath = location.pathname;
     const messageUrl = message.url;
-    console.log(currentPath, messageUrl);
 
     if (message.type === 'workflow_step_updated') {
       window.dispatchEvent(new CustomEvent('workflowStepUpdated', {
         detail: { message }
       }));
       window.dispatchEvent(new CustomEvent('activityUpdated'));
-
-      if (message.metadata?.step === 'generatePlan' && currentPath.includes('/plan')) {
-        window.dispatchEvent(new CustomEvent('refreshPageContent', {
-          detail: { url: currentPath, message }
-        }));
-      }
       return;
     }
 
@@ -141,6 +122,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       return;
     }
 
+    try {
+      const response = await apiRequest<{ unreadCount: number; }>('/notifications');
+      setUnreadCount(response.unreadCount || 0);
+    } catch (error) {
+      console.error('Failed to refresh notifications:', error);
+    }
+
     if (currentPath === messageUrl) {
       window.dispatchEvent(new CustomEvent('refreshPageContent', {
         detail: { url: messageUrl, message }
@@ -162,75 +150,44 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     try {
       const cacheName = import.meta.env.VITE_CACHE_NAME;
       const tenantTopic = tenantId;
-      const tasksTopic = `${tenantId}_tasks`;
 
-      console.log(`Subscribing to topics for tenant: ${tenantId}`, {
+      console.log(`Subscribing to tenant topic: ${tenantId}`, {
         cacheName,
         tenantTopic,
-        tasksTopic,
         hasClient: !!client,
         retryCount
       });
 
       tokenStorage.save(token);
 
-      console.log('Attempting tenant topic subscription...', { cacheName, tenantTopic });
-      const tenantSubscriptionResponse = await client.subscribe(cacheName, tenantTopic, {
+      const subscriptionResponse = await client.subscribe(cacheName, tenantTopic, {
         onItem: (item: TopicItem) => {
-          console.log('Received tenant message:', item.value().toString());
+          console.log('Received message:', item.value().toString());
           try {
             const message = JSON.parse(item.value().toString());
             if (isValidMessage(message)) {
-              handleTenantMessage();
+              handleMessage(message);
             }
           } catch (error) {
-            console.error('Failed to parse tenant message:', error);
+            console.error('Failed to parse message:', error);
           }
         },
         onError: async (error) => {
-          console.error('Tenant subscription error:', error);
+          console.error('Subscription error:', error);
         }
       });
-      console.log('Tenant subscription response:', tenantSubscriptionResponse);
-      if (tenantSubscriptionResponse.type === TopicSubscribeResponse.Error) {
-        console.error('Failed to subscribe to tenant topic:', tenantSubscriptionResponse);
-        throw tenantSubscriptionResponse;
+
+      if (subscriptionResponse.type === TopicSubscribeResponse.Error) {
+        console.error('Failed to subscribe to tenant topic:', subscriptionResponse);
+        throw subscriptionResponse;
       }
 
-      const tenantSubscription = tenantSubscriptionResponse as TopicSubscribe.Subscription;
+      const subscription = subscriptionResponse as TopicSubscribe.Subscription;
 
-      console.log('Attempting tasks topic subscription...', { cacheName, tasksTopic });
-      const tasksSubscriptionResponse = await client.subscribe(cacheName, tasksTopic, {
-        onItem: (item: TopicItem) => {
-          console.log('Received task message:', item.value().toString());
-          try {
-            const message = JSON.parse(item.value().toString());
-            if (isValidMessage(message)) {
-              handleTaskMessage(message);
-            }
-          } catch (error) {
-            console.error('Failed to parse task message:', error);
-          }
-        },
-        onError: async (error) => {
-          console.error('Tasks subscription error:', error);
-        }
-      });
-      console.log('Tasks subscription response:', tasksSubscriptionResponse);
-
-      if (tasksSubscriptionResponse.type === TopicSubscribeResponse.Error) {
-        console.error('Failed to subscribe to tasks topic:', tasksSubscriptionResponse);
-        tenantSubscription.unsubscribe();
-        throw tasksSubscriptionResponse;
-      }
-
-      const tasksSubscription = tasksSubscriptionResponse as TopicSubscribe.Subscription;
-
-      tenantSubscriptionRef.current = tenantSubscription;
-      tasksSubscriptionRef.current = tasksSubscription;
+      subscriptionRef.current = subscription;
       setCurrentTenantId(tenantId);
       setIsSubscribed(true);
-      console.log(`Successfully subscribed to topics for tenant: ${tenantId}`);
+      console.log(`Successfully subscribed to tenant topic: ${tenantId}`);
     } catch (error) {
       console.error('Failed to subscribe to topics:', error);
 
@@ -266,18 +223,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       throw error;
     }
-  }, [handleTenantMessage, handleTaskMessage, initializeClient]);
+  }, [handleMessage, initializeClient]);
 
   const setupProactiveRefreshRef = useRef<(() => void) | null>(null);
 
   const unsubscribeFromTopics = useCallback(() => {
-    if (tenantSubscriptionRef.current) {
-      tenantSubscriptionRef.current.unsubscribe();
-      tenantSubscriptionRef.current = null;
-    }
-    if (tasksSubscriptionRef.current) {
-      tasksSubscriptionRef.current.unsubscribe();
-      tasksSubscriptionRef.current = null;
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
     }
     setCurrentTenantId(null);
     setIsSubscribed(false);

@@ -154,7 +154,6 @@ export const updateWorkflowStepStatus = async (
       message: `${getStepLabel(step)} is now ${status}`,
       url: `/episodes/${episodeId}`,
       persist: false,
-      topic: 'tasks',
       metadata: {
         episodeId,
         step,
