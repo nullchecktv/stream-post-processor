@@ -17,15 +17,16 @@ export const buildBlogOutlineTool = {
     outline: z.string().min(50).describe('Markdown formatted outline with sections and key points')
   }),
   handler: async (context, { episodeId, outline }) => {
-    try {
-      const { tenantId, userId } = context;
+    const { tenantId, userId } = context;
 
-      if (!tenantId) {
-        logger.error('Missing tenantId in tool handler', {
-          episodeId
-        });
-        return 'Unauthorized: Missing tenant context';
-      }
+    if (!tenantId) {
+      logger.error('Missing tenantId in tool handler', {
+        episodeId
+      });
+      return 'Unauthorized: Missing tenant context';
+    }
+
+    try {
 
       const now = new Date().toISOString();
 
@@ -81,6 +82,7 @@ export const buildBlogOutlineTool = {
         episodeId,
         tenantId: context?.tenantId
       });
+
       return 'Something went wrong while creating blog outline';
     }
   }

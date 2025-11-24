@@ -7,6 +7,7 @@ import { incrementClipsCreated } from '../utils/statistics.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { CLIP_STATUS } from '../../schemas/index.mjs';
 import { validateSpeakers } from '../utils/speakers.mjs';
+import { updateWorkflowStep } from '../utils/workflow-steps.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -48,15 +49,16 @@ export const createClipTool = {
     ).min(1).max(MAX_CLIPS_PER_REQUEST)
   }),
   handler: async (context, { episodeId, clips }) => {
-    try {
-      const { tenantId } = context;
+    const { tenantId } = context;
 
-      if (!tenantId) {
-        logger.error('Missing tenantId in tool handler', {
-          episodeId
-        });
-        return 'Unauthorized: Missing tenant context';
-      }
+    if (!tenantId) {
+      logger.error('Missing tenantId in tool handler', {
+        episodeId
+      });
+      return 'Unauthorized: Missing tenant context';
+    }
+
+    try {
 
       const allSpeakers = new Set();
       clips.forEach(clip => {
@@ -172,6 +174,8 @@ export const createClipTool = {
         totalRequested: clips.length
       });
 
+      await updateWorkflowStep(tenantId, episodeId, 'clip_detection', 'Completed');
+
       return `${created} clips added for episode ${episodeId}. All clips have been created with tenant isolation.`;
     } catch (err) {
       logger.error('Error creating clips', {
@@ -181,6 +185,9 @@ export const createClipTool = {
         tenantId,
         clipCount: clips?.length || 0
       });
+
+      await updateWorkflowStep(tenantId, episodeId, 'clip_detection', 'Failed');
+
       return 'Something went wrong while creating clips';
     }
   }

@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 import { createQuoteKey, createQuoteGSIKey } from '../utils/quotes.mjs';
 import { QUOTE_STATUS } from '../../schemas/index.mjs';
 import { validateSpeakers } from '../utils/speakers.mjs';
+import { updateWorkflowStep } from '../utils/workflow-steps.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -36,15 +37,16 @@ export const createQuoteTool = {
     ).min(1).max(MAX_QUOTES_PER_REQUEST)
   }),
   handler: async (context, { episodeId, quotes }) => {
-    try {
-      const { tenantId } = context;
+    const { tenantId } = context;
 
-      if (!tenantId) {
-        logger.error('Missing tenantId in tool handler', {
-          episodeId
-        });
-        return 'Unauthorized: Missing tenant context';
-      }
+    if (!tenantId) {
+      logger.error('Missing tenantId in tool handler', {
+        episodeId
+      });
+      return 'Unauthorized: Missing tenant context';
+    }
+
+    try {
 
       let episode = null;
       try {
@@ -192,6 +194,8 @@ export const createQuoteTool = {
         totalRequested: quotes.length
       });
 
+      await updateWorkflowStep(tenantId, episodeId, 'quote_extraction', 'Completed');
+
       return `${created} quotes added for episode ${episodeId}. All quotes have been created with tenant isolation.`;
     } catch (err) {
       logger.error('Error creating quotes', {
@@ -201,6 +205,9 @@ export const createQuoteTool = {
         tenantId,
         quoteCount: quotes?.length || 0
       });
+
+      await updateWorkflowStep(tenantId, episodeId, 'quote_extraction', 'Failed');
+
       return 'Something went wrong while creating quotes';
     }
   }
