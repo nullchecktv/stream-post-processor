@@ -9,7 +9,7 @@ import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 import { EPISODE_STATUS } from '../../schemas/index.mjs';
-import { updateWorkflowStep } from '../utils/workflow-steps.mjs';
+import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 
@@ -71,9 +71,9 @@ export const handler = async (event) => {
       });
     }
 
-    await updateWorkflowStep(tenantId, episodeId, 'clip_detection', 'In Progress');
-    await updateWorkflowStep(tenantId, episodeId, 'quote_extraction', 'In Progress');
-    await updateWorkflowStep(tenantId, episodeId, 'blog_generation', 'In Progress');
+    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CLIPS, 'In Progress');
+    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_QUOTES, 'In Progress');
+    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_BLOG, 'In Progress');
 
     const hasDescription = Boolean(episodeMeta?.description);
     const hasThemes = Array.isArray(episodeMeta?.themes) && episodeMeta.themes.length > 0;

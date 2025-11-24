@@ -7,7 +7,7 @@ import { incrementClipsCreated } from '../utils/statistics.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { CLIP_STATUS } from '../../schemas/index.mjs';
 import { validateSpeakers } from '../utils/speakers.mjs';
-import { updateWorkflowStep } from '../utils/workflow-steps.mjs';
+import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -174,7 +174,7 @@ export const createClipTool = {
         totalRequested: clips.length
       });
 
-      await updateWorkflowStep(tenantId, episodeId, 'clip_detection', 'Completed');
+      await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CLIPS, 'Completed');
 
       return `${created} clips added for episode ${episodeId}. All clips have been created with tenant isolation.`;
     } catch (err) {
@@ -186,7 +186,7 @@ export const createClipTool = {
         clipCount: clips?.length || 0
       });
 
-      await updateWorkflowStep(tenantId, episodeId, 'clip_detection', 'Failed');
+      await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CLIPS, 'Failed', err.message);
 
       return 'Something went wrong while creating clips';
     }

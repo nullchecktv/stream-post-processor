@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto';
 import { createQuoteKey, createQuoteGSIKey } from '../utils/quotes.mjs';
 import { QUOTE_STATUS } from '../../schemas/index.mjs';
 import { validateSpeakers } from '../utils/speakers.mjs';
-import { updateWorkflowStep } from '../utils/workflow-steps.mjs';
+import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -194,7 +194,7 @@ export const createQuoteTool = {
         totalRequested: quotes.length
       });
 
-      await updateWorkflowStep(tenantId, episodeId, 'quote_extraction', 'Completed');
+      await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_QUOTES, 'Completed');
 
       return `${created} quotes added for episode ${episodeId}. All quotes have been created with tenant isolation.`;
     } catch (err) {
@@ -206,7 +206,7 @@ export const createQuoteTool = {
         quoteCount: quotes?.length || 0
       });
 
-      await updateWorkflowStep(tenantId, episodeId, 'quote_extraction', 'Failed');
+      await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_QUOTES, 'Failed', err.message);
 
       return 'Something went wrong while creating quotes';
     }
