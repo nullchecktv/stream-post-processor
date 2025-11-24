@@ -32,8 +32,7 @@ function ContentCardsGridComponent({
   errors = {}
 }: ContentCardsGridProps) {
   const isPlanProcessing = workflowSteps?.generatePlan?.status === 'In Progress'
-  const isTranscriptProcessing = workflowSteps?.uploadTranscript?.status === 'In Progress'
-  const isTracksProcessing = workflowSteps?.uploadTracks?.status === 'In Progress'
+
   const transcriptComplete = workflowSteps?.uploadTranscript?.status === 'Completed'
   const tracksComplete = workflowSteps?.uploadTracks?.status === 'Completed'
 

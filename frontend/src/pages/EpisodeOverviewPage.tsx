@@ -252,7 +252,7 @@ function EpisodeOverviewPage() {
               <p className="text-sm text-red-700 mb-4">{error || 'Episode not found'}</p>
               <div className="flex gap-3">
                 <Button
-                  onClick={fetchEpisode}
+                  onClick={() => fetchEpisode()}
                   variant="primary"
                   size="sm"
                 >
