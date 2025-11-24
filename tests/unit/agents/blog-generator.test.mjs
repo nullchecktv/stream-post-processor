@@ -20,13 +20,21 @@ jest.mock('../../../functions/tools/web-search.mjs', () => ({
 }));
 
 jest.mock('../../../functions/utils/workflow-steps.mjs', () => ({
-  updateWorkflowStep: jest.fn()
+  updateWorkflowStepStatus: jest.fn(),
+  WORKFLOW_STEPS: {
+    GENERATE_PLAN: 'generatePlan',
+    UPLOAD_TRANSCRIPT: 'uploadTranscript',
+    UPLOAD_TRACKS: 'uploadTracks',
+    GENERATE_CLIPS: 'generateClips',
+    GENERATE_QUOTES: 'generateQuotes',
+    GENERATE_BLOG: 'generateBlog'
+  }
 }));
 
 import { handler } from '../../../functions/agents/blog-generator.mjs';
 import { converse } from '../../../functions/utils/agents.mjs';
 import { convertToBedrockTools } from '../../../functions/utils/tools.mjs';
-import { updateWorkflowStep } from '../../../functions/utils/workflow-steps.mjs';
+import { updateWorkflowStepStatus } from '../../../functions/utils/workflow-steps.mjs';
 
 describe('Blog Generator Agent', () => {
   beforeEach(() => {
@@ -34,7 +42,7 @@ describe('Blog Generator Agent', () => {
     eventBridgeMock.reset();
     converse.mockReset();
     convertToBedrockTools.mockReturnValue([]);
-    updateWorkflowStep.mockResolvedValue();
+    updateWorkflowStepStatus.mockResolvedValue();
     process.env.TABLE_NAME = 'test-table';
     process.env.MODEL_ID = 'amazon.nova-pro-v1:0';
 
