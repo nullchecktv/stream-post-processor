@@ -52,7 +52,8 @@ export const handler = async (event) => {
         title: notification.title,
         message: notification.message,
         url: notification.url,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        metadata: notification.metadata || {}
       };
 
       const tenantTopic = notification.tenantId;
@@ -68,7 +69,8 @@ export const handler = async (event) => {
         logger.info('Notification published to tasks topic', {
           notificationType: notification.type,
           topicName: tasksTopic,
-          cacheName: process.env.MOMENTO_CACHE_NAME
+          cacheName: process.env.MOMENTO_CACHE_NAME,
+          metadata: notification.metadata
         });
       }
 
