@@ -2,7 +2,6 @@ import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/clie
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { parseBody, formatResponse, formatEmptyResponse, sanitizeTrackName } from '../utils/api.mjs';
-import { validateSpeakers, formatSpeakerValidationError } from '../utils/speakers.mjs';
 
 const ddb = new DynamoDBClient();
 const logger = new Logger({ serviceName: 'episodes' });
@@ -33,16 +32,6 @@ export const handler = async (event) => {
       speakers = speakers
         .map(speaker => String(speaker || '').trim())
         .filter(speaker => speaker.length > 0);
-
-      if (speakers.length > 0) {
-        const validation = await validateSpeakers(episodeId, tenantId, speakers);
-
-        if (!validation.valid) {
-          return formatSpeakerValidationError(validation, episodeId, 'Track');
-        }
-
-        speakers = validation.normalizedSpeakers;
-      }
     } else {
       speakers = [];
     }

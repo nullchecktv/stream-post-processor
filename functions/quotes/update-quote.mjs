@@ -5,7 +5,6 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
 import { QuotePathParamsSchema, QuoteUpdateSchema, QUOTE_STATUS_TRANSITIONS } from '../../schemas/index.mjs';
-import { validateSpeakers, formatSpeakerValidationError } from '../utils/speakers.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
 const ddb = new DynamoDBClient();
@@ -47,14 +46,6 @@ export const handler = async (event) => {
     if (data.speaker !== undefined) {
       if (data.speaker === null || data.speaker === '') {
         data.speaker = null;
-      } else {
-        const validation = await validateSpeakers(episodeId, tenantId, [data.speaker]);
-
-        if (!validation.valid) {
-          return formatSpeakerValidationError(validation, episodeId, 'Quote');
-        }
-
-        data.speaker = validation.normalizedSpeakers[0];
       }
     }
 

@@ -71,12 +71,6 @@ function ClipDetailPage() {
   const handleGenerate = async () => {
     if (!episodeId || !clipId) return
 
-    const confirmed = window.confirm(
-      'Generate this clip? This will process the video segments and create the final clip.'
-    )
-
-    if (!confirmed) return
-
     try {
       setGenerating(true)
       await episodesApi.generateClip(episodeId, clipId, { orientation: 'landscape' })

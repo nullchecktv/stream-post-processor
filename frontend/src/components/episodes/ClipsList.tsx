@@ -94,28 +94,6 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     setShowModal(true)
   }
 
-  const handleApprove = async (clipId: string) => {
-    try {
-      await episodesApi.updateClipStatus(episodeId, clipId, { status: 'approved' })
-      showToast('Clip approved successfully', 'success')
-      await fetchClips()
-    } catch (err) {
-      console.error('Failed to approve clip:', err)
-      showToast('Failed to approve clip', 'error')
-    }
-  }
-
-  const handleReject = async (clipId: string) => {
-    try {
-      await episodesApi.updateClipStatus(episodeId, clipId, { status: 'rejected' })
-      showToast('Clip rejected', 'success')
-      await fetchClips()
-    } catch (err) {
-      console.error('Failed to reject clip:', err)
-      showToast('Failed to reject clip', 'error')
-    }
-  }
-
   const handleRetry = async (clipId: string) => {
     try {
       await episodesApi.generateClip(episodeId, clipId, { orientation: 'landscape' })
@@ -272,8 +250,6 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
               clip={clip}
               episodeId={episodeId}
               onPlay={handlePlay}
-              onApprove={handleApprove}
-              onReject={handleReject}
               onRetry={handleRetry}
             />
           ))}

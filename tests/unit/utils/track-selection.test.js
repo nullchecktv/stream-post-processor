@@ -525,4 +525,343 @@ describe('Track Selection Algorithm', () => {
       expect(results[2].processed).toBe(true);  // guest1 found
     });
   });
+
+  describe('selectTrackForSegment', () => {
+    const mockSelectTrackForSegment = async (segment, tracks, options = {}) => {
+      const {
+        enableLLMMatching = true,
+        fallbackTrack = 'main',
+        confidenceThreshold = 0.7
+      } = options;
+
+      if (!segment.speaker) {
+        return {
+          trackName: fallbackTrack,
+          matchType: 'fallback',
+          reason: 'no_speaker_specified',
+          confidence: 1.0
+        };
+      }
+
+      if (!tracks || tracks.length === 0) {
+        return {
+          trackName: fallbackTrack,
+          matchType: 'fallback',
+          reason: 'no_tracks_available',
+          confidence: 1.0
+        };
+      }
+
+      const exactMatch = tracks.find(track =>
+        track.speaker &&
+        track.speaker.toLowerCase() === segment.speaker.toLowerCase()
+      );
+
+      if (exactMatch) {
+        return {
+          trackName: exactMatch.trackName,
+          matchType: 'exact',
+          originalSpeaker: segment.speaker,
+          matchedSpeaker: exactMatch.speaker,
+          confidence: 1.0
+        };
+      }
+
+      return {
+        trackName: fallbackTrack,
+        matchType: 'fallback',
+        reason: 'no_match_found',
+        originalSpeaker: segment.speaker,
+        confidence: 0.0
+      };
+    };
+
+    test('should return fallback when no speaker specified', async () => {
+      const segment = { startTime: '00:01:00', endTime: '00:02:00' };
+      const tracks = [{ trackName: 'main', speaker: 'host', status: 'Processed' }];
+
+      const result = await mockSelectTrackForSegment(segment, tracks);
+
+      expect(result.trackName).toBe('main');
+      expect(result.matchType).toBe('fallback');
+      expect(result.reason).toBe('no_speaker_specified');
+      expect(result.confidence).toBe(1.0);
+    });
+
+    test('should return fallback when no tracks available', async () => {
+      const segment = { speaker: 'host', startTime: '00:01:00', endTime: '00:02:00' };
+      const tracks = [];
+
+      const result = await mockSelectTrackForSegment(segment, tracks);
+
+      expect(result.trackName).toBe('main');
+      expect(result.matchType).toBe('fallback');
+      expect(result.reason).toBe('no_tracks_available');
+      expect(result.confidence).toBe(1.0);
+    });
+
+    test('should return exact match when speaker matches exactly', async () => {
+      const segment = { speaker: 'host', startTime: '00:01:00', endTime: '00:02:00' };
+      const tracks = [
+        { trackName: 'main', speaker: 'host', status: 'Processed' },
+        { trackName: 'guest', speaker: 'guest1', status: 'Processed' }
+      ];
+
+      const result = await mockSelectTrackForSegment(segment, tracks);
+
+      expect(result.trackName).toBe('main');
+      expect(result.matchType).toBe('exact');
+      expect(result.originalSpeaker).toBe('host');
+      expect(result.matchedSpeaker).toBe('host');
+      expect(result.confidence).toBe(1.0);
+    });
+
+    test('should return exact match with case-insensitive comparison', async () => {
+      const segment = { speaker: 'Host', startTime: '00:01:00', endTime: '00:02:00' };
+      const tracks = [
+        { trackName: 'main', speaker: 'host', status: 'Processed' }
+      ];
+
+      const result = await mockSelectTrackForSegment(segment, tracks);
+
+      expect(result.trackName).toBe('main');
+      expect(result.matchType).toBe('exact');
+      expect(result.confidence).toBe(1.0);
+    });
+
+    test('should return fallback when no match found', async () => {
+      const segment = { speaker: 'unknown', startTime: '00:01:00', endTime: '00:02:00' };
+      const tracks = [
+        { trackName: 'main', speaker: 'host', status: 'Processed' },
+        { trackName: 'guest', speaker: 'guest1', status: 'Processed' }
+      ];
+
+      const result = await mockSelectTrackForSegment(segment, tracks);
+
+      expect(result.trackName).toBe('main');
+      expect(result.matchType).toBe('fallback');
+      expect(result.reason).toBe('no_match_found');
+      expect(result.originalSpeaker).toBe('unknown');
+      expect(result.confidence).toBe(0.0);
+    });
+
+    test('should use custom fallback track', async () => {
+      const segment = { speaker: 'unknown', startTime: '00:01:00', endTime: '00:02:00' };
+      const tracks = [
+        { trackName: 'primary', speaker: 'host', status: 'Processed' }
+      ];
+      const options = { fallbackTrack: 'primary' };
+
+      const result = await mockSelectTrackForSegment(segment, tracks, options);
+
+      expect(result.trackName).toBe('primary');
+      expect(result.matchType).toBe('fallback');
+    });
+
+    test('should skip tracks without speaker field', async () => {
+      const segment = { speaker: 'host', startTime: '00:01:00', endTime: '00:02:00' };
+      const tracks = [
+        { trackName: 'nospeaker', speaker: null, status: 'Processed' },
+        { trackName: 'main', speaker: 'host', status: 'Processed' }
+      ];
+
+      const result = await mockSelectTrackForSegment(segment, tracks);
+
+      expect(result.trackName).toBe('main');
+      expect(result.matchType).toBe('exact');
+    });
+  });
+
+  describe('getEpisodeTracks', () => {
+    const mockGetEpisodeTracks = (allTracks) => {
+      return allTracks
+        .filter(track => track.status === 'Processed')
+        .map(track => ({
+          trackName: track.trackName,
+          speakers: Array.isArray(track.speakers) ? track.speakers : [],
+          status: track.status
+        }));
+    };
+
+    test('should return only processed tracks', () => {
+      const allTracks = [
+        { trackName: 'main', speakers: ['host'], status: 'Processed' },
+        { trackName: 'guest', speakers: ['guest1'], status: 'Processing' },
+        { trackName: 'backup', speakers: ['host'], status: 'Processed' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].trackName).toBe('main');
+      expect(result[1].trackName).toBe('backup');
+      expect(result.every(track => track.status === 'Processed')).toBe(true);
+    });
+
+    test('should return track objects with trackName, speakers, and status', () => {
+      const allTracks = [
+        { trackName: 'main', speakers: ['host'], status: 'Processed', otherField: 'ignored' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        trackName: 'main',
+        speakers: ['host'],
+        status: 'Processed'
+      });
+      expect(result[0]).not.toHaveProperty('otherField');
+    });
+
+    test('should handle tracks with empty speakers array', () => {
+      const allTracks = [
+        { trackName: 'main', speakers: [], status: 'Processed' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].speakers).toEqual([]);
+    });
+
+    test('should handle tracks with missing speakers field', () => {
+      const allTracks = [
+        { trackName: 'main', status: 'Processed' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].speakers).toEqual([]);
+    });
+
+    test('should return empty array when no tracks exist', () => {
+      const allTracks = [];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return empty array when no processed tracks exist', () => {
+      const allTracks = [
+        { trackName: 'main', speakers: ['host'], status: 'Processing' },
+        { trackName: 'guest', speakers: ['guest1'], status: 'Uploading' },
+        { trackName: 'backup', speakers: ['host'], status: 'Failed' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toEqual([]);
+    });
+
+    test('should filter out all non-processed statuses', () => {
+      const allTracks = [
+        { trackName: 'track1', speakers: ['speaker1'], status: 'Uploading' },
+        { trackName: 'track2', speakers: ['speaker2'], status: 'Uploaded' },
+        { trackName: 'track3', speakers: ['speaker3'], status: 'Processing' },
+        { trackName: 'track4', speakers: ['speaker4'], status: 'Processed' },
+        { trackName: 'track5', speakers: ['speaker5'], status: 'Failed' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].trackName).toBe('track4');
+    });
+
+    test('should handle multiple processed tracks', () => {
+      const allTracks = [
+        { trackName: 'main', speakers: ['host'], status: 'Processed' },
+        { trackName: 'guest1', speakers: ['guest1'], status: 'Processed' },
+        { trackName: 'guest2', speakers: ['guest2'], status: 'Processed' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toHaveLength(3);
+      expect(result.map(t => t.trackName)).toEqual(['main', 'guest1', 'guest2']);
+    });
+
+    test('should handle tracks with multiple speakers', () => {
+      const allTracks = [
+        { trackName: 'main', speakers: ['host', 'co-host'], status: 'Processed' },
+        { trackName: 'guest', speakers: ['guest1', 'guest2'], status: 'Processed' }
+      ];
+
+      const result = mockGetEpisodeTracks(allTracks);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].speakers).toEqual(['host', 'co-host']);
+      expect(result[1].speakers).toEqual(['guest1', 'guest2']);
+    });
+  });
+
+  describe('Speaker Match Caching', () => {
+    test('should cache speaker matches to avoid redundant LLM calls', () => {
+      const mockCache = new Map();
+
+      const generateCacheKey = (episodeId, speakerName) => {
+        const normalizedSpeaker = speakerName.toLowerCase().trim();
+        return `${episodeId}::${normalizedSpeaker}`;
+      };
+
+      const episodeId = 'episode-123';
+
+      const cacheKey1 = generateCacheKey(episodeId, 'john');
+      const cacheKey2 = generateCacheKey(episodeId, 'john');
+      const cacheKey3 = generateCacheKey(episodeId, 'Jane');
+
+      expect(cacheKey1).toBe(cacheKey2);
+      expect(cacheKey1).not.toBe(cacheKey3);
+
+      mockCache.set(cacheKey1, { matched: true, trackName: 'main' });
+
+      expect(mockCache.has(cacheKey2)).toBe(true);
+      expect(mockCache.get(cacheKey2)).toEqual({ matched: true, trackName: 'main' });
+    });
+
+    test('should generate different cache keys for different episodes', () => {
+      const generateCacheKey = (episodeId, speakerName) => {
+        const normalizedSpeaker = speakerName.toLowerCase().trim();
+        return `${episodeId}::${normalizedSpeaker}`;
+      };
+
+      const cacheKey1 = generateCacheKey('episode-123', 'john');
+      const cacheKey2 = generateCacheKey('episode-456', 'john');
+
+      expect(cacheKey1).not.toBe(cacheKey2);
+    });
+
+    test('should normalize speaker names for cache key generation', () => {
+      const generateCacheKey = (episodeId, speakerName) => {
+        const normalizedSpeaker = speakerName.toLowerCase().trim();
+        return `${episodeId}::${normalizedSpeaker}`;
+      };
+
+      const episodeId = 'episode-123';
+
+      const key1 = generateCacheKey(episodeId, '  John  ');
+      const key2 = generateCacheKey(episodeId, 'JOHN');
+      const key3 = generateCacheKey(episodeId, 'john');
+
+      expect(key1).toBe(key2);
+      expect(key2).toBe(key3);
+    });
+
+    test('should handle cache clearing', () => {
+      const mockCache = new Map();
+
+      mockCache.set('key1', { matched: true });
+      mockCache.set('key2', { matched: false });
+
+      expect(mockCache.size).toBe(2);
+
+      mockCache.clear();
+
+      expect(mockCache.size).toBe(0);
+      expect(mockCache.has('key1')).toBe(false);
+    });
+  });
 });

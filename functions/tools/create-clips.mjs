@@ -6,7 +6,6 @@ import crypto, { randomUUID } from 'crypto';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { CLIP_STATUS } from '../../schemas/index.mjs';
-import { validateSpeakers } from '../utils/speakers.mjs';
 
 const logger = new Logger({ serviceName: 'tools' });
 
@@ -16,12 +15,12 @@ const MAX_SEGMENTS_PER_CLIP = 10;
 
 const segmentSchema = z.object({
   startTime: z.string()
-    .regex(/^\d{2}:\d{2}:\d{2}$/)
-    .describe('Start time in hh:mm:ss format (required)'),
+    .regex(/^\d{2}:\d{2}:\d{2}(,\d{3})?$/)
+    .describe('Start time in hh:mm:ss or hh:mm:ss,mmm format (required)'),
   endTime: z.string()
-    .regex(/^\d{2}:\d{2}:\d{2}$/)
-    .describe('End time in hh:mm:ss format (required)'),
-  speaker: z.string().min(1).describe('Speaker name - must match a speaker defined in the episode (required, case-insensitive)'),
+    .regex(/^\d{2}:\d{2}:\d{2}(,\d{3})?$/)
+    .describe('End time in hh:mm:ss or hh:mm:ss,mmm format (required)'),
+  speaker: z.string().min(1).describe('Speaker name (required)'),
   order: z.number().int().min(1).describe('Order of segment for reassembly (required, starting from 1)'),
   transcript: z.string().min(1).describe('Transcript text for this segment (required)'),
   notes: z.string().optional().describe('Optional contextual notes for this segment')
@@ -31,7 +30,7 @@ export const createClipTool = {
   isMultiTenant: true,
   name: 'createClip',
   description:
-    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps, speaker information, and transcript text. IMPORTANT: All speaker names in segments must match speakers defined in the episode. Speaker names are case-insensitive but will be normalized to match the episode\'s capitalization. If invalid speakers are provided, the operation will fail with a detailed error listing valid speakers.',
+    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps, speaker information, and transcript text. Speaker names can be any value and will be used as provided.',
   schema: z.object({
     episodeId: z.string().describe('The ID of the episode for which to create clips'),
     clips: z.array(
@@ -58,56 +57,10 @@ export const createClipTool = {
     }
 
     try {
-
-      const allSpeakers = new Set();
-      clips.forEach(clip => {
-        clip.segments.forEach(segment => {
-          if (segment.speaker) {
-            allSpeakers.add(segment.speaker);
-          }
-        });
-      });
-
-      const uniqueSpeakers = Array.from(allSpeakers);
-
-      if (uniqueSpeakers.length > 0) {
-        const validation = await validateSpeakers(episodeId, tenantId, uniqueSpeakers);
-
-        if (!validation.valid) {
-          logger.error('Clip segment speaker validation failed', {
-            episodeId,
-            tenantId,
-            invalidSpeakers: validation.invalidSpeakers,
-            validSpeakers: validation.validSpeakers
-          });
-          return `Error: Invalid speakers found in clip segments. Invalid speakers: ${validation.invalidSpeakers.join(', ')}. Valid episode speakers: ${validation.validSpeakers.join(', ')}. Please use only speakers from the episode's speaker list.`;
-        }
-
-        const speakerMap = new Map();
-        uniqueSpeakers.forEach(speaker => {
-          const normalized = validation.normalizedSpeakers.find(ns =>
-            ns.toLowerCase() === speaker.toLowerCase()
-          );
-          if (normalized) {
-            speakerMap.set(speaker.toLowerCase(), normalized);
-          }
-        });
-
-        clips = clips.map(clip => ({
-          ...clip,
-          segments: clip.segments.map(segment => ({
-            ...segment,
-            speaker: speakerMap.get(segment.speaker.toLowerCase()) || segment.speaker
-          }))
-        }));
-      }
-
       const results = await Promise.allSettled(
-        clips.map(async (clip) => {
+        clips.map(async (clip, index) => {
           const id = randomUUID();
           const now = new Date().toISOString();
-
-          const paddedSegments = addPaddingToSegments(clip.segments);
 
           const segmentSignature = clip.segments
             .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}-${s.transcript}`)
@@ -133,9 +86,9 @@ export const createClipTool = {
                 GSI1SK: `${now}#${episodeId}#${id}`,
                 clipId: id,
                 clipHash,
-                segments: paddedSegments,
-                segmentCount: paddedSegments.length,
-                totalDurationSeconds: calcTotalDuration(paddedSegments),
+                segments: clip.segments,
+                segmentCount: clip.segments.length,
+                totalDurationSeconds: calcTotalDuration(clip.segments),
                 title: clip.title,
                 summary: clip.summary,
                 bRollSuggestions: clip.bRollSuggestions,
@@ -165,6 +118,19 @@ export const createClipTool = {
       );
 
       const created = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+      const failed = results.filter((r) => r.status === 'rejected');
+
+      if (failed.length > 0) {
+        failed.forEach((result, index) => {
+          logger.error('Failed to create clip', {
+            clipIndex: index,
+            error: result.reason?.message || result.reason,
+            stack: result.reason?.stack,
+            episodeId,
+            tenantId
+          });
+        });
+      }
 
       logger.info('Created clips for episode', {
         created,
@@ -189,54 +155,24 @@ export const createClipTool = {
 };
 
 /**
- * Convert time string to seconds
+ * Convert time string to seconds (handles both hh:mm:ss and hh:mm:ss,mmm formats)
  */
 function timeToSeconds(timeStr) {
-  const [hh, mm, ss] = timeStr.split(':').map(Number);
-  return hh * 3600 + mm * 60 + ss;
-}
-
-/**
- * Convert seconds to time string
- */
-function secondsToTime(totalSeconds) {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-/**
- * Add padding to segment timestamps for smoother clips
- */
-function addPaddingToSegments(segments) {
-  const PADDING_SECONDS = 1;
-
-  return segments.map(segment => {
-    const startSeconds = timeToSeconds(segment.startTime);
-    const endSeconds = timeToSeconds(segment.endTime);
-
-    const paddedStart = Math.max(0, startSeconds - PADDING_SECONDS);
-    const paddedEnd = endSeconds + PADDING_SECONDS;
-
-    return {
-      ...segment,
-      startTime: secondsToTime(paddedStart),
-      endTime: secondsToTime(paddedEnd),
-      originalStartTime: segment.startTime,
-      originalEndTime: segment.endTime
-    };
-  });
+  const [time, ms] = timeStr.split(',');
+  const [hh, mm, ss] = time.split(':').map(Number);
+  const milliseconds = ms ? parseInt(ms) / 1000 : 0;
+  return hh * 3600 + mm * 60 + ss + milliseconds;
 }
 
 /**
  * Compute total duration from segments with required timestamps
+ * Returns duration rounded to nearest second
  */
 function calcTotalDuration(segments) {
-  return segments.reduce((acc, seg) => {
+  const totalSeconds = segments.reduce((acc, seg) => {
     const start = timeToSeconds(seg.startTime);
     const end = timeToSeconds(seg.endTime);
     return acc + Math.max(0, end - start);
   }, 0);
+  return Math.round(totalSeconds);
 }
