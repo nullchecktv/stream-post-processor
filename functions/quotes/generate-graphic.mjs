@@ -84,20 +84,20 @@ export const handler = async (event) => {
         })
       }));
 
-      await publishNotificationEvent({
-        type: 'quote_status_updated',
-        tenantId,
-        title: 'Quote Processing',
-        message: 'Generating quote graphic',
-        url: `/episodes/${episodeId}`,
-        persist: false,
-        topic: 'tenant',
-        metadata: {
-          episodeId,
-          quoteId,
-          status: QUOTE_STATUS.PROCESSING
-        }
-      });
+      // await publishNotificationEvent({
+      //   type: 'quote_status_updated',
+      //   tenantId,
+      //   title: 'Quote Processing',
+      //   message: 'Generating quote graphic',
+      //   url: `/episodes/${episodeId}`,
+      //   persist: false,
+      //   topic: 'tenant',
+      //   metadata: {
+      //     episodeId,
+      //     quoteId,
+      //     status: QUOTE_STATUS.PROCESSING
+      //   }
+      // });
 
       const isPortrait = quote.orientation === 'portrait';
       const width = isPortrait ? 1080 : 1920;
