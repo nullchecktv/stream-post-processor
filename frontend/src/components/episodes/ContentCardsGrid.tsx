@@ -36,13 +36,11 @@ function ContentCardsGridComponent({
   const transcriptComplete = workflowSteps?.uploadTranscript?.status === 'Completed'
   const tracksComplete = workflowSteps?.uploadTracks?.status === 'Completed'
 
-  const isBlogGenerating = workflowSteps?.generateBlog?.status === 'In Progress'
-  const areClipsGenerating = workflowSteps?.generateClips?.status === 'In Progress'
-  const areQuotesGenerating = workflowSteps?.generateQuotes?.status === 'In Progress'
+  const isContentGenerating = workflowSteps?.generateContent?.status === 'In Progress'
 
-  const isBlogProcessing = blog?.status === 'Processing' || isBlogGenerating
-  const areClipsProcessing = clips.some(clip => clip.status === 'Processing') || areClipsGenerating
-  const areQuotesProcessing = quotes.some(quote => quote.status === 'Processing') || areQuotesGenerating
+  const isBlogProcessing = blog?.status === 'Processing' || isContentGenerating
+  const areClipsProcessing = clips.some(clip => clip.status === 'Processing') || isContentGenerating
+  const areQuotesProcessing = quotes.some(quote => quote.status === 'Processing') || isContentGenerating
   if (isLoading) {
     return (
       <section aria-label="Created content" aria-busy="true">

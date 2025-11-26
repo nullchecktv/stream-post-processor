@@ -71,9 +71,18 @@ export const handler = async (event) => {
       });
     }
 
-    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CLIPS, 'In Progress');
-    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_QUOTES, 'In Progress');
-    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_BLOG, 'In Progress');
+    const workflowSteps = episodeMeta?.workflowSteps || {};
+
+    if (workflowSteps[WORKFLOW_STEPS.GENERATE_CONTENT]?.status === 'Completed') {
+      logger.info('Content generation already completed, skipping processing', {
+        episodeId,
+        tenantId,
+        transcriptKey
+      });
+      return { statusCode: 200, message: 'Content already generated' };
+    }
+
+    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CONTENT, 'In Progress');
 
     const hasDescription = Boolean(episodeMeta?.description);
     const hasThemes = Array.isArray(episodeMeta?.themes) && episodeMeta.themes.length > 0;
@@ -318,6 +327,8 @@ ${transcript}
         }]
       })
     }));
+
+    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CONTENT, 'Completed');
 
     return { message: response };
   } catch (err) {

@@ -25,9 +25,7 @@ jest.mock('../../../functions/utils/workflow-steps.mjs', () => ({
     GENERATE_PLAN: 'generatePlan',
     UPLOAD_TRANSCRIPT: 'uploadTranscript',
     UPLOAD_TRACKS: 'uploadTracks',
-    GENERATE_CLIPS: 'generateClips',
-    GENERATE_QUOTES: 'generateQuotes',
-    GENERATE_BLOG: 'generateBlog'
+    GENERATE_CONTENT: 'generateContent'
   }
 }));
 

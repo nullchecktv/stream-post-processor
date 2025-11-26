@@ -16,7 +16,5 @@ export interface WorkflowSteps {
   generatePlan: WorkflowStep
   uploadTranscript: WorkflowStep
   uploadTracks: WorkflowStep
-  generateClips?: WorkflowStep
-  generateQuotes?: WorkflowStep
-  generateBlog?: WorkflowStep
+  generateContent?: WorkflowStep
 }

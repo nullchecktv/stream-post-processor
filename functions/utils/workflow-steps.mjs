@@ -13,9 +13,7 @@ export const WORKFLOW_STEPS = {
   GENERATE_PLAN: 'generatePlan',
   UPLOAD_TRANSCRIPT: 'uploadTranscript',
   UPLOAD_TRACKS: 'uploadTracks',
-  GENERATE_CLIPS: 'generateClips',
-  GENERATE_QUOTES: 'generateQuotes',
-  GENERATE_BLOG: 'generateBlog'
+  GENERATE_CONTENT: 'generateContent'
 };
 
 export const validateWorkflowStepTransition = (currentStatus, newStatus) => {
@@ -62,7 +60,8 @@ const getStepLabel = (step) => {
   const labels = {
     [WORKFLOW_STEPS.GENERATE_PLAN]: 'Generate Plan',
     [WORKFLOW_STEPS.UPLOAD_TRANSCRIPT]: 'Upload Transcript',
-    [WORKFLOW_STEPS.UPLOAD_TRACKS]: 'Upload Tracks'
+    [WORKFLOW_STEPS.UPLOAD_TRACKS]: 'Upload Tracks',
+    [WORKFLOW_STEPS.GENERATE_CONTENT]: 'Generate Content'
   };
   return labels[step] || step;
 };
@@ -72,7 +71,8 @@ export const updateWorkflowStepStatus = async (
   episodeId,
   step,
   status,
-  error = null
+  error = null,
+  sendNotification = true
 ) => {
   const now = new Date().toISOString();
   const stepData = { status };
@@ -150,19 +150,21 @@ export const updateWorkflowStepStatus = async (
       }
     }
 
-    await publishNotificationEvent({
-      type: 'workflow_step_updated',
-      tenantId,
-      title: 'Workflow Step Updated',
-      message: `${getStepLabel(step)} is now ${status}`,
-      url: `/episodes/${episodeId}`,
-      persist: false,
-      metadata: {
-        episodeId,
-        step,
-        status
-      }
-    });
+    if (sendNotification) {
+      await publishNotificationEvent({
+        type: 'workflow_step_updated',
+        tenantId,
+        title: 'Workflow Step Updated',
+        message: `${getStepLabel(step)} is now ${status}`,
+        url: `/episodes/${episodeId}`,
+        persist: false,
+        metadata: {
+          episodeId,
+          step,
+          status
+        }
+      });
+    }
 
     logger.info('Workflow step status updated', {
       tenantId,

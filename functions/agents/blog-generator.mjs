@@ -6,7 +6,6 @@ import { convertToBedrockTools } from '../utils/tools.mjs';
 import { webSearchTool } from '../tools/web-search.mjs';
 import { BLOG_STATUS } from '../../schemas/index.mjs';
 import { publishNotificationEvent } from '../utils/notifications.mjs';
-import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 const ddb = new DynamoDBClient();
@@ -239,8 +238,6 @@ Write the complete blog post now following the outline and brand voice guideline
       tenantId,
       wordCount
     });
-
-    await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_BLOG, 'Completed');
 
     const episodeTitle = episodeMetadata.title || `Episode ${episodeMetadata.episodeNumber || ''}`;
 
