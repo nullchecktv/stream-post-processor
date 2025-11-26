@@ -1,8 +1,8 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { loadHlsManifest, calculateChunkMapping, validateSegmentTiming, generateSegmentKey } from '../utils/video-processing.mjs';
-import { extractVideoSegment, createTempDir, cleanup, checkFFmpegAvailability, execFFmpeg } from '../utils/ffmpeg.mjs';
-import { downloadVideoFile, uploadSegmentFile, objectExists, verifySegmentIntegrity, getS3FileSize } from '../utils/s3-video.mjs';
-import { selectTrackForSpeaker } from '../utils/track-selection.mjs';
+import { extractVideoSegment, createTempDir, cleanup,  execFFmpeg } from '../utils/ffmpeg.mjs';
+import { downloadVideoFile, uploadSegmentFile, objectExists, verifySegmentIntegrity } from '../utils/s3-video.mjs';
+import { selectTrackForSegment } from '../utils/track-selection.mjs';
 import { CLIP_STATUS } from '../../schemas/clips.mjs';
 import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { join, dirname } from 'path';
@@ -66,25 +66,43 @@ export const handler = async (event) => {
     tempDir = await createTempDir('segment-extraction-');
     const bucketName = process.env.BUCKET_NAME;
 
-    // Simple track selection: if segment has a speaker, try to find their track
     let useTrackName = trackName;
-    if (segment.speaker) {
-      try {
-        const speakerTrack = await selectTrackForSpeaker(episodeId, segment.speaker, tenantId);
-        if (speakerTrack) {
-          useTrackName = speakerTrack.trackName;
-          logger.info('Using track for speaker', {
-            trackName: useTrackName,
-            speaker: segment.speaker
-          });
+    let trackSelection = null;
+
+    try {
+      trackSelection = await selectTrackForSegment(
+        episodeId,
+        segment,
+        tenantId,
+        {
+          enableLLMMatching: true,
+          fallbackTrack: trackName,
+          confidenceThreshold: 0.7
         }
-      } catch (error) {
-        logger.warn('Failed to find track for speaker, using default', {
-          error: error.message,
-          speaker: segment.speaker,
-          defaultTrack: trackName
-        });
-      }
+      );
+
+      useTrackName = trackSelection.trackName;
+
+      logger.info('Track selected for segment', {
+        originalSpeaker: segment.speaker,
+        selectedTrack: trackSelection.trackName,
+        matchType: trackSelection.matchType,
+        confidence: trackSelection.confidence,
+        matchedSpeaker: trackSelection.matchedSpeaker,
+        reasoning: trackSelection.reasoning,
+        episodeId,
+        clipId
+      });
+    } catch (error) {
+      logger.error('Track selection failed, using default track', {
+        error: error.message,
+        stack: error.stack,
+        speaker: segment.speaker,
+        defaultTrack: trackName,
+        episodeId,
+        clipId
+      });
+      useTrackName = trackName;
     }
 
     const manifest = await loadHlsManifest(episodeId, useTrackName, tenantId);
@@ -108,7 +126,12 @@ export const handler = async (event) => {
         segmentFile: segmentS3Key,
         order,
         status: CLIP_STATUS.CREATED,
-        metadata
+        metadata,
+        trackSelection: trackSelection || {
+          trackName: useTrackName,
+          matchType: 'cached',
+          confidence: 1.0
+        }
       };
     }
 
@@ -125,7 +148,12 @@ export const handler = async (event) => {
       segmentFile: segmentS3Key,
       order,
       status: CLIP_STATUS.CREATED,
-      metadata
+      metadata,
+      trackSelection: trackSelection || {
+        trackName: useTrackName,
+        matchType: 'default',
+        confidence: 1.0
+      }
     };
 
   } catch (error) {

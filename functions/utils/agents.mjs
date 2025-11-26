@@ -105,7 +105,7 @@ export const converse = async (model, systemPrompt, userPrompt, tools, options) 
         error: error.message,
         stack: error.stack
       });
-      throw new Error(`Failed to process message`);
+      throw error;
     }
   }
 

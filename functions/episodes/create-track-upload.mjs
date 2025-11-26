@@ -4,8 +4,7 @@ import { S3Client, CreateMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { Logger } from '@aws-lambda-powertools/logger';
 import { formatResponse, sanitizeTrackName } from '../utils/api.mjs';
 import { validateRequest, validatePathParameters } from '../utils/validation.mjs';
-import { EpisodePathParamsSchema, TrackCreateSchema, TRACK_STATUS } from '../../schemas/index.mjs';
-import { validateSpeakers, formatSpeakerValidationError } from '../utils/speakers.mjs';
+import { EpisodePathParamsSchema, TrackCreateSchema } from '../../schemas/index.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -31,19 +30,7 @@ export const handler = async (event) => {
     const { filename, trackName: rawTrackName, speakers } = data;
 
     const trackName = sanitizeTrackName(rawTrackName);
-    const inputSpeakers = speakers ? speakers.map(speaker => speaker.trim()).filter(speaker => speaker.length > 0) : [];
-
-    if (inputSpeakers.length > 0) {
-      const validation = await validateSpeakers(episodeId, tenantId, inputSpeakers);
-
-      if (!validation.valid) {
-        return formatSpeakerValidationError(validation, episodeId, 'Track');
-      }
-
-      var normalizedSpeakers = validation.normalizedSpeakers;
-    } else {
-      var normalizedSpeakers = [];
-    }
+    const normalizedSpeakers = speakers ? speakers.map(speaker => speaker.trim()).filter(speaker => speaker.length > 0) : [];
 
     const idempotencyKey = marshall({ pk: `${tenantId}#${episodeId}`, sk: `track-upload:${trackName}` });
     const existing = await ddb.send(new GetItemCommand({ TableName: process.env.TABLE_NAME, Key: idempotencyKey }));

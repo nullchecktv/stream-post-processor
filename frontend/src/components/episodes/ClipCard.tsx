@@ -6,8 +6,6 @@ interface ClipCardProps {
   clip: ClipListView
   episodeId: string
   onPlay: (clipId: string) => void
-  onApprove: (clipId: string) => void
-  onReject: (clipId: string) => void
   onRetry?: (clipId: string) => void
 }
 
@@ -53,12 +51,10 @@ function formatDuration(seconds?: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export function ClipCard({ clip, episodeId, onPlay, onApprove, onReject, onRetry }: ClipCardProps) {
+export function ClipCard({ clip, episodeId, onPlay, onRetry }: ClipCardProps) {
   const navigate = useNavigate()
   const config = statusConfig[clip.status] || statusConfig.Proposed
   const canPlay = clip.status === 'Created'
-  const canApprove = clip.status === 'Created'
-  const canReject = clip.status === 'Created'
   const canRetry = clip.status === 'Failed'
 
   const handleCardClick = () => {
@@ -129,28 +125,6 @@ export function ClipCard({ clip, episodeId, onPlay, onApprove, onReject, onRetry
               <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
             </svg>
             Play
-          </button>
-        )}
-        {canApprove && (
-          <button
-            onClick={(e) => handleButtonClick(e, () => onApprove(clip.id))}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M5 13l4 4L19 7" />
-            </svg>
-            Approve
-          </button>
-        )}
-        {canReject && (
-          <button
-            onClick={(e) => handleButtonClick(e, () => onReject(clip.id))}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-error text-white text-sm font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Reject
           </button>
         )}
       </div>

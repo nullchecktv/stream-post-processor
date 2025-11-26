@@ -13,8 +13,23 @@ const s3 = new S3Client();
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
 
-const sleep = (ms) => new Promise(resolvsetTimeout(resolve, ms));
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * Extract speaker names from a transcript file stored in S3
+ *
+ * Parses transcript content to identify unique speaker names using common patterns:
+ * - "Speaker Name: text" format
+ * - "[Speaker Name] text" format
+ * - "<Speaker Name> text" format
+ *
+ * @param {string} s3Key - S3 object key for the transcript file
+ * @returns {Promise<Array<string>>} Array of unique speaker names found in transcript
+ *
+ * @example
+ * const speakers = await extractSpeakersFromTranscript('tenant123/episode-id/transcript.srt');
+ * // Returns: ['Alice Johnson', 'Bob Smith', 'Charlie Davis']
+ */
 export const extractSpeakersFromTranscript = async (s3Key) => {
   try {
     const transcriptContent = await downloadFromS3(s3Key);
@@ -82,6 +97,44 @@ const downloadFromS3 = async (s3Key) => {
   }
 };
 
+/**
+ * Match transcript speaker names to episode speaker names using LLM-based fuzzy matching
+ *
+ * Uses AWS Bedrock (Amazon Nova Lite) to intelligently match speaker names even when
+ * they differ in spelling, capitalization, formatting, or use nicknames/abbreviations.
+ *
+ * This function is useful for:
+ * - Analyzing transcript speaker discrepancies
+ * - Suggesting speaker name corrections
+ * - Understanding speaker name variations
+ *
+ * NOTE: This function is NOT used in the video processing pipeline. For video processing,
+ * use selectTrackForSegment from track-selection.mjs which handles track selection with
+ * automatic fallbacks.
+ *
+ * @param {Array<string>} transcriptSpeakers - Speaker names found in transcript
+ * @param {Array<string>} episodeSpeakers - Canonical episode speaker names
+ * @returns {Promise<Object>} Match result with matches, unmatched, and suggestion
+ *
+ * @example
+ * const result = await matchSpeakers(
+ *   ['bob', 'alice j'],
+ *   ['Bob Smith', 'Alice Johnson']
+ * );
+ * // Returns: {
+ * //   matches: [
+ * //     { transcriptName: 'bob', episodeName: 'Bob Smith', confidence: 'high' },
+ * //     { transcriptName: 'alice j', episodeName: 'Alice Johnson', confidence: 'medium' }
+ * //   ],
+ * //   unmatched: [],
+ * //   suggestion: null
+ * // }
+ *
+ * Error Handling:
+ * - Retries up to MAX_RETRIES times on retryable errors (throttling, 5xx errors)
+ * - Returns empty matches and all speakers as unmatched on failure
+ * - Logs detailed error information for debugging
+ */
 export const matchSpeakers = async (transcriptSpeakers, episodeSpeakers) => {
   if (!transcriptSpeakers || transcriptSpeakers.length === 0) {
     return {
@@ -211,78 +264,3 @@ const generateSuggestion = (unmatchedSpeakers) => {
 
   return `Consider adding these speakers to the episode: ${unmatchedSpeakers.join(', ')}`;
 };
-
-export const validateSpeakers = async (episodeId, tenantId, speakersToValidate) => {
-  if (!speakersToValidate || speakersToValidate.length === 0) {
-    return {
-      valid: true,
-      normalizedSpeakers: []
-    };
-  }
-
-  const pk = `${tenantId}#${episodeId}`;
-
-  const result = await ddb.send(new GetItemCommand({
-    TableName: process.env.TABLE_NAME,
-    Key: marshall({
-      pk,
-      sk: 'metadata'
-    })
-  }));
-
-  if (!result.Item) {
-    logger.error('Episode not found during speaker validation', {
-      episodeId,
-      tenantId
-    });
-    throw new Error(`Episode with ID '${episodeId}' was not found`);
-  }
-
-  const episode = unmarshall(result.Item);
-  const episodeSpeakers = episode.speakers || [];
-
-  const normalizedInput = speakersToValidate.map(s => s.trim()).filter(s => s.length > 0);
-
-  const invalidSpeakers = normalizedInput.filter(speaker =>
-    !episodeSpeakers.some(es =>
-      es.toLowerCase() === speaker.toLowerCase()
-    )
-  );
-
-  if (invalidSpeakers.length > 0) {
-    return {
-      valid: false,
-      invalidSpeakers,
-      validSpeakers: episodeSpeakers
-    };
-  }
-
-  const normalizedSpeakers = normalizedInput.map(speaker => {
-    const match = episodeSpeakers.find(es =>
-      es.toLowerCase() === speaker.toLowerCase()
-    );
-    return match || speaker;
-  });
-
-  return {
-    valid: true,
-    normalizedSpeakers
-  };
-};
-
-export const formatSpeakerValidationError = (validationResult, episodeId, entityType = 'entity') => {
-  logger.error('Speaker validation failed', {
-    episodeId,
-    entityType,
-    invalidSpeakers: validationResult.invalidSpeakers,
-    validSpeakers: validationResult.validSpeakers
-  });
-
-  return formatResponse(400, {
-    error: 'InvalidSpeakers',
-    message: `${entityType} speakers must exist in episode speaker list`,
-    invalidSpeakers: validationResult.invalidSpeakers,
-    validSpeakers: validationResult.validSpeakers
-  });
-};
-

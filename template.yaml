@@ -364,7 +364,7 @@ Resources:
           - agents/clip-detector.mjs
     Properties:
       Handler: agents/clip-detector.handler
-      Timeout: 300
+      Timeout: 450
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: 2012-10-17
@@ -411,7 +411,7 @@ Resources:
         Variables:
           MEMORY_ID: !GetAtt AgentMemory.MemoryId
           TABLE_NAME: !Ref StreamPostProcessingTable
-          MODEL_ID: us.amazon.nova-premier-v1:0
+          MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
         TranscriptAdded:
@@ -1047,6 +1047,7 @@ Resources:
                 - dynamodb:UpdateItem
                 - dynamodb:DeleteItem
                 - dynamodb:PutItem
+                - dynamodb:Query
               Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
@@ -2241,6 +2242,18 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:Query
               Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-lite-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-lite-v1:0
+            - Effect: Allow
+              Action:
+                - bedrock:GetInferenceProfile
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/us.amazon.nova-lite-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-lite-v1:0
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable

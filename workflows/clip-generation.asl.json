@@ -32,7 +32,7 @@
                     "S": "Processing"
                   },
                   "timestamp": {
-                    "S.$": "$.State.EnteredTime"
+                    "S.$": "$$.State.EnteredTime"
                   },
                   "segmentCount": {
                     "N.$": "States.Format('{}', States.ArrayLength($.segments))"
@@ -42,10 +42,10 @@
             ]
           },
           ":updatedAt": {
-            "S.$": "$.State.EnteredTime"
+            "S.$": "$$.State.EnteredTime"
           },
           ":startedAt": {
-            "S.$": "$.State.EnteredTime"
+            "S.$": "$$.State.EnteredTime"
           },
           ":emptyList": {
             "L": []
@@ -73,56 +73,6 @@
           "Next": "Error Handler"
         }
       ],
-      "Next": "Notify Processing",
-      "ResultPath": null
-    },
-    "Notify Processing": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::events:putEvents",
-      "Parameters": {
-        "Entries": [
-          {
-            "Source": "nullcheck",
-            "DetailType": "Notification",
-            "Detail": {
-              "type": "clip_status_updated",
-              "tenantId.$": "$.tenantId",
-              "userId": null,
-              "title": "Clip Processing",
-              "message.$": "States.Format('Clip \"{}\" is being processed', $.title)",
-              "url.$": "States.Format('/episodes/{}', $.episodeId)",
-              "persist": false,
-              "topic": "tenant",
-              "metadata": {
-                "episodeId.$": "$.episodeId",
-                "clipId.$": "$.clipId",
-                "status": "Processing",
-                "title.$": "$.title"
-              }
-            }
-          }
-        ]
-      },
-      "Retry": [
-        {
-          "ErrorEquals": [
-            "Events.ServiceException",
-            "Events.ThrottlingException"
-          ],
-          "IntervalSeconds": 1,
-          "MaxAttempts": 3,
-          "BackoffRate": 2,
-          "JitterStrategy": "FULL"
-        }
-      ],
-      "Catch": [
-        {
-          "ErrorEquals": [
-            "States.ALL"
-          ],
-          "Next": "Iterate Segments"
-        }
-      ],
       "Next": "Iterate Segments",
       "ResultPath": null
     },
@@ -141,10 +91,10 @@
               "TableName": "${TableName}",
               "Key": {
                 "pk": {
-                  "S.$": "States.Format('{}#{}', $.Execution.Input.tenantId, $.Execution.Input.episodeId)"
+                  "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
                 },
                 "sk": {
-                  "S.$": "States.Format('segment#{}#{}', $.Execution.Input.clipId, $.order)"
+                  "S.$": "States.Format('segment#{}#{}', $$.Execution.Input.clipId, $.order)"
                 }
               }
             },
@@ -202,16 +152,16 @@
               "TableName": "${TableName}",
               "Item": {
                 "pk": {
-                  "S.$": "States.Format('{}#{}', $.Execution.Input.tenantId, $.Execution.Input.episodeId)"
+                  "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
                 },
                 "sk": {
-                  "S.$": "States.Format('segment#{}#{}', $.Execution.Input.clipId, $.order)"
+                  "S.$": "States.Format('segment#{}#{}', $$.Execution.Input.clipId, $.order)"
                 },
                 "order": {
                   "N.$": "States.Format('{}', $.order)"
                 },
                 "clipId": {
-                  "S.$": "$.Execution.Input.clipId"
+                  "S.$": "$$.Execution.Input.clipId"
                 },
                 "startTime": {
                   "S.$": "$.startTime"
@@ -223,10 +173,10 @@
                   "S": "Processing"
                 },
                 "createdAt": {
-                  "S.$": "$.State.EnteredTime"
+                  "S.$": "$$.State.EnteredTime"
                 },
                 "updatedAt": {
-                  "S.$": "$.State.EnteredTime"
+                  "S.$": "$$.State.EnteredTime"
                 }
               },
               "ConditionExpression": "attribute_not_exists(pk) AND attribute_not_exists(sk)"
@@ -277,9 +227,9 @@
             "Parameters": {
               "FunctionName": "${SegmentExtractor}",
               "Payload": {
-                "tenantId.$": "$.Execution.Input.tenantId",
-                "episodeId.$": "$.Execution.Input.episodeId",
-                "clipId.$": "$.Execution.Input.clipId",
+                "tenantId.$": "$$.Execution.Input.tenantId",
+                "episodeId.$": "$$.Execution.Input.episodeId",
+                "clipId.$": "$$.Execution.Input.clipId",
                 "order.$": "$.order",
                 "segment": {
                   "startTime.$": "$.startTime",
@@ -320,10 +270,10 @@
               "TableName": "${TableName}",
               "Key": {
                 "pk": {
-                  "S.$": "States.Format('{}#{}', $.Execution.Input.tenantId, $.Execution.Input.episodeId)"
+                  "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
                 },
                 "sk": {
-                  "S.$": "States.Format('segment#{}#{}', $.Execution.Input.clipId, $.order)"
+                  "S.$": "States.Format('segment#{}#{}', $$.Execution.Input.clipId, $.order)"
                 }
               },
               "UpdateExpression": "SET #status = :status, #s3Key = :s3Key, #duration = :duration, #updatedAt = :updatedAt",
@@ -344,7 +294,7 @@
                   "N.$": "States.Format('{}', $.metadata.duration)"
                 },
                 ":updatedAt": {
-                  "S.$": "$.State.EnteredTime"
+                  "S.$": "$$.State.EnteredTime"
                 }
               }
             },
@@ -378,7 +328,7 @@
               "status": "Failed",
               "error": {
                 "message": "Segment extraction failed",
-                "timestamp.$": "$.State.EnteredTime",
+                "timestamp.$": "$$.State.EnteredTime",
                 "segmentData.$": "$"
               }
             },
@@ -405,10 +355,10 @@
         "TableName": "${TableName}",
         "Key": {
           "pk": {
-            "S.$": "States.Format('{}#{}', $.Execution.Input.tenantId, $.Execution.Input.episodeId)"
+            "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
           },
           "sk": {
-            "S.$": "States.Format('data#clip#{}', $.Execution.Input.clipId)"
+            "S.$": "States.Format('data#clip#{}', $$.Execution.Input.clipId)"
           }
         },
         "UpdateExpression": "SET #statusHistory = list_append(#statusHistory, :newStatus), #updatedAt = :updatedAt",
@@ -425,7 +375,7 @@
                     "S": "Processing"
                   },
                   "timestamp": {
-                    "S.$": "$.State.EnteredTime"
+                    "S.$": "$$.State.EnteredTime"
                   },
                   "segmentCount": {
                     "N.$": "States.Format('{}', States.ArrayLength($.generated))"
@@ -438,7 +388,7 @@
             ]
           },
           ":updatedAt": {
-            "S.$": "$.State.EnteredTime"
+            "S.$": "$$.State.EnteredTime"
           }
         }
       },
@@ -473,9 +423,9 @@
       "Parameters": {
         "FunctionName": "${ClipStitcher}",
         "Payload": {
-          "tenantId.$": "$.Execution.Input.tenantId",
-          "episodeId.$": "$.Execution.Input.episodeId",
-          "clipId.$": "$.Execution.Input.clipId",
+          "tenantId.$": "$$.Execution.Input.tenantId",
+          "episodeId.$": "$$.Execution.Input.episodeId",
+          "clipId.$": "$$.Execution.Input.clipId",
           "segments.$": "$.generated"
         }
       },
@@ -510,10 +460,10 @@
         "TableName": "${TableName}",
         "Key": {
           "pk": {
-            "S.$": "States.Format('{}#{}', $.Execution.Input.tenantId, $.Execution.Input.episodeId)"
+            "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
           },
           "sk": {
-            "S.$": "States.Format('data#clip#{}', $.Execution.Input.clipId)"
+            "S.$": "States.Format('data#clip#{}', $$.Execution.Input.clipId)"
           }
         },
         "UpdateExpression": "SET #statusHistory = list_append(#statusHistory, :newStatus), #status = :status, #updatedAt = :updatedAt, #s3Key = :s3Key, #duration = :duration, processingCompletedAt = :completedAt",
@@ -536,17 +486,17 @@
                     "S": "Created"
                   },
                   "timestamp": {
-                    "S.$": "$.State.EnteredTime"
+                    "S.$": "$$.State.EnteredTime"
                   }
                 }
               }
             ]
           },
           ":updatedAt": {
-            "S.$": "$.State.EnteredTime"
+            "S.$": "$$.State.EnteredTime"
           },
           ":completedAt": {
-            "S.$": "$.State.EnteredTime"
+            "S.$": "$$.State.EnteredTime"
           },
           ":s3Key": {
             "S.$": "$.clipS3Key"
@@ -589,16 +539,16 @@
             "DetailType": "Notification",
             "Detail": {
               "type": "clip_status_updated",
-              "tenantId.$": "$.Execution.Input.tenantId",
+              "tenantId.$": "$$.Execution.Input.tenantId",
               "userId": null,
               "title": "Clip Created",
-              "message.$": "States.Format('Clip \"{}\" is ready', $.Execution.Input.title)",
-              "url.$": "States.Format('/episodes/{}', $.Execution.Input.episodeId)",
+              "message": "Clip is ready",
+              "url.$": "States.Format('/episodes/{}/clips/{}', $$.Execution.Input.episodeId, $$.Execution.Input.clipId)",
               "persist": true,
               "topic": "tenant",
               "metadata": {
-                "episodeId.$": "$.Execution.Input.episodeId",
-                "clipId.$": "$.Execution.Input.clipId",
+                "episodeId.$": "$$.Execution.Input.episodeId",
+                "clipId.$": "$$.Execution.Input.clipId",
                 "status": "Created"
               }
             }
@@ -626,10 +576,10 @@
         "TableName": "${TableName}",
         "Key": {
           "pk": {
-            "S.$": "States.Format('{}#{}', $.Execution.Input.tenantId, $.Execution.Input.episodeId)"
+            "S.$": "States.Format('{}#{}', $$.Execution.Input.tenantId, $$.Execution.Input.episodeId)"
           },
           "sk": {
-            "S.$": "States.Format('data#clip#{}', $.Execution.Input.clipId)"
+            "S.$": "States.Format('data#clip#{}', $$.Execution.Input.clipId)"
           }
         },
         "UpdateExpression": "SET #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :failureStatus), #status = :status, #updatedAt = :updatedAt, processingCompletedAt = :completedAt",
@@ -650,17 +600,17 @@
                     "S": "Failed"
                   },
                   "timestamp": {
-                    "S.$": "$.State.EnteredTime"
+                    "S.$": "$$.State.EnteredTime"
                   }
                 }
               }
             ]
           },
           ":updatedAt": {
-            "S.$": "$.State.EnteredTime"
+            "S.$": "$$.State.EnteredTime"
           },
           ":completedAt": {
-            "S.$": "$.State.EnteredTime"
+            "S.$": "$$.State.EnteredTime"
           },
           ":emptyList": {
             "L": []
@@ -695,7 +645,7 @@
       "Parameters": {
         "status": "Failed",
         "message": "Critical error: Unable to update clip status in database",
-        "timestamp.$": "$.State.EnteredTime"
+        "timestamp.$": "$$.State.EnteredTime"
       },
       "Next": "Notify Failure"
     },
@@ -705,9 +655,9 @@
       "Parameters": {
         "FunctionName": "${ClipGenerationFailedFunctionArn}",
         "Payload": {
-          "tenantId.$": "$.Execution.Input.tenantId",
-          "episodeId.$": "$.Execution.Input.episodeId",
-          "clipId.$": "$.Execution.Input.clipId",
+          "tenantId.$": "$$.Execution.Input.tenantId",
+          "episodeId.$": "$$.Execution.Input.episodeId",
+          "clipId.$": "$$.Execution.Input.clipId",
           "error": {
             "message": "Clip generation failed"
           }
@@ -746,16 +696,16 @@
             "DetailType": "Notification",
             "Detail": {
               "type": "clip_status_updated",
-              "tenantId.$": "$.Execution.Input.tenantId",
+              "tenantId.$": "$$.Execution.Input.tenantId",
               "userId": null,
               "title": "Clip Processing Failed",
               "message": "Failed to generate clip",
-              "url.$": "States.Format('/episodes/{}', $.Execution.Input.episodeId)",
+              "url.$": "States.Format('/episodes/{}', $$.Execution.Input.episodeId)",
               "persist": true,
               "topic": "tenant",
               "metadata": {
-                "episodeId.$": "$.Execution.Input.episodeId",
-                "clipId.$": "$.Execution.Input.clipId",
+                "episodeId.$": "$$.Execution.Input.episodeId",
+                "clipId.$": "$$.Execution.Input.clipId",
                 "status": "Failed",
                 "error": "Clip generation failed"
               }

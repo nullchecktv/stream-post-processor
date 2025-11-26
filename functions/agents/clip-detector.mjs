@@ -5,7 +5,7 @@ import { buildBlogOutlineTool } from "../tools/build-blog-outline.mjs";
 import { createQuoteTool } from "../tools/create-quotes.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
-import { loadAndPreprocessTranscript } from "../utils/transcripts.mjs";
+import { loadTranscript } from "../utils/transcripts.mjs";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { parseEpisodeIdFromKey } from "../utils/clips.mjs";
 import { EPISODE_STATUS } from '../../schemas/index.mjs';
@@ -17,6 +17,8 @@ const ddb = new DynamoDBClient();
 const tools = convertToBedrockTools([createClipTool, buildBlogOutlineTool, createQuoteTool]);
 
 export const handler = async (event) => {
+  let tenantId, episodeId;
+
   try {
     const rawKey = event?.detail?.object?.key;
     if (!rawKey) {
@@ -27,7 +29,6 @@ export const handler = async (event) => {
     }
 
     const transcriptKey = decodeURIComponent(rawKey);
-    let tenantId, episodeId;
     try {
       const parsed = parseEpisodeIdFromKey(transcriptKey);
       tenantId = parsed.tenantId;
@@ -47,7 +48,7 @@ export const handler = async (event) => {
       return { statusCode: 200 };
     }
 
-    const transcript = await loadAndPreprocessTranscript(transcriptKey);
+    const transcript = await loadTranscript(transcriptKey);
     if (!transcript) {
       logger.error('Could not find transcript with provided key', {
         transcriptKey
@@ -104,21 +105,46 @@ Your job on each run:
 7. Record your findings using the **createClip** tool (single call, array of clips) and **createQuote** tool (single call, array of quotes).
 8. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
-### Transcript
-The transcript has been preprocessed from SRT format to merge fragmented segments and remove filler words. Each segment represents a coherent thought or statement from a speaker. Speakers are indicated with their name followed by a colon.
+### Transcript Format and Timestamp Requirements
 
-**Important Notes:**
-- There may still be some speaker bleed where words from one speaker appear under another speaker's name
-- Always verify that the words make logical sense for the attributed speaker
-- When selecting segments, ensure the content flows naturally and makes sense in context
-- The system will automatically add 1-2 seconds of padding to start/end times for smoother clips
+The transcript is in standard SRT format with numbered entries, timestamps, and speaker attribution.
 
-#### Example
+**CRITICAL: You MUST copy timestamps EXACTLY as they appear in the SRT entries below. Do not estimate, round, or approximate timestamps.**
+
+#### SRT Format Example
+\`\`\`
+1
 00:00:20,925 --> 00:00:27,104
 Allen: Sometimes it's a breakthrough, sometimes a regret
 
+2
 00:00:28,000 --> 00:00:30,500
 Andres: We try it out live
+\`\`\`
+
+**Timestamp Extraction Process:**
+1. Find the words you want in the transcript text
+2. Look at the SRT entry number and timestamp line DIRECTLY ABOVE those words
+3. Copy the start time (before the arrow) and end time (after the arrow) EXACTLY as written
+4. Do NOT modify the timestamps in any way - copy them character-for-character including commas and milliseconds
+
+**Example - If you want the words "Sometimes it's a breakthrough":**
+- Find those words in entry #1
+- The timestamp line above shows: \`00:00:20,925 --> 00:00:27,104\`
+- Your startTime MUST be: \`00:00:20,925\`
+- Your endTime MUST be: \`00:00:27,104\`
+
+**Common Mistakes to Avoid:**
+- ❌ Estimating timestamps based on content location
+- ❌ Rounding timestamps (e.g., changing 00:00:20,925 to 00:00:20)
+- ❌ Calculating timestamps based on duration
+- ✅ Copy the exact timestamp from the SRT entry containing your selected words
+
+**Speaker Attribution:**
+- Speakers are indicated with their name followed by a colon at the start of each subtitle entry
+- There may be speaker bleed where words from one speaker appear under another speaker's name
+- Always verify that the words make logical sense for the attributed speaker
+- Include the COMPLETE transcript text for each segment you select
 
 ### Selection priorities
 
@@ -129,9 +155,15 @@ Clips should:
 * Show personality: banter, laughter, debate, or confident takes.
 * Leave the viewer wanting more of Null Check.
 * Stand alone without requiring full-episode context.
-* Range from 25 to 45 seconds long
 * Be composed of one or more segments that tell a complete story
+* **TARGET LENGTH: 25-45 seconds total** - This is the ideal range for YouTube Shorts and social media. Shorter clips (under 20 seconds) often feel incomplete. Longer clips (over 50 seconds) lose viewer attention.
 * Be relevant to the episode's description and themes when provided. Prefer moments that align with that context; deprioritize off-topic content.
+
+**Length Guidelines:**
+- Minimum viable clip: 20 seconds (only if exceptionally strong)
+- Sweet spot: 30-40 seconds (aim for this range)
+- Maximum length: 50 seconds (only if the story absolutely requires it)
+- If a moment feels too short, look for natural extensions before or after to reach the 25-45 second target
 
 Avoid filler talk, monotone technical explanation, inside jokes that depend on prior episodes, or sections with heavy cross-talk.
 
@@ -226,6 +258,7 @@ Quotes should:
 * Represent the show's personality: smart, candid, insightful, or funny.
 * Come from clear, unambiguous moments in the transcript (avoid speaker bleed or fragmented thoughts).
 * Remove filler words from the text
+* One or two sentences long
 
 Avoid:
 
@@ -263,7 +296,9 @@ All quotes go into one **createQuote** call as an array.
 ### Working rules
 
 * Produce 5-10 clips per transcript.
-* Total clip length (sum of all segment lengths in a clip) should not exceed 55 seconds
+* **Each clip must be 25-45 seconds in total length** (sum of all segment durations). This is non-negotiable for optimal social media performance.
+* If a clip is under 25 seconds, extend it by including more context before or after the key moment.
+* If a clip is over 50 seconds, tighten it by removing setup or trailing content.
 * Mix clip types: at least one 'funny', one 'educational', and one 'hot_take' if available. Prioritize educational above all others as the majority clip type
 * Titles should sound like strong YouTube titles: conversational, bold, and curiosity-driven—never clickbait.
 * Summaries must be factual and concise without setup
@@ -271,8 +306,10 @@ All quotes go into one **createQuote** call as an array.
 * All segments must include startTime, endTime, speaker, transcript, and order fields.
 * Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
 * Verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
-* Use the exact timestamps from the transcript - padding will be added automatically during processing.
-* Include the text for each segment as part of the segment definition in the tool call.
+* **CRITICAL: Copy timestamps EXACTLY from the SRT entries** - find the words you want, then copy the timestamp line directly above those words character-for-character. Do not estimate, calculate, or modify timestamps.
+* Include the COMPLETE transcript text for each segment - copy it exactly from the transcript, including all words.
+* The transcript field must contain the full text that appears in the SRT entry, not a summary or partial text.
+* Before submitting, verify each timestamp appears in the transcript above - if you can't find the exact timestamp in the SRT, you've made an error.
 
 ### Audience objective
 
@@ -338,6 +375,18 @@ ${transcript}
       episodeId: episodeId || 'unknown',
       tenantId: tenantId || 'unknown'
     });
+
+    if (tenantId && episodeId) {
+      try {
+        await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CONTENT, 'Failed', err.message);
+      } catch (updateErr) {
+        logger.error('Failed to update workflow step status to Failed', {
+          error: updateErr.message,
+          episodeId,
+          tenantId
+        });
+      }
+    }
 
     throw err;
   }

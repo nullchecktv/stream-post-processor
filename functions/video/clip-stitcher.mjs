@@ -32,6 +32,19 @@ export const handler = async (event) => {
     // Extract segment file paths from the new format
     const segmentFiles = segments.map(segment => segment.segmentFile);
 
+    // Collect track selection metadata from segments
+    const trackSelections = segments
+      .filter(segment => segment.trackSelection)
+      .map(segment => ({
+        segmentOrder: segment.order,
+        originalSpeaker: segment.trackSelection.originalSpeaker || null,
+        selectedTrack: segment.trackSelection.trackName,
+        matchType: segment.trackSelection.matchType,
+        matchedSpeaker: segment.trackSelection.matchedSpeaker || null,
+        confidence: segment.trackSelection.confidence,
+        reasoning: segment.trackSelection.reasoning || null
+      }));
+
     const ffmpegVersion = await checkFFmpegAvailability();
     tempDir = await createTempDir('clip-stitching-');
     const bucketName = process.env.BUCKET_NAME;
@@ -66,6 +79,22 @@ export const handler = async (event) => {
       }
     );
 
+    // Log track selection summary
+    if (trackSelections.length > 0) {
+      const matchTypeCounts = trackSelections.reduce((acc, ts) => {
+        acc[ts.matchType] = (acc[ts.matchType] || 0) + 1;
+        return acc;
+      }, {});
+
+      logger.info('Track selection summary', {
+        clipId,
+        episodeId,
+        totalSegments: trackSelections.length,
+        matchTypeCounts,
+        trackSelections
+      });
+    }
+
     const shouldCleanUp = process.env.CLEAN_SEGMENTS === 'true';
     if (shouldCleanUp) {
       await cleanupSegmentFiles(bucketName, segmentFiles, { maxRetries: 2 });
@@ -86,6 +115,7 @@ export const handler = async (event) => {
         processedAt: new Date().toISOString(),
         uploadedAt: uploadResult.uploadedAt
       },
+      trackSelections,
       status: CLIP_STATUS.CREATED
     };
 

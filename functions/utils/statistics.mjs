@@ -73,10 +73,11 @@ export async function incrementClipsCreated(tenantId, clipType, isRetry = false)
           pk: tenantId,
           sk: 'stats'
         }),
-        UpdateExpression: 'ADD totalClips :one, clipsByType.#type :one SET updatedAt = :now',
+        UpdateExpression: 'ADD totalClips :one SET clipsByType.#type = if_not_exists(clipsByType.#type, :zero) + :one, updatedAt = :now',
         ExpressionAttributeNames: { '#type': clipType },
         ExpressionAttributeValues: marshall({
           ':one': 1,
+          ':zero': 0,
           ':now': now,
         }),
       })
