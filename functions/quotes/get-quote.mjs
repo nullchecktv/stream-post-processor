@@ -68,6 +68,7 @@ export const handler = async (event) => {
       status: quote.status,
       showSpeaker: quote.showSpeaker !== undefined ? quote.showSpeaker : true,
       showEpisodeTitle: quote.showEpisodeTitle !== undefined ? quote.showEpisodeTitle : true,
+      orientation: quote.orientation || 'landscape',
       imageUrl,
       createdAt: quote.createdAt,
       updatedAt: quote.updatedAt

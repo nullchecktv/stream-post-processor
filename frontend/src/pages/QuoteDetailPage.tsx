@@ -268,12 +268,12 @@ function QuoteDetailPage() {
           </div>
 
           {hasImage && quote.imageUrl && (
-            <div className={`mb-6 relative ${quote.orientation === 'portrait' ? 'max-w-md mx-auto' : ''}`}>
+            <div className="mb-6 relative flex justify-center">
               <img
                 key={`${quote.imageUrl}-${quote.updatedAt}`}
                 src={quote.imageUrl}
                 alt={`Quote by ${quote.speaker}`}
-                className={`w-full h-auto rounded-lg border border-gray-200 shadow-sm transition-opacity ${
+                className={`${quote.orientation === 'portrait' ? 'w-xs' : 'w-full'} h-auto rounded-lg border border-gray-200 shadow-sm transition-opacity ${
                   regenerating ? 'opacity-50' : 'opacity-100'
                 }`}
                 crossOrigin="anonymous"
