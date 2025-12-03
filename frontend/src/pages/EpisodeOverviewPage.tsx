@@ -114,7 +114,6 @@ function EpisodeOverviewPage() {
     try {
       await episodesApi.update(id, updates)
       await fetchEpisode()
-      showToast('Episode updated successfully', 'success')
     } catch (err) {
       console.error('Failed to update episode:', err)
       showToast('Failed to update episode. Please try again.', 'error')

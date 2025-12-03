@@ -216,7 +216,6 @@ function ProfilePage() {
     try {
       setSigningOut(true)
       await signOut()
-      showToast('Signed out successfully', 'success')
       navigate('/login')
     } catch (err) {
       console.error('Failed to sign out:', err)

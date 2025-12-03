@@ -199,7 +199,7 @@ function SignupPage() {
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">NullCheck</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Encore</h1>
           <p className="text-gray-600 mt-2">Transform your livestreams into engaging clips</p>
         </div>
 
@@ -372,4 +372,5 @@ function SignupPage() {
 }
 
 export default SignupPage
+
 

@@ -52,7 +52,6 @@ export function UserSection({ isCollapsed }: UserSectionProps) {
   const handleResetHelpTips = () => {
     resetTips()
     setIsMenuOpen(false)
-    showToast('Help tips have been reset. You will see them again on your next visit.', 'success')
   }
 
   const getInitials = (name?: string) => {

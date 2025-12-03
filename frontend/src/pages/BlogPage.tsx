@@ -196,7 +196,6 @@ function BlogPage() {
             }
             setIsRegenerating(false)
             setIsDirty(false)
-            showToast('Blog content generated successfully', 'success')
           }
         } catch (err) {
           console.error('Failed to poll blog status:', err)
@@ -288,7 +287,6 @@ function BlogPage() {
 
     try {
       await episodesApi.regenerateBlog(id, editedOutline)
-      showToast('Blog regeneration started', 'success')
 
       const data = await episodesApi.getBlog(id)
       setBlogData(data)

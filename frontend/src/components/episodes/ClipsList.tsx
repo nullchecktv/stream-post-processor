@@ -97,7 +97,6 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
   const handleRetry = async (clipId: string) => {
     try {
       await episodesApi.generateClip(episodeId, clipId, { orientation: 'landscape' })
-      showToast('Clip generation restarted', 'success')
       await fetchClips()
     } catch (err) {
       console.error('Failed to retry clip generation:', err)

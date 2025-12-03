@@ -74,7 +74,6 @@ function ClipDetailPage() {
     try {
       setGenerating(true)
       await episodesApi.generateClip(episodeId, clipId, { orientation: 'landscape' })
-      showToast('Clip generation started! The clip will be processed shortly.', 'success')
       await fetchData()
     } catch (err) {
       console.error('Failed to generate clip:', err)
@@ -96,7 +95,6 @@ function ClipDetailPage() {
     try {
       setDeleting(true)
       await episodesApi.deleteClip(episodeId, clipId)
-      showToast('Clip deleted successfully', 'success')
       navigate(`/episodes/${episodeId}/clips`)
     } catch (err) {
       console.error('Failed to delete clip:', err)

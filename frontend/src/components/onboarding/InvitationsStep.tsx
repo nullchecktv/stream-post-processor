@@ -33,7 +33,6 @@ export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
     try {
       await acceptInvitation(notification.data.invitationId)
       await fetchTeams()
-      showToast('Invitation accepted successfully', 'success')
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : 'Failed to accept invitation',
@@ -55,7 +54,6 @@ export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
 
     try {
       await rejectInvitation(notification.data.invitationId)
-      showToast('Invitation declined', 'success')
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : 'Failed to decline invitation',

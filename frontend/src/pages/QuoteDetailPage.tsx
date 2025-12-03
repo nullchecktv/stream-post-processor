@@ -154,7 +154,6 @@ function QuoteDetailPage() {
         showEpisodeTitle,
         orientation
       })
-      showToast('Quote settings saved successfully', 'success')
 
       setQuote({
         ...quote,

@@ -107,7 +107,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
       if (!newTeam) {
         throw new Error('Failed to retrieve created team')
       }
-      showSuccess(`Team "${data.name}" created successfully`)
       return newTeam
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create team'
@@ -122,7 +121,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
       setError(null)
       await teamsApi.updateTeam(teamId, data)
       await fetchTeams()
-      showSuccess('Team updated successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update team'
       setError(errorMessage)
@@ -140,7 +138,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
         setActiveTeamState(null)
         await refreshProfile()
       }
-      showSuccess('Team deleted successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete team'
       setError(errorMessage)
@@ -208,8 +205,7 @@ export function TeamProvider({ children }: TeamProviderProps) {
   const inviteMember = async (teamId: string, email: string, role: string): Promise<void> => {
     try {
       setError(null)
-      const result = await teamsApi.inviteMember(teamId, { email, role })
-      showSuccess(result.message || 'Member invited successfully')
+      await teamsApi.inviteMember(teamId, { email, role })
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to invite member'
       setError(errorMessage)
@@ -222,7 +218,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
     try {
       setError(null)
       await teamsApi.updateMemberRole(teamId, userId, { role })
-      showSuccess('Member role updated successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update member role'
       setError(errorMessage)
@@ -235,7 +230,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
     try {
       setError(null)
       await teamsApi.removeMember(teamId, userId, confirmDelete)
-      showSuccess('Member removed successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove member'
       setError(errorMessage)
@@ -253,7 +247,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
         setActiveTeamState(null)
       }
       await refreshProfile()
-      showSuccess('You have left the team')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to leave team'
       setError(errorMessage)
@@ -266,7 +259,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
     try {
       setError(null)
       await teamsApi.cancelInvitation(teamId, email)
-      showSuccess('Invitation cancelled successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to cancel invitation'
       setError(errorMessage)

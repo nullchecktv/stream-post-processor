@@ -113,7 +113,6 @@ function TeamWritingSettingsPage() {
         },
       })
 
-      showToast('Writing settings saved successfully', 'success')
       navigate(`/teams/${team.id}`)
     } catch (err) {
       if (err instanceof z.ZodError) {

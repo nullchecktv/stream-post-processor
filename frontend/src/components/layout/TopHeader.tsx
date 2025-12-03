@@ -41,7 +41,7 @@ export function TopHeader() {
           aria-label="Go to dashboard"
         >
           <Video className="w-6 h-6 sm:w-7 sm:h-7" />
-          <span className="text-lg sm:text-xl font-bold hidden sm:block">ContentEngine</span>
+          <span className="text-lg sm:text-xl font-bold hidden sm:block">Encore</span>
         </button>
 
         <div className="flex items-center gap-2 sm:gap-4">

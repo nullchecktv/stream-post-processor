@@ -120,7 +120,6 @@ function EpisodeQuotesPage() {
     try {
       await quotesApi.delete(id, quoteId)
       setQuotes(prev => prev.filter(q => q.id !== quoteId))
-      showToast('Quote deleted successfully', 'success')
     } catch (err) {
       console.error('Failed to delete quote:', err)
       showToast('Failed to delete quote. Please try again.', 'error')
@@ -139,7 +138,6 @@ function EpisodeQuotesPage() {
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-      showToast('Quote downloaded successfully', 'success')
     } catch (err) {
       console.error('Failed to download quote:', err)
       showToast('Failed to download quote. Please try again.', 'error')
