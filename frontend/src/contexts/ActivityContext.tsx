@@ -27,7 +27,7 @@ const POLL_INTERVAL = 30000
 
 export function ActivityProvider({ children }: ActivityProviderProps) {
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const { showSuccess, showError } = useToast()
+  const { showError } = useToast()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)

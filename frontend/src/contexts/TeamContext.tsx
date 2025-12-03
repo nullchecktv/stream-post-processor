@@ -59,7 +59,7 @@ interface TeamProviderProps {
 export function TeamProvider({ children }: TeamProviderProps) {
   const { isAuthenticated, loading: authLoading, refreshAuthToken } = useAuth()
   const { profile, refreshProfile } = useUser()
-  const { showSuccess, showError } = useToast()
+  const { showError } = useToast()
   const { handleTeamSwitch, unsubscribe } = useNotifications()
   const [activeTeam, setActiveTeamState] = useState<Team | null>(null)
   const [teams, setTeams] = useState<Team[]>([])
