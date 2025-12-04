@@ -43,6 +43,7 @@ export const handler = async (event) => {
       userId,
       speakers: normalizedSpeakers,
       workflowSteps: initializeWorkflowSteps(),
+      agentStatus: {},
       ...(description && { description }),
       ...(airDate && { airDate }),
       ...(platforms?.length && { platforms }),

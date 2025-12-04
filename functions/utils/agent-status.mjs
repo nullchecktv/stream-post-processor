@@ -32,9 +32,11 @@ export async function updateAgentStatus(tenantId, episodeId, agentType, status, 
       pk: `${tenantId}#${episodeId}`,
       sk: 'metadata'
     }),
-    UpdateExpression: 'SET agentStatus.#agentType = :status, updatedAt = :now',
+    UpdateExpression: 'SET #agentStatus.#agentType = :status, #updatedAt = :now',
     ExpressionAttributeNames: {
-      '#agentType': agentType
+      '#agentStatus': 'agentStatus',
+      '#agentType': agentType,
+      '#updatedAt': 'updatedAt'
     },
     ExpressionAttributeValues: marshall({
       ':status': statusUpdate,
