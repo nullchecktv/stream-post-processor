@@ -51,7 +51,7 @@ export const handler = async (event) => {
         metrics: {
           hasTranscript,
           hasPlan: Boolean(item.planObjectives),
-          tracksCount: item.tracksCount || 0
+          tracksCount: item.numTracks || 0
         }
       };
     });

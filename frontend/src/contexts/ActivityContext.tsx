@@ -27,7 +27,7 @@ const POLL_INTERVAL = 30000
 
 export function ActivityProvider({ children }: ActivityProviderProps) {
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const { showSuccess, showError } = useToast()
+  const { showError } = useToast()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -94,9 +94,8 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
   const acceptInvitation = async (invitationId: string): Promise<void> => {
     try {
       setError(null)
-      const result = await invitationsApi.makeDecision(invitationId, 'accept')
+      await invitationsApi.makeDecision(invitationId, 'accept')
       await fetchActivity()
-      showSuccess(result.message || 'Invitation accepted successfully')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to accept invitation'
       setError(errorMessage)
@@ -108,9 +107,8 @@ export function ActivityProvider({ children }: ActivityProviderProps) {
   const rejectInvitation = async (invitationId: string): Promise<void> => {
     try {
       setError(null)
-      const result = await invitationsApi.makeDecision(invitationId, 'reject')
+      await invitationsApi.makeDecision(invitationId, 'reject')
       await fetchActivity()
-      showSuccess(result.message || 'Invitation rejected')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to reject invitation'
       setError(errorMessage)

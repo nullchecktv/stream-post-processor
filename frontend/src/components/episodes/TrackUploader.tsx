@@ -155,13 +155,18 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
     })
   }
 
+  const sanitizeTrackName = (filename: string): string => {
+    const nameWithoutExtension = filename.replace(/\.[^/.]+$/, '')
+    return nameWithoutExtension.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+  }
+
   const handleUpload = async () => {
     if (!selectedFile) {
       showError('Please select a file')
       return
     }
 
-    const trackName = selectedFile.name.replace(/\.[^/.]+$/, '')
+    const trackName = sanitizeTrackName(selectedFile.name)
 
     setIsUploading(true)
     abortControllerRef.current = new AbortController()
@@ -359,4 +364,5 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
     </div>
   )
 }
+
 

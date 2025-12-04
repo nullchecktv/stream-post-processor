@@ -430,6 +430,156 @@ Resources:
                   key:
                     - suffix: .srt
 
+  QuoteDetectorAgent:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - agents/quote-detector.mjs
+    Properties:
+      Handler: agents/quote-detector.handler
+      Timeout: 450
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock-agentcore:CreateEvent
+                - bedrock-agentcore:ListEvents
+              Resource: !GetAtt AgentMemory.MemoryArn
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-premier-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-premier-v1:0
+            - Effect: Allow
+              Action:
+                - bedrock:ListInferenceProfiles
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-premier-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-premier-v1:0
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          MEMORY_ID: !GetAtt AgentMemory.MemoryId
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          MODEL_ID: us.amazon.nova-pro-v1:0
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        TranscriptAdded:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref TranscriptBucket
+                object:
+                  key:
+                    - suffix: .srt
+
+  BlogOutlineAgent:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - agents/blog-outline-agent.mjs
+    Properties:
+      Handler: agents/blog-outline-agent.handler
+      Timeout: 450
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock-agentcore:CreateEvent
+                - bedrock-agentcore:ListEvents
+              Resource: !GetAtt AgentMemory.MemoryArn
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-premier-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-premier-v1:0
+            - Effect: Allow
+              Action:
+                - bedrock:ListInferenceProfiles
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/us.amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-pro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-premier-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-premier-v1:0
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
+                - !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+      Environment:
+        Variables:
+          MEMORY_ID: !GetAtt AgentMemory.MemoryId
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          MODEL_ID: us.amazon.nova-pro-v1:0
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        TranscriptAdded:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref TranscriptBucket
+                object:
+                  key:
+                    - suffix: .srt
+
   BlogGeneratorAgent:
     Type: AWS::Serverless::Function
     Metadata:

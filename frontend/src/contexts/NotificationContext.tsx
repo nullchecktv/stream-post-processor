@@ -111,6 +111,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       window.dispatchEvent(new CustomEvent('activityUpdated'));
 
       if (message.metadata?.status === 'Created' || message.metadata?.status === 'Failed') {
+        window.dispatchEvent(new CustomEvent('refreshPageContent', {
+          detail: { url: messageUrl, message }
+        }));
+
         if (currentPath !== messageUrl) {
           showToast(
             message.title,

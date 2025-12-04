@@ -15,7 +15,7 @@ import { applyTextShadowIfNeeded } from './utils/contrast.mjs';
 
 const logger = new Logger({ serviceName: 'quotes' });
 const ddb = new DynamoDBClient();
-const s3 = new S3Client();
+const s3 = new S3Client({ region: process.env.AWS_REGION });
 
 const BORDER_WIDTH = 20;
 

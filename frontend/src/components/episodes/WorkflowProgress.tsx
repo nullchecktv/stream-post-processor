@@ -91,7 +91,6 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
     try {
       setIsSkipping(true)
       await episodesApi.skipPlanGeneration(episodeId)
-      showToast('Plan generation skipped', 'success')
       onSkipPlan?.()
     } catch (error) {
       showToast('Failed to skip plan generation', 'error')

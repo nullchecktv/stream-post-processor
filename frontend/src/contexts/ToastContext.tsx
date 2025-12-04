@@ -17,7 +17,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback((message: string, type: ToastType, onAction?: () => void) => {
     const id = `${Date.now()}-${Math.random()}`
-    setToasts((prev) => [...prev, { id, message, type, onAction }])
+    console.log(message, type, onAction, id);
+    // setToasts((prev) => [...prev, { id, message, type, onAction }])
   }, [])
 
   const showSuccess = useCallback((message: string) => {

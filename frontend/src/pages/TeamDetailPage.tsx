@@ -52,7 +52,6 @@ function TeamDetailPage() {
     try {
       setLeaving(true)
       await leaveTeam(team.id)
-      showToast('You have left the team', 'success')
       navigate('/teams')
     } catch (err) {
       console.error('Failed to leave team:', err)

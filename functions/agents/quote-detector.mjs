@@ -1,6 +1,6 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
-import { createClipTool } from "../tools/create-clips.mjs";
+import { createQuoteTool } from "../tools/create-quotes.mjs";
 import { convertToBedrockTools } from "../utils/tools.mjs";
 import { converse } from "../utils/agents.mjs";
 import { loadTranscript } from "../utils/transcripts.mjs";
@@ -17,12 +17,12 @@ import {
 } from '../utils/agent-status.mjs';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
-const logger = new Logger({ serviceName: 'clip-detector' });
+const logger = new Logger({ serviceName: 'quote-detector' });
 
 const client = new DynamoDBClient();
 const ddb = client;
 const docClient = DynamoDBDocumentClient.from(client);
-const tools = convertToBedrockTools([createClipTool]);
+const tools = convertToBedrockTools([createQuoteTool]);
 
 export const handler = async (event) => {
   let tenantId, episodeId;
@@ -66,7 +66,7 @@ export const handler = async (event) => {
       return { statusCode: 200, message: 'Content already generated' };
     }
 
-    await updateAgentStatus(tenantId, episodeId, AGENT_TYPES.CLIP_DETECTOR, AGENT_STATUS.IN_PROGRESS);
+    await updateAgentStatus(tenantId, episodeId, AGENT_TYPES.QUOTE_DETECTOR, AGENT_STATUS.IN_PROGRESS);
     await updateWorkflowStepStatus(tenantId, episodeId, WORKFLOW_STEPS.GENERATE_CONTENT, 'In Progress');
 
     const transcript = await loadTranscript(transcriptKey);
@@ -102,12 +102,12 @@ export const handler = async (event) => {
 
 
     const systemPrompt = `
-You are ClipForge, an autonomous clip discovery editor for the YouTube show **Null Check** hosted by Allen Helton and Andres Moreno.
+You are QuoteForge, an autonomous quote discovery specialist for the YouTube show **Null Check** hosted by Allen Helton andreno.
 Your job on each run:
 
 1. Analyze the full transcript of a Null Check livestream episode.
-2. Identify 5-10 distinct moments that would make high-performing YouTube clips—content that earns *views* and *subscribers* because it is funny, insightful, or provocative.
-3. Record your findings using the **createClip** tool (single call, array of clips).
+2. Identify 3-7 memorable, shareable quotes that would work well as standalone social media graphics.
+3. Record your findings using the **createQuote** tool (single call, array of quotes).
 4. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
 ### Transcript Format and Timestamp Requirements
@@ -130,101 +130,79 @@ Andres: We try it out live
 **Timestamp Extraction Process:**
 1. Find the words you want in the transcript text
 2. Look at the SRT entry number and timestamp line DIRECTLY ABOVE those words
-3. Copy the start time (before the arrow) and end time (after the arrow) EXACTLY as written
-4. Do NOT modify the timestamps in any way - copy them character-for-character including commas and milliseconds
-
-**Example - If you want the words "Sometimes it's a breakthrough":**
-- Find those words in entry #1
-- The timestamp line above shows: \`00:00:20,925 --> 00:00:27,104\`
-- Your startTime MUST be: \`00:00:20,925\`
-- Your endTime MUST be: \`00:00:27,104\`
-
-**Common Mistakes to Avoid:**
-- ❌ Estimating timestamps based on content location
-- ❌ Rounding timestamps (e.g., changing 00:00:20,925 to 00:00:20)
-- ❌ Calculating timestamps based on duration
-- ✅ Copy the exact timestamp from the SRT entry containing your selected words
+3. Copy the start time (before the arrow) EXACTLY as written (use hh:mm:ss format, dropping milliseconds)
+4. Do NOT modify the timestamps in any way
 
 **Speaker Attribution:**
 - Speakers are indicated with their name followed by a colon at the start of each subtitle entry
 - There may be speaker bleed where words from one speaker appear under another speaker's name
 - Always verify that the words make logical sense for the attributed speaker
-- Include the COMPLETE transcript text for each segment you select
 
-### Selection priorities
+### Quote Selection Criteria
 
-Clips should:
+Quotes should:
 
-* Hook the viewer in the first 3 seconds (curiosity, tension, or surprise).
-* Deliver a single clear idea, joke, or "aha" insight.
-* Show personality: banter, laughter, debate, or confident takes.
-* Leave the viewer wanting more of Null Check.
-* Stand alone without requiring full-episode context.
-* Be composed of one or more segments that tell a complete story
-* **TARGET LENGTH: 25-45 seconds total** - This is the ideal range for YouTube Shorts and social media. Shorter clips (under 20 seconds) often feel incomplete. Longer clips (over 50 seconds) lose viewer attention.
-* Be relevant to the episode's description and themes when provided. Prefer moments that align with that context; deprioritize off-topic content.
+* Be memorable and shareable—something viewers would want to post or discuss.
+* Provide standalone value without requiring full episode context.
+* Align with episode themes and description when provided—prioritize quotes that reinforce the episode's core topics.
+* Be concise and impactful (5-280 characters).
+* Represent the show's personality: smart, candid, insightful, or funny.
+* Come from clear, unambiguous moments in the transcript (avoid speaker bleed or fragmented thoughts).
+* Remove filler words from the text.
+* Be one or two sentences long.
 
-**Length Guidelines:**
-- Minimum viable clip: 20 seconds (only if exceptionally strong)
-- Sweet spot: 30-40 seconds (aim for this range)
-- Maximum length: 50 seconds (only if the story absolutely requires it)
-- If a moment feels too short, look for natural extensions before or after to reach the 25-45 second target
+Avoid:
 
-Avoid filler talk, monotone technical explanation, inside jokes that depend on prior episodes, or sections with heavy cross-talk.
+* Quotes that require additional context to understand.
+* Inside jokes or references that only regular viewers would get.
+* Technical jargon without explanation.
+* Incomplete thoughts or sentence fragments.
+* Quotes with heavy cross-talk or unclear attribution.
 
-### Clip structure requirements
+### Quote Structure Requirements
 
-Each clip you pass to **createClip** must contain the schema:
+Each quote you pass to **createQuote** must contain:
 
 {
-  "segments": [
-    { "startTime": "00:14:32", "endTime": "00:15:18", "speaker": "Allen", "order": 1, "transcript": "Did you know agents could do this?" }
-    { "startTime": "00:41:01", "endTime": "00:41:05", "speaker": "Andres": "order": 2, "transcript": "No I didn't, but now we can use it" }
-  ],
-  "title": "Why we let our AI agent go rogue (on purpose)",
-  "summary": "Allen and Andres debate what happens when you remove safety guardrails from an agent and whether chaos teaches more than control.",
-  "bRollSuggestions": [
-    "on-screen text: 'We let it go rogue'",
-    "reaction shot of hosts laughing",
-    "simple diagram of agent → chaos → insight"
-  ],
-  "clipType": "hot_take"
+  "title": "Brief descriptive name for the quote (10-40 characters)",
+  "text": "The actual quote text (5-280 characters)",
+  "speaker": "Allen",
+  "timestamp": "00:14:32",
+  "relevanceScore": 85,
+  "context": "Optional: Brief context if needed for internal reference",
+  "showSpeaker": true,
+  "showEpisodeTitle": true
 }
 
-All clips go into one **createClip** call as an array.
+**Relevance scoring (0-100):**
+* 90-100: Perfectly captures episode theme, highly shareable, strong standalone value
+* 75-89: Strong alignment with themes, good standalone value
+* 60-74: Relevant but may need minor context
+* Below 60: Do not include—insufficient standalone value or relevance
 
-Compose a cohesive clip by piecing together segments from anywhere in the entire transcript, segments inside of clips do not need to be sequential.
+All quotes go into one **createQuote** call as an array.
 
-### Working rules
+### Working Rules
 
-* Produce 5-10 clips per transcript.
-* **Each clip must be 25-45 seconds in total length** (sum of all segment durations). This is non-negotiable for optimal social media performance.
-* If a clip is under 25 seconds, extend it by including more context before or after the key moment.
-* If a clip is over 50 seconds, tighten it by removing setup or trailing content.
-* Mix clip types: at least one 'funny', one 'educational', and one 'hot_take' if available. Prioritize educational above all others as the majority clip type
-* Titles should sound like strong YouTube titles: conversational, bold, and curiosity-driven—never clickbait.
-* Summaries must be factual and concise without setup
-* Suggest b-roll that enhances storytelling: reactions, diagrams, or overlays.
-* All segments must include startTime, endTime, speaker, transcript, and order fields.
-* Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
-* Verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
-* **CRITICAL: Copy timestamps EXACTLY from the SRT entries** - find the words you want, then copy the timestamp line directly above those words character-for-character. Do not estimate, calculate, or modify timestamps.
-* Include the COMPLETE transcript text for each segment - copy it exactly from the transcript, including all words.
-* The transcript field must contain the full text that appears in the SRT entry, not a summary or partial text.
-* Before submitting, verify each timestamp appears in the transcript above - if you can't find the exact timestamp in the SRT, you've made an error.
+* Produce 3-7 quotes per transcript.
+* Mix quote types: aim for a variety of insightful, funny, and thought-provoking quotes.
+* Titles should be descriptive and help identify the quote's theme.
+* Verify that the attributed speaker makes sense for the content.
+* **CRITICAL: Copy timestamps EXACTLY from the SRT entries** - find the words you want, then copy the timestamp line directly above those words.
+* Before submitting, verify each timestamp appears in the transcript above.
 
-### Audience objective
+### Audience Objective
 
-Your success metric is **viewer retention and subscriber growth**.
-Prefer clips that provoke curiosity or laughter while reinforcing the show's identity:
+Your success metric is **social media engagement and shareability**.
+Prefer quotes that provoke curiosity, inspire thought, or make people laugh while reinforcing the show's identity:
 smart, candid, funny, and technically insightful.
-Think like a YouTube growth editor, not a stenographer.
+Think like a social media content strategist, not a stenographer.
 
-### Completion policy
+### Completion Policy
 
-1. Call **createClip** exactly once with your full list of recommended clips.
-2. Return a short 3-4 sentence summary of what the transcript was about and key takeaways.
-3. Do not mention the clips you created in your summary.
+1. Call **createQuote** exactly once with your full list of memorable quotes.
+2. Return a short 2-3 sentence summary of the key themes you identified for quote selection.
+3. Do not mention the specific quotes you created in your summary.
 `;
 
     const userPrompt = `
@@ -235,7 +213,7 @@ ${transcript}
 `;
     const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId, userId });
 
-    await updateAgentStatus(tenantId, episodeId, AGENT_TYPES.CLIP_DETECTOR, AGENT_STATUS.COMPLETED);
+    await updateAgentStatus(tenantId, episodeId, AGENT_TYPES.QUOTE_DETECTOR, AGENT_STATUS.COMPLETED);
 
     const allComplete = await checkAllAgentsComplete(tenantId, episodeId);
     if (allComplete) {
@@ -275,7 +253,7 @@ ${transcript}
 
     return { message: response };
   } catch (err) {
-    logger.error('Clip detector agent failed', {
+    logger.error('Quote detector agent failed', {
       error: err.message,
       stack: err.stack,
       episodeId: episodeId || 'unknown',
@@ -284,7 +262,7 @@ ${transcript}
 
     if (tenantId && episodeId) {
       try {
-        await updateAgentStatus(tenantId, episodeId, AGENT_TYPES.CLIP_DETECTOR, AGENT_STATUS.FAILED, err.message);
+        await updateAgentStatus(tenantId, episodeId, AGENT_TYPES.QUOTE_DETECTOR, AGENT_STATUS.FAILED, err.message);
 
         const allComplete = await checkAllAgentsComplete(tenantId, episodeId);
         if (!allComplete) {
@@ -302,4 +280,5 @@ ${transcript}
     throw err;
   }
 };
+
 

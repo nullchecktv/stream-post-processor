@@ -137,11 +137,11 @@ export function QuoteCard({ quote, onDelete, onDownload }: QuoteCardProps) {
       </div>
 
       {hasImage && quote.imageUrl && (
-        <div className={`mb-3 ${isPortrait ? 'max-w-xs mx-auto' : ''}`}>
+        <div className="mb-3 flex justify-center">
           <img
-            src={`${quote.imageUrl}?t=${new Date(quote.createdAt).getTime()}`}
+            src={quote.imageUrl}
             alt={`Quote by ${quote.speaker}`}
-            className="w-full h-auto rounded-lg border border-gray-200"
+            className={`rounded-lg border border-gray-200 ${isPortrait ? 'w-16 h-auto' : 'w-full h-auto'}`}
           />
         </div>
       )}

@@ -86,9 +86,6 @@ function EpisodePlanPage() {
 
       setEpisodePlan(result)
       setShowPlanForm(false)
-      if (!episodePlan?.plan) {
-        showToast('Plan created successfully!', 'success')
-      }
     } catch (err) {
       console.error('Failed to save plan:', err)
       showToast('Failed to save plan. Please try again.', 'error')

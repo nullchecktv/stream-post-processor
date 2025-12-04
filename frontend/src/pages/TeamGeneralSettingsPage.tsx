@@ -138,7 +138,6 @@ function TeamGeneralSettingsPage() {
     try {
       setDeleting(true)
       await deleteTeam(team.id)
-      showToast('Team deleted successfully', 'success')
       navigate('/teams')
     } catch (err) {
       console.error('Failed to delete team:', err)

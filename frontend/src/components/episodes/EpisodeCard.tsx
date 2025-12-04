@@ -6,9 +6,6 @@ import { MiniWorkflowProgress } from './MiniWorkflowProgress'
 interface EpisodeCardProps {
   episode: EpisodeListView
   variant?: 'default' | 'compact'
-  tracksCount?: number
-  transcriptCount?: number
-  clipsCount?: number
 }
 
 function computeCurrentStep(episode: EpisodeListView): number {
@@ -24,11 +21,10 @@ function computeCurrentStep(episode: EpisodeListView): number {
 
 export function EpisodeCard({
   episode,
-  variant = 'default',
-  tracksCount = 0,
-  transcriptCount = 0,
-  clipsCount = 0
+  variant = 'default'
 }: EpisodeCardProps) {
+  const tracksCount = episode.metrics?.tracksCount ?? 0
+  const hasTranscript = episode.metrics?.hasTranscript ?? false
   const navigate = useNavigate()
   const currentStep = computeCurrentStep(episode)
 
@@ -153,18 +149,11 @@ export function EpisodeCard({
             <svg className="w-4 h-4 text-gray-400" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span>{transcriptCount > 0 ? 'Transcript' : 'No transcript'}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-gray-400" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{clipsCount} clip{clipsCount !== 1 ? 's' : ''}</span>
+            <span>{hasTranscript ? 'Transcript' : 'No transcript'}</span>
           </div>
         </div>
       </div>
     </div>
   )
 }
+

@@ -4,7 +4,6 @@ import { useAuth } from '../../hooks/useAuth'
 import { useUser } from '../../hooks/useUser'
 import { useHelpTips } from '../../hooks/useHelpTips'
 import { useNavigate } from 'react-router-dom'
-import { useToast } from '../../hooks/useToast'
 
 interface UserSectionProps {
   isCollapsed: boolean
@@ -14,7 +13,6 @@ export function UserSection({ isCollapsed }: UserSectionProps) {
   const { user, signOut } = useAuth()
   const { profile } = useUser()
   const { resetTips } = useHelpTips()
-  const { showToast } = useToast()
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -52,7 +50,6 @@ export function UserSection({ isCollapsed }: UserSectionProps) {
   const handleResetHelpTips = () => {
     resetTips()
     setIsMenuOpen(false)
-    showToast('Help tips have been reset. You will see them again on your next visit.', 'success')
   }
 
   const getInitials = (name?: string) => {

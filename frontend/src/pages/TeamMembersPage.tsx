@@ -127,7 +127,6 @@ function TeamMembersPage() {
       setSubmitting(true)
 
       await inviteMember(team.id, validated.email, validated.role)
-      showToast('Invitation sent successfully', 'success')
       handleCloseModal()
       await loadMembers(team.id)
     } catch (err) {
@@ -153,7 +152,6 @@ function TeamMembersPage() {
 
     try {
       await updateMemberRole(team.id, userId, newRole)
-      showToast('Member role updated successfully', 'success')
       await loadMembers(team.id)
     } catch (err) {
       console.error('Failed to update role:', err)
@@ -172,7 +170,6 @@ function TeamMembersPage() {
 
     try {
       await removeMember(team.id, userId)
-      showToast('Member removed successfully', 'success')
       await loadMembers(team.id)
     } catch (err) {
       console.error('Failed to remove member:', err)
@@ -191,7 +188,6 @@ function TeamMembersPage() {
 
     try {
       await cancelInvitation(team.id, email)
-      showToast('Invitation cancelled successfully', 'success')
       await loadMembers(team.id)
     } catch (err) {
       console.error('Failed to cancel invitation:', err)
