@@ -1,22 +1,24 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { parseEpisodeIdFromKey } from '../utils/clips.mjs';
 import { extractSpeakersFromTranscript, matchSpeakers } from '../utils/speakers.mjs';
 import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
 import { WORKFLOW_STEP_STATUS } from '../../schemas/episodes.mjs';
+import { loadTranscript, parseSrtFile, formatCleanedTranscript } from '../utils/transcripts.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
 const ddb = new DynamoDBClient();
 const eventBridge = new EventBridgeClient();
+const s3 = new S3Client();
 
 export const handler = async (event) => {
   try {
     const rawKey = event?.detail?.object?.key;
     if (!rawKey) {
-      logger.info('Unsupported event shape (expecting EventBridge S3 event)', { eventDetail: event?.detail || {} });
       return { statusCode: 200 };
     }
 
@@ -27,7 +29,6 @@ export const handler = async (event) => {
       tenantId = parsed.tenantId;
       episodeId = parsed.episodeId;
     } catch (e) {
-      logger.warn('Skipping object with unexpected key', { key, reason: e.message });
       return { statusCode: 200 };
     }
 
@@ -42,7 +43,6 @@ export const handler = async (event) => {
     }));
 
     if (!episodeResponse.Item) {
-      logger.warn('Episode not found; skipping transcript attachment', { episodeId, key });
       return { statusCode: 200 };
     }
 
@@ -52,20 +52,45 @@ export const handler = async (event) => {
     let speakerAnalysis = null;
 
     try {
-      const transcriptSpeakers = await extractSpeakersFromTranscript(key);
-      logger.info('Extracted speakers from transcript', {
+      const srtContent = await loadTranscript(key);
+      const parsedEntries = parseSrtFile(srtContent);
+
+      if (parsedEntries.length > 0) {
+        const cleanedContent = formatCleanedTranscript(parsedEntries);
+
+        const folderPath = key.substring(0, key.lastIndexOf('/'));
+        const mdKey = `${folderPath}/transcript.md`;
+
+        try {
+          await s3.send(new PutObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: mdKey,
+            Body: cleanedContent,
+            ContentType: 'text/markdown'
+          }));
+        } catch (uploadError) {
+          logger.error('Failed to upload cleaned transcript', {
+            error: uploadError.message,
+            stack: uploadError.stack,
+            episodeId,
+            mdKey
+          });
+        }
+      }
+    } catch (cleaningError) {
+      logger.error('Failed to create cleaned transcript', {
+        error: cleaningError.message,
+        stack: cleaningError.stack,
         episodeId,
-        transcriptSpeakers,
-        count: transcriptSpeakers.length
+        key
       });
+    }
+
+    try {
+      const transcriptSpeakers = await extractSpeakersFromTranscript(key);
 
       if (transcriptSpeakers.length > 0) {
         const matchResult = await matchSpeakers(transcriptSpeakers, episodeSpeakers);
-        logger.info('Speaker matching completed', {
-          episodeId,
-          matchedCount: matchResult.matches?.length || 0,
-          unmatchedCount: matchResult.unmatched?.length || 0
-        });
 
         speakerAnalysis = {
           matched: matchResult.matches || [],
@@ -127,7 +152,11 @@ export const handler = async (event) => {
         Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'transcript-upload-url' })
       }));
     } catch (e) {
-      logger.warn('Failed to delete presigned url record', { episodeId, error: e?.message || e });
+      logger.error('Failed to delete presigned url record', {
+        error: e?.message || e,
+        stack: e?.stack,
+        episodeId
+      });
     }
 
     await eventBridge.send(new PutEventsCommand({
@@ -150,12 +179,6 @@ export const handler = async (event) => {
         })
       }]
     }));
-
-    logger.info('Transcript processing notification sent', {
-      episodeId,
-      tenantId,
-      hasSpeakerAnalysis: !!speakerAnalysis
-    });
 
     await updateWorkflowStepStatus(
       tenantId,

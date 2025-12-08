@@ -489,7 +489,7 @@ Resources:
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
-        TranscriptAdded:
+        TranscriptCleaned:
           Type: EventBridgeRule
           Properties:
             Pattern:
@@ -503,7 +503,7 @@ Resources:
                     - !Ref TranscriptBucket
                 object:
                   key:
-                    - suffix: .srt
+                    - suffix: transcript.md
 
   BlogOutlineAgent:
     Type: AWS::Serverless::Function
@@ -564,7 +564,7 @@ Resources:
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
-        TranscriptAdded:
+        TranscriptCleaned:
           Type: EventBridgeRule
           Properties:
             Pattern:
@@ -578,7 +578,7 @@ Resources:
                     - !Ref TranscriptBucket
                 object:
                   key:
-                    - suffix: .srt
+                    - suffix: transcript.md
 
   BlogGeneratorAgent:
     Type: AWS::Serverless::Function
@@ -663,6 +663,7 @@ Resources:
             - Effect: Allow
               Action:
                 - s3:GetObject
+                - s3:PutObject
               Resource: !Sub ${TranscriptBucket.Arn}/*
             - Effect: Allow
               Action:
