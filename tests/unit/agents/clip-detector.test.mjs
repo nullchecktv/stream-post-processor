@@ -103,7 +103,7 @@ Allen: That's what makes it interesting`;
       const result = await handler(createS3Event(srtKey));
 
       expect(loadTranscript).toHaveBeenCalledWith(srtKey);
-      expect(result.message).toBe('Clips detected successfully');
+      expect(result.statusCode).toBe(200);
     });
 
     it('should load .srt file from event key', async () => {
@@ -255,10 +255,9 @@ Andres: Another test`;
   describe('Output format consistency', () => {
     it('should maintain consistent output format', async () => {
       const srtKey = 'team#team-123/episode-456/transcript.srt';
-      const expectedResponse = 'Detected 5 clips from the transcript';
 
       loadTranscript.mockResolvedValue(sampleSrtTranscript);
-      converse.mockResolvedValue(expectedResponse);
+      converse.mockResolvedValue('Detected 5 clips from the transcript');
 
       ddbMock.on(GetItemCommand).resolves({
         Item: marshall({
@@ -270,7 +269,7 @@ Andres: Another test`;
 
       const result = await handler(createS3Event(srtKey));
 
-      expect(result.message).toBe(expectedResponse);
+      expect(result.statusCode).toBe(200);
     });
 
     it('should use the correct model configuration', async () => {
@@ -453,8 +452,189 @@ Andres: Another test`;
 
       const result = await handler(createS3Event(srtKey));
 
-      expect(result.message).toBe('Success');
+      expect(result.statusCode).toBe(200);
       expect(converse).toHaveBeenCalled();
+    });
+
+    it('should include trackCount and hasSpeakers in episode context', async () => {
+      const srtKey = 'team#team-123/episode-456/transcript.srt';
+
+      loadTranscript.mockResolvedValue(sampleSrtTranscript);
+      converse.mockResolvedValue('Success');
+
+      ddbMock.on(GetItemCommand).resolves({
+        Item: marshall({
+          pk: 'team#team-123#episode-456',
+          sk: 'metadata',
+          title: 'Test Episode',
+          trackCount: 2,
+          hasSpeakers: true
+        })
+      });
+
+      await handler(createS3Event(srtKey));
+
+      const converseCall = converse.mock.calls[0];
+      const userPrompt = converseCall[2];
+
+      expect(userPrompt).toContain('trackCount: 2');
+      expect(userPrompt).toContain('hasSpeakers: true');
+    });
+  });
+
+  describe('Speaker guidance in system prompt', () => {
+    it('should include speaker guidance in system prompt for single-track episodes without speakers', async () => {
+      const srtKey = 'team#team-123/episode-456/transcript.srt';
+
+      loadTranscript.mockResolvedValue(sampleSrtTranscript);
+      converse.mockResolvedValue('Success');
+
+      ddbMock.on(GetItemCommand).resolves({
+        Item: marshall({
+          pk: 'team#team-123#episode-456',
+          sk: 'metadata',
+          title: 'Test Episode',
+          trackCount: 1,
+          hasSpeakers: false
+        })
+      });
+
+      const result = await handler(createS3Event(srtKey));
+
+      expect(result.statusCode).toBe(200);
+      expect(converse).toHaveBeenCalled();
+
+      const converseCall = converse.mock.calls[0];
+      const systemPrompt = converseCall[1];
+      expect(systemPrompt).toContain('Speaker attribution in the transcript is OPTIONAL');
+    });
+
+    it('should include trackCount and hasSpeakers in user prompt', async () => {
+      const srtKey = 'team#team-123/episode-456/transcript.srt';
+
+      loadTranscript.mockResolvedValue(sampleSrtTranscript);
+      converse.mockResolvedValue('Success');
+
+      ddbMock.on(GetItemCommand).resolves({
+        Item: marshall({
+          pk: 'team#team-123#episode-456',
+          sk: 'metadata',
+          title: 'Test Episode',
+          trackCount: 1,
+          hasSpeakers: true
+        })
+      });
+
+      const result = await handler(createS3Event(srtKey));
+
+      expect(result.statusCode).toBe(200);
+
+      const converseCall = converse.mock.calls[0];
+      const userPrompt = converseCall[2];
+      expect(userPrompt).toContain('trackCount: 1');
+      expect(userPrompt).toContain('hasSpeakers: true');
+    });
+
+    it('should handle multi-track episodes with speakers', async () => {
+      const srtKey = 'team#team-123/episode-456/transcript.srt';
+
+      loadTranscript.mockResolvedValue(sampleSrtTranscript);
+      converse.mockResolvedValue('Success');
+
+      ddbMock.on(GetItemCommand).resolves({
+        Item: marshall({
+          pk: 'team#team-123#episode-456',
+          sk: 'metadata',
+          title: 'Test Episode',
+          trackCount: 2,
+          hasSpeakers: true
+        })
+      });
+
+      const result = await handler(createS3Event(srtKey));
+
+      expect(result.statusCode).toBe(200);
+
+      const converseCall = converse.mock.calls[0];
+      const userPrompt = converseCall[2];
+      expect(userPrompt).toContain('trackCount: 2');
+      expect(userPrompt).toContain('hasSpeakers: true');
+    });
+
+    it('should handle multi-track episodes without speakers', async () => {
+      const srtKey = 'team#team-123/episode-456/transcript.srt';
+
+      loadTranscript.mockResolvedValue(sampleSrtTranscript);
+      converse.mockResolvedValue('Success');
+
+      ddbMock.on(GetItemCommand).resolves({
+        Item: marshall({
+          pk: 'team#team-123#episode-456',
+          sk: 'metadata',
+          title: 'Test Episode',
+          trackCount: 3,
+          hasSpeakers: false
+        })
+      });
+
+      const result = await handler(createS3Event(srtKey));
+
+      expect(result.statusCode).toBe(200);
+
+      const converseCall = converse.mock.calls[0];
+      const userPrompt = converseCall[2];
+      expect(userPrompt).toContain('trackCount: 3');
+      expect(userPrompt).toContain('hasSpeakers: false');
+    });
+
+    it('should handle episodes with no tracks uploaded', async () => {
+      const srtKey = 'team#team-123/episode-456/transcript.srt';
+
+      loadTranscript.mockResolvedValue(sampleSrtTranscript);
+      converse.mockResolvedValue('Success');
+
+      ddbMock.on(GetItemCommand).resolves({
+        Item: marshall({
+          pk: 'team#team-123#episode-456',
+          sk: 'metadata',
+          title: 'Test Episode',
+          trackCount: 0,
+          hasSpeakers: false
+        })
+      });
+
+      const result = await handler(createS3Event(srtKey));
+
+      expect(result.statusCode).toBe(200);
+
+      const converseCall = converse.mock.calls[0];
+      const userPrompt = converseCall[2];
+      expect(userPrompt).toContain('trackCount: 0');
+      expect(userPrompt).toContain('hasSpeakers: false');
+    });
+
+    it('should default to trackCount 0 when not present in metadata', async () => {
+      const srtKey = 'team#team-123/episode-456/transcript.srt';
+
+      loadTranscript.mockResolvedValue(sampleSrtTranscript);
+      converse.mockResolvedValue('Success');
+
+      ddbMock.on(GetItemCommand).resolves({
+        Item: marshall({
+          pk: 'team#team-123#episode-456',
+          sk: 'metadata',
+          title: 'Test Episode'
+        })
+      });
+
+      const result = await handler(createS3Event(srtKey));
+
+      expect(result.statusCode).toBe(200);
+
+      const converseCall = converse.mock.calls[0];
+      const userPrompt = converseCall[2];
+      expect(userPrompt).toContain('trackCount: 0');
+      expect(userPrompt).toContain('hasSpeakers: false');
     });
   });
 });

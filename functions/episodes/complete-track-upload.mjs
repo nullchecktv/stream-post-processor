@@ -8,6 +8,7 @@ import { initializeStatusHistory } from '../utils/status-history.mjs';
 import { TRACK_STATUS } from '../../schemas/index.mjs';
 import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
 import { WORKFLOW_STEP_STATUS } from '../../schemas/episodes.mjs';
+import { calculateTrackCount } from '../utils/episodes.mjs';
 
 const ddb = new DynamoDBClient();
 const s3 = new S3Client();
@@ -152,6 +153,20 @@ export const handler = async (event) => {
     await ddb.send(new DeleteItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track-upload:${trackName}` })
+    }));
+
+    const trackCount = await calculateTrackCount(episodeId, tenantId);
+
+    await ddb.send(new UpdateItemCommand({
+      TableName: process.env.TABLE_NAME,
+      Key: marshall({
+        pk: `${tenantId}#${episodeId}`,
+        sk: 'metadata'
+      }),
+      UpdateExpression: 'SET trackCount = :trackCount',
+      ExpressionAttributeValues: marshall({
+        ':trackCount': trackCount
+      })
     }));
 
     try {

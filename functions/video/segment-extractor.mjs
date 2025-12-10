@@ -83,15 +83,18 @@ export const handler = async (event) => {
 
       useTrackName = trackSelection.trackName;
 
-      logger.info('Track selected for segment', {
-        originalSpeaker: segment.speaker,
+      const logLevel = trackSelection.warning ? 'warn' : 'info';
+      logger[logLevel]('Track selected for segment', {
+        speaker: segment.speaker,
         selectedTrack: trackSelection.trackName,
         matchType: trackSelection.matchType,
         confidence: trackSelection.confidence,
         matchedSpeaker: trackSelection.matchedSpeaker,
         reasoning: trackSelection.reasoning,
+        warning: trackSelection.warning,
         episodeId,
-        clipId
+        clipId,
+        order
       });
     } catch (error) {
       logger.error('Track selection failed, using default track', {
@@ -100,9 +103,16 @@ export const handler = async (event) => {
         speaker: segment.speaker,
         defaultTrack: trackName,
         episodeId,
-        clipId
+        clipId,
+        order
       });
       useTrackName = trackName;
+      trackSelection = {
+        trackName: useTrackName,
+        matchType: 'error-fallback',
+        confidence: 0.0,
+        reasoning: `Track selection error: ${error.message}`
+      };
     }
 
     const manifest = await loadHlsManifest(episodeId, useTrackName, tenantId);
@@ -118,8 +128,16 @@ export const handler = async (event) => {
 
     const segmentExists = await objectExists(bucketName, segmentS3Key);
     if (segmentExists) {
-      // Return existing segment metadata
       const metadata = await getSegmentMetadata(bucketName, segmentS3Key);
+
+      logger.info('Using cached segment', {
+        episodeId,
+        clipId,
+        order,
+        segmentS3Key,
+        trackName: useTrackName
+      });
+
       return {
         episodeId,
         clipId,
@@ -130,7 +148,8 @@ export const handler = async (event) => {
         trackSelection: trackSelection || {
           trackName: useTrackName,
           matchType: 'cached',
-          confidence: 1.0
+          confidence: 1.0,
+          reasoning: 'Segment already exists in S3'
         }
       };
     }
@@ -142,6 +161,15 @@ export const handler = async (event) => {
       metadata = await extractMultiChunkSegment(chunkMappings, segmentS3Key, bucketName, tempDir, segmentIndex, episodeId, clipId, tenantId);
     }
 
+    logger.info('Segment extraction completed', {
+      episodeId,
+      clipId,
+      order,
+      segmentS3Key,
+      trackName: useTrackName,
+      duration: metadata.duration
+    });
+
     return {
       episodeId,
       clipId,
@@ -152,7 +180,8 @@ export const handler = async (event) => {
       trackSelection: trackSelection || {
         trackName: useTrackName,
         matchType: 'default',
-        confidence: 1.0
+        confidence: 1.0,
+        reasoning: 'Default track selection'
       }
     };
 

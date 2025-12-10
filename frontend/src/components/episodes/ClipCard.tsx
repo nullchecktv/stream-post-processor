@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { ClipListView } from '../../types'
+import { ClipQualityIndicator } from './ClipQualityIndicator'
 
 interface ClipCardProps {
   clip: ClipListView
   episodeId: string
+  trackCount: number
+  hasSpeakers: boolean
   onPlay: (clipId: string) => void
   onRetry?: (clipId: string) => void
 }
@@ -51,7 +54,7 @@ function formatDuration(seconds?: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export function ClipCard({ clip, episodeId, onPlay, onRetry }: ClipCardProps) {
+export function ClipCard({ clip, episodeId, trackCount, hasSpeakers, onPlay, onRetry }: ClipCardProps) {
   const navigate = useNavigate()
   const config = statusConfig[clip.status] || statusConfig.Proposed
   const canPlay = clip.status === 'Created'
@@ -80,13 +83,20 @@ export function ClipCard({ clip, episodeId, onPlay, onRetry }: ClipCardProps) {
             {clip.summary}
           </p>
         </div>
-        <span
-          className={`ml-3 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border ${config.colors}`}
-          title={clip.status === 'Failed' && clip.error ? clip.error : undefined}
-        >
-          {config.icon}
-          {config.label}
-        </span>
+        <div className="ml-3 flex items-center gap-2">
+          <ClipQualityIndicator
+            segments={clip.segments || []}
+            trackCount={trackCount}
+            hasSpeakers={hasSpeakers}
+          />
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border ${config.colors}`}
+            title={clip.status === 'Failed' && clip.error ? clip.error : undefined}
+          >
+            {config.icon}
+            {config.label}
+          </span>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">

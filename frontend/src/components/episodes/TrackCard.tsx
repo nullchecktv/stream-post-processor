@@ -23,7 +23,8 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
   const [isEditing, setIsEditing] = useState(false)
   const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>(track.speakers || [])
   const [isSaving, setIsSaving] = useState(false)
-  const { showError } = useToast()
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { showError, showSuccess } = useToast()
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -42,6 +43,24 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
   const handleCancel = () => {
     setSelectedSpeakers(track.speakers || [])
     setIsEditing(false)
+  }
+
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete the "${track.name}" track? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await episodesApi.deleteTrack(episodeId, track.name)
+      showSuccess(`Track "${track.name}" deleted successfully`)
+      onUpdate()
+    } catch (error) {
+      console.error('Failed to delete track:', error)
+      showError(error instanceof Error ? error.message : 'Failed to delete track')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   if (isEditing) {
@@ -137,12 +156,30 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
           </span>
           <button
             onClick={() => setIsEditing(true)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+            disabled={isDeleting}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Edit track speakers"
           >
             <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Delete track"
+          >
+            {isDeleting ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            )}
           </button>
         </div>
       </div>

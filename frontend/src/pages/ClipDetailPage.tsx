@@ -262,10 +262,10 @@ function ClipDetailPage() {
           )}
 
           {clip.status === 'Proposed' && (
-            <div className="mb-6">
+            <div className="mb-6 flex items-center gap-3">
               <button
                 onClick={handleGenerate}
-                disabled={generating}
+                disabled={generating || !episode.metrics?.tracksCount}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generating ? (
@@ -283,6 +283,14 @@ function ClipDetailPage() {
                   </>
                 )}
               </button>
+              {!episode.metrics?.tracksCount && (
+                <p className="text-sm text-gray-500 italic">
+                  Video tracks must be uploaded first.{' '}
+                  <Link to={`/episodes/${episodeId}`} className="text-primary hover:text-primary-dark font-medium not-italic">
+                    Upload tracks
+                  </Link>
+                </p>
+              )}
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import type { ClipListView } from '../../types'
+import type { ClipListView, EpisodeDetail } from '../../types'
 import { episodesApi } from '../../api/episodes'
 import { ClipCard } from './ClipCard'
 import { ClipModal } from './ClipModal'
@@ -16,6 +16,7 @@ type ClipStatusFilter = 'all' | 'proposed' | 'processing' | 'created'
 
 export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
   const [clips, setClips] = useState<ClipListView[]>([])
+  const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<ClipStatusFilter>('all')
@@ -29,8 +30,12 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     try {
       setLoading(true)
       setError(null)
-      const response = await episodesApi.listClips(episodeId)
+      const [response, episodeData] = await Promise.all([
+        episodesApi.listClips(episodeId),
+        episodesApi.getDetail(episodeId)
+      ])
       setClips(response.items)
+      setEpisode(episodeData)
 
       if (onClipsLoaded) {
         const counts = {
@@ -248,6 +253,8 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
               key={clip.id}
               clip={clip}
               episodeId={episodeId}
+              trackCount={episode?.trackCount || episode?.tracks?.length || 0}
+              hasSpeakers={episode?.hasSpeakers || false}
               onPlay={handlePlay}
               onRetry={handleRetry}
             />

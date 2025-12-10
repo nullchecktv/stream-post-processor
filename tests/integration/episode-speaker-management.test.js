@@ -314,26 +314,32 @@ describe('Episode Speaker Management Integration Tests', () => {
           throw new Error('At least one segment is required');
         }
 
-        const allSpeakers = [...new Set(clipData.segments.map(s => s.speaker))];
+        // Filter out null/undefined speakers before validation
+        const allSpeakers = [...new Set(clipData.segments
+          .map(s => s.speaker)
+          .filter(s => s !== null && s !== undefined))];
         const episodeSpeakers = episodeData.speakers || [];
 
-        const invalidSpeakers = allSpeakers.filter(speaker =>
-          !episodeSpeakers.some(es => es.toLowerCase() === speaker.toLowerCase())
-        );
+        // Only validate speakers if there are any non-null speakers
+        if (allSpeakers.length > 0) {
+          const invalidSpeakers = allSpeakers.filter(speaker =>
+            !episodeSpeakers.some(es => es.toLowerCase() === speaker.toLowerCase())
+          );
 
-        if (invalidSpeakers.length > 0) {
-          result.error = {
-            type: 'InvalidSpeakers',
-            message: 'Segment speakers must exist in episode speaker list',
-            invalidSpeakers,
-            validSpeakers: episodeSpeakers
-          };
-          return result;
+          if (invalidSpeakers.length > 0) {
+            result.error = {
+              type: 'InvalidSpeakers',
+              message: 'Segment speakers must exist in episode speaker list',
+              invalidSpeakers,
+              validSpeakers: episodeSpeakers
+            };
+            return result;
+          }
         }
 
         const normalizedSegments = clipData.segments.map(segment => ({
           ...segment,
-          speaker: episodeSpeakers.find(es =>
+          speaker: segment.speaker && episodeSpeakers.find(es =>
             es.toLowerCase() === segment.speaker.toLowerCase()
           ) || segment.speaker
         }));
@@ -409,6 +415,66 @@ describe('Episode Speaker Management Integration Tests', () => {
       expect(result.success).toBe(true);
       expect(result.clip.segments[0].speaker).toBe('Alice Johnson');
       expect(result.clip.segments[1].speaker).toBe('Bob Smith');
+    });
+
+    test('should accept clip with null speakers for single-track episodes', () => {
+      const episodeData = {
+        id: 'episode-123',
+        speakers: []
+      };
+
+      const clipData = {
+        segments: [
+          { startTime: '00:15:30', endTime: '00:16:00', speaker: null, order: 1 },
+          { startTime: '00:16:00', endTime: '00:16:30', speaker: null, order: 2 }
+        ]
+      };
+
+      const result = simulateClipCreation(episodeData, clipData);
+
+      expect(result.success).toBe(true);
+      expect(result.clip.segments[0].speaker).toBeNull();
+      expect(result.clip.segments[1].speaker).toBeNull();
+    });
+
+    test('should accept clip with undefined speakers for single-track episodes', () => {
+      const episodeData = {
+        id: 'episode-123',
+        speakers: []
+      };
+
+      const clipData = {
+        segments: [
+          { startTime: '00:15:30', endTime: '00:16:00', order: 1 },
+          { startTime: '00:16:00', endTime: '00:16:30', order: 2 }
+        ]
+      };
+
+      const result = simulateClipCreation(episodeData, clipData);
+
+      expect(result.success).toBe(true);
+      expect(result.clip.segments[0].speaker).toBeUndefined();
+      expect(result.clip.segments[1].speaker).toBeUndefined();
+    });
+
+    test('should accept clip with mixed speakers (some null, some with values)', () => {
+      const episodeData = {
+        id: 'episode-123',
+        speakers: ['Alice Johnson']
+      };
+
+      const clipData = {
+        segments: [
+          { startTime: '00:15:30', endTime: '00:16:00', speaker: 'Alice Johnson', order: 1 },
+          { startTime: '00:16:00', endTime: '00:16:30', speaker: null, order: 2 }
+        ]
+      };
+
+      const result = simulateClipCreation(episodeData, clipData);
+
+      expect(result.success).toBe(true);
+      expect(result.clip.segments[0].speaker).toBe('Alice Johnson');
+      expect(result.clip.segments[1].speaker).toBeNull();
     });
   });
 
@@ -538,6 +604,127 @@ describe('Episode Speaker Management Integration Tests', () => {
 
       expect(result.success).toBe(true);
       expect(result.quote.speaker).toBe('Alice Johnson');
+    });
+  });
+
+  describe('Transcript Upload Speaker Detection', () => {
+    const simulateTranscriptUpload = (episodeData, transcriptContent) => {
+      const result = {
+        success: false,
+        episode: null,
+        eventsPublished: [],
+        error: null
+      };
+
+      try {
+        if (!episodeData || !episodeData.id) {
+          throw new Error('Episode not found');
+        }
+
+        const speakerPattern = /^([A-Za-z\s]+):/gm;
+        const matches = [...transcriptContent.matchAll(speakerPattern)];
+        const detectedSpeakers = [...new Set(matches.map(m => m[1].trim()))];
+
+        result.episode = {
+          ...episodeData,
+          speakers: detectedSpeakers,
+          hasSpeakers: detectedSpeakers.length > 0,
+          transcriptKey: 'tenant123/episode-123/transcript.srt',
+          updatedAt: new Date().toISOString()
+        };
+
+        result.eventsPublished.push({
+          type: 'Notification',
+          detailType: 'Notification',
+          detail: {
+            type: 'transcript_processed',
+            message: detectedSpeakers.length > 0
+              ? `Found ${detectedSpeakers.length} speaker${detectedSpeakers.length !== 1 ? 's' : ''}: ${detectedSpeakers.join(', ')}`
+              : 'Transcript uploaded successfully'
+          }
+        });
+
+        result.success = true;
+        return result;
+      } catch (error) {
+        result.error = { type: 'Error', message: error.message };
+        return result;
+      }
+    };
+
+    test('should update episode.speakers from transcript upload', () => {
+      const episodeData = {
+        id: 'episode-123',
+        title: 'Test Episode',
+        speakers: []
+      };
+
+      const transcriptContent = `1
+00:00:00,000 --> 00:00:05,000
+Allen: This is a test
+
+2
+00:00:05,500 --> 00:00:10,000
+Andres: Another test`;
+
+      const result = simulateTranscriptUpload(episodeData, transcriptContent);
+
+      expect(result.success).toBe(true);
+      expect(result.episode.speakers).toEqual(['Allen', 'Andres']);
+      expect(result.episode.hasSpeakers).toBe(true);
+    });
+
+    test('should not publish SpeakersAdded events', () => {
+      const episodeData = {
+        id: 'episode-123',
+        title: 'Test Episode',
+        speakers: []
+      };
+
+      const transcriptContent = `1
+00:00:00,000 --> 00:00:05,000
+Allen: This is a test`;
+
+      const result = simulateTranscriptUpload(episodeData, transcriptContent);
+
+      expect(result.success).toBe(true);
+
+      const speakersAddedEvents = result.eventsPublished.filter(
+        event => event.detailType === 'SpeakersAdded'
+      );
+
+      expect(speakersAddedEvents.length).toBe(0);
+    });
+
+    test('should not affect existing clips when transcript is uploaded', () => {
+      const episodeData = {
+        id: 'episode-123',
+        title: 'Test Episode',
+        speakers: ['Alice'],
+        clips: [
+          {
+            id: 'clip-1',
+            status: 'Created',
+            segments: [{ startTime: '00:00:00', endTime: '00:00:10', speaker: 'Alice' }]
+          }
+        ]
+      };
+
+      const transcriptContent = `1
+00:00:00,000 --> 00:00:05,000
+Alice: This is a test
+
+2
+00:00:05,500 --> 00:00:10,000
+Bob: Another test`;
+
+      const result = simulateTranscriptUpload(episodeData, transcriptContent);
+
+      expect(result.success).toBe(true);
+      expect(result.episode.speakers).toEqual(['Alice', 'Bob']);
+
+      expect(episodeData.clips[0].status).toBe('Created');
+      expect(episodeData.clips[0].segments[0].speaker).toBe('Alice');
     });
   });
 

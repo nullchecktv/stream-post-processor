@@ -9,7 +9,6 @@ describe('Create Clips Tool - Segment Validation', () => {
     // Check required fields
     if (!segment.startTime) throw new Error('startTime is required');
     if (!segment.endTime) throw new Error('endTime is required');
-    if (segment.speaker === undefined) throw new Error('speaker is required');
     if (segment.order === undefined) throw new Error('order is required');
     if (segment.transcript === undefined) throw new Error('transcript is required');
 
@@ -23,9 +22,11 @@ describe('Create Clips Tool - Segment Validation', () => {
       throw new Error('endTime must be in HH:MM:SS format');
     }
 
-    // Validate speaker
-    if (typeof segment.speaker !== 'string' || segment.speaker.length === 0) {
-      throw new Error('speaker must be a non-empty string');
+    // Validate speaker (optional - can be null, undefined, or a non-empty string)
+    if (segment.speaker !== null && segment.speaker !== undefined) {
+      if (typeof segment.speaker !== 'string' || segment.speaker.length === 0) {
+        throw new Error('speaker must be a non-empty string when provided');
+      }
     }
 
     // Validate order
@@ -101,17 +102,30 @@ describe('Create Clips Tool - Segment Validation', () => {
       expect(() => validateSegment(invalidSegment)).toThrow('endTime is required');
     });
 
-    test('should reject segment missing speaker', () => {
-      const invalidSegment = {
+    test('should accept segment with null speaker', () => {
+      const validSegment = {
         startTime: '00:15:30',
         endTime: '00:17:45',
-        order: 1
+        speaker: null,
+        order: 1,
+        transcript: 'Some transcript text'
       };
 
-      expect(() => validateSegment(invalidSegment)).toThrow('speaker is required');
+      expect(() => validateSegment(validSegment)).not.toThrow();
     });
 
-    test('should reject segment with empty speaker', () => {
+    test('should accept segment without speaker field', () => {
+      const validSegment = {
+        startTime: '00:15:30',
+        endTime: '00:17:45',
+        order: 1,
+        transcript: 'Some transcript text'
+      };
+
+      expect(() => validateSegment(validSegment)).not.toThrow();
+    });
+
+    test('should reject segment with empty speaker string', () => {
       const invalidSegment = {
         startTime: '00:15:30',
         endTime: '00:17:45',
@@ -120,7 +134,7 @@ describe('Create Clips Tool - Segment Validation', () => {
         transcript: 'Some transcript text'
       };
 
-      expect(() => validateSegment(invalidSegment)).toThrow('speaker must be a non-empty string');
+      expect(() => validateSegment(invalidSegment)).toThrow('speaker must be a non-empty string when provided');
     });
 
     test('should reject segment missing order', () => {
@@ -259,16 +273,17 @@ describe('Create Clips Tool - Segment Validation', () => {
   });
 
   describe('Schema requirements compliance', () => {
-    test('should require speaker field (no fallback to text)', () => {
-      // This test ensures that the speaker field is required and there's no fallback to a text property
+    test('should allow optional speaker field (no fallback to text)', () => {
+      // This test ensures that the speaker field is optional and there's no fallback to a text property
       const segmentWithoutSpeaker = {
         startTime: '00:15:30',
         endTime: '00:17:45',
         text: 'Some transcript text', // Old format - should not be accepted as speaker substitute
-        order: 1
+        order: 1,
+        transcript: 'Some transcript text'
       };
 
-      expect(() => validateSegment(segmentWithoutSpeaker)).toThrow('speaker is required');
+      expect(() => validateSegment(segmentWithoutSpeaker)).not.toThrow();
     });
 
     test('should require startTime and endTime without fallback options', () => {
@@ -295,12 +310,12 @@ describe('Create Clips Tool - Segment Validation', () => {
   });
 
   describe('Clip hash calculation with speaker data', () => {
-    // Test the clip hash calculation logic that includes speaker data
+    // Test the clip hash calculation logic that includes speaker data (or null/undefined)
     const createClipHash = (segments, hook, summary) => {
       const crypto = require('crypto');
 
       const segmentSignature = segments
-        .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}-${s.transcript}`)
+        .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker ?? 'null'}-${s.transcript}`)
         .join('|');
 
       return crypto
@@ -423,6 +438,58 @@ describe('Create Clips Tool - Segment Validation', () => {
 
       // Different speaker assignments should produce different hashes
       expect(hash1).not.toBe(hash2);
+    });
+
+    test('should handle null speakers in hash calculation', () => {
+      const segmentsWithSpeakers = [
+        {
+          order: 1,
+          startTime: '00:15:30',
+          endTime: '00:17:45',
+          speaker: 'host',
+          transcript: 'Speaking here'
+        }
+      ];
+
+      const segmentsWithNullSpeaker = [
+        {
+          order: 1,
+          startTime: '00:15:30',
+          endTime: '00:17:45',
+          speaker: null,
+          transcript: 'Speaking here'
+        }
+      ];
+
+      const hook = 'Discussion';
+      const summary = 'Single segment';
+
+      const hash1 = createClipHash(segmentsWithSpeakers, hook, summary);
+      const hash2 = createClipHash(segmentsWithNullSpeaker, hook, summary);
+
+      // Different speaker values (including null) should produce different hashes
+      expect(hash1).not.toBe(hash2);
+    });
+
+    test('should generate consistent hash for segments without speakers', () => {
+      const segments = [
+        {
+          order: 1,
+          startTime: '00:15:30',
+          endTime: '00:17:45',
+          speaker: null,
+          transcript: 'Important point here'
+        }
+      ];
+
+      const hook = 'Great point';
+      const summary = 'Important discussion';
+
+      const hash1 = createClipHash(segments, hook, summary);
+      const hash2 = createClipHash(segments, hook, summary);
+
+      // Same input (including null speaker) should generate same hash
+      expect(hash1).toBe(hash2);
     });
   });
 });

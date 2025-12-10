@@ -48,6 +48,8 @@ function QuoteDetailPage() {
   const [selectedSpeaker, setSelectedSpeaker] = useState<string>('')
   const [episodeSpeakers, setEpisodeSpeakers] = useState<string[]>([])
   const [speakerError, setSpeakerError] = useState<string>('')
+  const [quoteText, setQuoteText] = useState<string>('')
+  const [textError, setTextError] = useState<string>('')
 
   usePageTitle(quote ? `Quote - ${quote.speaker}` : 'Quote Details')
 
@@ -55,7 +57,8 @@ function QuoteDetailPage() {
     showSpeaker !== quote.showSpeaker ||
     showEpisodeTitle !== quote.showEpisodeTitle ||
     orientation !== quote.orientation ||
-    selectedSpeaker !== quote.speaker
+    selectedSpeaker !== quote.speaker ||
+    quoteText !== quote.text
   )
 
   const fetchData = useCallback(async () => {
@@ -83,6 +86,7 @@ function QuoteDetailPage() {
       setShowEpisodeTitle(quoteData.showEpisodeTitle)
       setOrientation(quoteData.orientation)
       setSelectedSpeaker(quoteData.speaker)
+      setQuoteText(quoteData.text)
       setEpisodeSpeakers(episodeData.speakers || [])
       setError(null)
     } catch (err) {
@@ -139,16 +143,24 @@ function QuoteDetailPage() {
   const handleSave = async () => {
     if (!episodeId || !quoteId || !quote) return
 
+    if (quoteText.length < 5 || quoteText.length > 280) {
+      setTextError('Quote text must be between 5 and 280 characters')
+      return
+    }
+
     const willRegenerate =
       showSpeaker !== quote.showSpeaker ||
       showEpisodeTitle !== quote.showEpisodeTitle ||
-      orientation !== quote.orientation
+      orientation !== quote.orientation ||
+      quoteText !== quote.text
 
     try {
       setSaving(true)
       setSpeakerError('')
+      setTextError('')
 
       await quotesApi.update(episodeId, quoteId, {
+        text: quoteText !== quote.text ? quoteText : undefined,
         speaker: selectedSpeaker !== quote.speaker ? selectedSpeaker : undefined,
         showSpeaker,
         showEpisodeTitle,
@@ -159,6 +171,7 @@ function QuoteDetailPage() {
         setRegenerating(true)
         setQuote({
           ...quote,
+          text: quoteText,
           speaker: selectedSpeaker,
           showSpeaker,
           showEpisodeTitle,
@@ -169,6 +182,7 @@ function QuoteDetailPage() {
       } else {
         setQuote({
           ...quote,
+          text: quoteText,
           speaker: selectedSpeaker,
           showSpeaker,
           showEpisodeTitle,
@@ -342,9 +356,29 @@ function QuoteDetailPage() {
 
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Quote Text</h2>
-            <blockquote className="text-lg text-gray-900 italic border-l-4 border-gray-300 pl-4 py-2">
-              "{quote.text}"
-            </blockquote>
+            <div className="space-y-2">
+              <textarea
+                value={quoteText}
+                onChange={(e) => {
+                  setQuoteText(e.target.value)
+                  setTextError('')
+                }}
+                rows={4}
+                maxLength={280}
+                className={`w-full px-4 py-3 text-lg border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none ${
+                  textError ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter quote text..."
+              />
+              <div className="flex justify-between items-center text-sm">
+                <span className={textError ? 'text-red-600' : 'text-gray-500'}>
+                  {textError || `${quoteText.length}/280 characters`}
+                </span>
+                {quoteText.length < 5 && !textError && (
+                  <span className="text-yellow-600">Minimum 5 characters required</span>
+                )}
+              </div>
+            </div>
           </div>
 
           <div>

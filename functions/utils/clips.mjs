@@ -5,8 +5,8 @@ export { CLIP_STATUS, CLIP_STATUS_TRANSITIONS };
 export const parseEpisodeIdFromKey = (key) => {
   const cleaned = key.replace(/^\/+/, '');
   const parts = cleaned.split('/').filter(Boolean);
-  if (parts.length !== 3 || parts[2] !== 'transcript.srt') {
-    throw new Error(`Unexpected key format: ${key}. Expected "/<tenantId>/<episodeId>/transcript.srt"`);
+  if (parts.length !== 3 || (parts[2] !== 'transcript.srt' && parts[2] !== 'transcript.md')) {
+    throw new Error(`Unexpected key format: ${key}. Expected "/<tenantId>/<episodeId>/transcript.srt" or "/<tenantId>/<episodeId>/transcript.md"`);
   }
   return {
     tenantId: parts[0],

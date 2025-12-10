@@ -29,15 +29,6 @@ interface UploadTranscriptResponse {
   uploadUrl: string
   expiresAt: string
   requiredHeaders?: Record<string, string>
-  speakerAnalysis?: {
-    matched: Array<{
-      transcriptName: string
-      episodeName: string
-      confidence: 'high' | 'medium' | 'low'
-    }>
-    unmatched: string[]
-    suggestion?: string
-  }
 }
 
 interface InitiateTrackUploadResponse {
@@ -194,6 +185,13 @@ export const episodesApi = {
     } catch (error) {
       handleSpeakerValidationError(error)
     }
+  },
+
+  deleteTrack: async (id: string, trackName: string) => {
+    await apiRequest<void>(`/episodes/${id}/tracks/${trackName}`, {
+      method: 'DELETE',
+    })
+    apiCache.invalidate(`GET:/episodes/${id}`)
   },
 
   listClips: (id: string) => apiRequest<ListClipsResponse>(`/episodes/${id}/clips`),

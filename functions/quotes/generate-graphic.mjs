@@ -201,7 +201,7 @@ export const handler = async (event) => {
         title: 'Quote Graphic Created',
         message: `Quote graphic from ${episodeTitle} is ready`,
         url: `/episodes/${episodeId}`,
-        persist: true,
+        persist: false,
         topic: 'tenant',
         metadata: {
           episodeId,

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, UpdateItemCommand, DeleteItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { marshall } from '@aws-sdk/util-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { sdkStreamMixin } from '@smithy/util-stream';
 import { Readable } from 'stream';
 
@@ -57,6 +57,7 @@ Andres: How are you doing?`;
       };
 
       ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
       ddbClientMock.on(UpdateItemCommand).resolves({});
       ddbClientMock.on(DeleteItemCommand).resolves({});
       ddbDocMock.on(UpdateCommand).resolves({});
@@ -85,7 +86,7 @@ Andres: How are you doing?`;
   });
 
   describe('Speaker detection with various formats', () => {
-    it('should handle speaker-attributed SRT entries', async () => {
+    it('should handle speaker-attributed SRT entries and extract speakers', async () => {
       const srtContent = `1
 00:00:00,000 --> 00:00:05,000
 Allen: This is a test
@@ -103,6 +104,7 @@ Andres: Another test`;
       };
 
       ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
       ddbClientMock.on(UpdateItemCommand).resolves({});
       ddbClientMock.on(DeleteItemCommand).resolves({});
       ddbDocMock.on(UpdateCommand).resolves({});
@@ -127,9 +129,105 @@ Andres: Another test`;
       const uploadedContent = putObjectCalls[0].args[0].input.Body;
       expect(uploadedContent).toContain('Allen:');
       expect(uploadedContent).toContain('Andres:');
+
+      const updateCalls = ddbClientMock.commandCalls(UpdateItemCommand);
+      expect(updateCalls.length).toBeGreaterThan(0);
+
+      const updateCall = updateCalls[0];
+      const updateValues = unmarshall(updateCall.args[0].input.ExpressionAttributeValues);
+
+      expect(updateValues[':hasSpeakers']).toBe(true);
+      expect(updateValues[':speakers']).toEqual(['Allen', 'Andres']);
     });
 
+    it('should verify no EventBridge events are published for SpeakersAdded', async () => {
+      const srtContent = `1
+00:00:00,000 --> 00:00:05,000
+Allen: This is a test`;
 
+      s3Mock.on(GetObjectCommand).callsFake(() => ({ Body: createMockStream(srtContent) }));
+
+      const episode = {
+        pk: 'tenant123#episode-456',
+        sk: 'metadata',
+        speakers: []
+      };
+
+      ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
+      ddbClientMock.on(UpdateItemCommand).resolves({});
+      ddbClientMock.on(DeleteItemCommand).resolves({});
+      ddbDocMock.on(UpdateCommand).resolves({});
+      s3Mock.on(PutObjectCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const { handler } = await import('../../../functions/events/transcript-added.mjs');
+
+      const event = {
+        detail: {
+          object: {
+            key: 'tenant123/episode-456/transcript.srt'
+          }
+        }
+      };
+
+      await handler(event);
+
+      const eventBridgeCalls = eventBridgeMock.commandCalls(PutEventsCommand);
+
+      const speakersAddedEvents = eventBridgeCalls.filter(call => {
+        const entries = call.args[0].input.Entries || [];
+        return entries.some(entry => entry.DetailType === 'SpeakersAdded');
+      });
+
+      expect(speakersAddedEvents.length).toBe(0);
+    });
+
+    it('should verify no speakerAnalysis or needsClipReprocessing in episode updates', async () => {
+      const srtContent = `1
+00:00:00,000 --> 00:00:05,000
+Allen: This is a test`;
+
+      s3Mock.on(GetObjectCommand).callsFake(() => ({ Body: createMockStream(srtContent) }));
+
+      const episode = {
+        pk: 'tenant123#episode-456',
+        sk: 'metadata',
+        speakers: []
+      };
+
+      ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
+      ddbClientMock.on(UpdateItemCommand).resolves({});
+      ddbClientMock.on(DeleteItemCommand).resolves({});
+      ddbDocMock.on(UpdateCommand).resolves({});
+      s3Mock.on(PutObjectCommand).resolves({});
+      eventBridgeMock.on(PutEventsCommand).resolves({});
+
+      const { handler } = await import('../../../functions/events/transcript-added.mjs');
+
+      const event = {
+        detail: {
+          object: {
+            key: 'tenant123/episode-456/transcript.srt'
+          }
+        }
+      };
+
+      await handler(event);
+
+      const updateCalls = ddbClientMock.commandCalls(UpdateItemCommand);
+      expect(updateCalls.length).toBeGreaterThan(0);
+
+      const updateCall = updateCalls[0];
+      const updateExpression = updateCall.args[0].input.UpdateExpression;
+      const attributeNames = updateCall.args[0].input.ExpressionAttributeNames;
+
+      expect(updateExpression).not.toContain('speakerAnalysis');
+      expect(updateExpression).not.toContain('needsClipReprocessing');
+      expect(attributeNames).not.toHaveProperty('#speakerAnalysis');
+      expect(attributeNames).not.toHaveProperty('#needsClipReprocessing');
+    });
   });
 
   describe('Handling of malformed entries', () => {
@@ -153,6 +251,7 @@ Another valid entry`;
       };
 
       ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
       ddbClientMock.on(UpdateItemCommand).resolves({});
       ddbClientMock.on(DeleteItemCommand).resolves({});
       ddbDocMock.on(UpdateCommand).resolves({});
@@ -193,6 +292,7 @@ Test content`;
       };
 
       ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
       ddbClientMock.on(UpdateItemCommand).resolves({});
       ddbClientMock.on(DeleteItemCommand).resolves({});
       ddbDocMock.on(UpdateCommand).resolves({});
@@ -234,6 +334,7 @@ Test content`;
       };
 
       ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
       ddbClientMock.on(UpdateItemCommand).resolves({});
       ddbClientMock.on(DeleteItemCommand).resolves({});
       ddbDocMock.on(UpdateCommand).resolves({});
@@ -275,6 +376,7 @@ Test content`;
       };
 
       ddbClientMock.on(GetItemCommand).resolves({ Item: marshall(episode) });
+      ddbClientMock.on(QueryCommand).resolves({ Items: [] });
       ddbClientMock.on(UpdateItemCommand).resolves({});
       ddbClientMock.on(DeleteItemCommand).resolves({});
       ddbDocMock.on(UpdateCommand).resolves({});

@@ -1,9 +1,13 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { TRACK_STATUS } from '../../schemas/tracks.mjs';
 
 const logger = new Logger({ serviceName: 'utils' });
 
 const s3 = new S3Client();
+const ddb = new DynamoDBClient();
 const transcriptCache = new Map();
 
 export const loadTranscript = async (key) => {
@@ -276,4 +280,64 @@ export const formatCleanedTranscript = (entries) => {
   }
 
   return paragraphs.join('\n\n');
+};
+
+export const calculateTrackCount = async (episodeId, tenantId) => {
+  try {
+    const result = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': { S: `${tenantId}#${episodeId}` },
+        ':sk': { S: 'data#track#' }
+      }
+    }));
+
+    if (!result.Items || result.Items.length === 0) {
+      return 0;
+    }
+
+    const validTracks = result.Items
+      .map(item => unmarshall(item))
+      .filter(track =>
+        track.status === TRACK_STATUS.UPLOADED ||
+        track.status === TRACK_STATUS.PROCESSED
+      );
+
+    return validTracks.length;
+  } catch (err) {
+    logger.error('Failed to calculate track count', {
+      error: err.message,
+      stack: err.stack,
+      episodeId,
+      tenantId
+    });
+    return 0;
+  }
+};
+
+export const detectSpeakersInTranscript = (transcriptContent) => {
+  if (!transcriptContent || typeof transcriptContent !== 'string') {
+    return {
+      hasSpeakers: false,
+      speakers: []
+    };
+  }
+
+  const entries = parseSrtFile(transcriptContent);
+  const speakerSet = new Set();
+  let hasSpeakerAttribution = false;
+
+  for (const entry of entries) {
+    const { speaker } = detectSpeaker(entry.text);
+    if (speaker) {
+      hasSpeakerAttribution = true;
+      speakerSet.add(speaker);
+    }
+  }
+
+  return {
+    hasSpeakers: hasSpeakerAttribution,
+    speakers: Array.from(speakerSet).sort()
+  };
 };

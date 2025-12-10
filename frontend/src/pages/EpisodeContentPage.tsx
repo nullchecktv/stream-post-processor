@@ -8,6 +8,7 @@ import { Breadcrumb } from '../components/common/Breadcrumb'
 import { TranscriptUploader } from '../components/episodes/TranscriptUploader'
 import { TrackUploader } from '../components/episodes/TrackUploader'
 import { TrackCard } from '../components/episodes/TrackCard'
+import { TranscriptUploadGuidance } from '../components/episodes/TranscriptUploadGuidance'
 import { formatDate } from '../utils/date'
 import type { EpisodeDetail } from '../types'
 
@@ -99,6 +100,8 @@ function EpisodeContentPage() {
             </span>
           )}
         </div>
+
+        <TranscriptUploadGuidance trackCount={episode.trackCount || episode.tracks?.length || 0} />
 
         {episode.transcript ? (
           <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">

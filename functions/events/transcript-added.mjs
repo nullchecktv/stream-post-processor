@@ -4,10 +4,9 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { parseEpisodeIdFromKey } from '../utils/clips.mjs';
-import { extractSpeakersFromTranscript, matchSpeakers } from '../utils/speakers.mjs';
 import { updateWorkflowStepStatus, WORKFLOW_STEPS } from '../utils/workflow-steps.mjs';
 import { WORKFLOW_STEP_STATUS } from '../../schemas/episodes.mjs';
-import { loadTranscript, parseSrtFile, formatCleanedTranscript } from '../utils/transcripts.mjs';
+import { loadTranscript, parseSrtFile, formatCleanedTranscript, detectSpeakersInTranscript, calculateTrackCount } from '../utils/transcripts.mjs';
 
 const logger = new Logger({ serviceName: 'events' });
 
@@ -47,9 +46,10 @@ export const handler = async (event) => {
     }
 
     const episode = unmarshall(episodeResponse.Item);
-    const episodeSpeakers = episode.speakers || [];
 
-    let speakerAnalysis = null;
+    let hasSpeakers = false;
+    let detectedSpeakers = [];
+    let trackCount = 0;
 
     try {
       const srtContent = await loadTranscript(key);
@@ -77,6 +77,26 @@ export const handler = async (event) => {
           });
         }
       }
+
+      const speakerDetection = detectSpeakersInTranscript(srtContent);
+      hasSpeakers = speakerDetection.hasSpeakers;
+      detectedSpeakers = speakerDetection.speakers;
+
+      logger.info('Speaker detection completed', {
+        episodeId,
+        tenantId,
+        hasSpeakers,
+        speakerCount: detectedSpeakers.length,
+        speakers: detectedSpeakers
+      });
+
+      trackCount = await calculateTrackCount(episodeId, tenantId);
+
+      logger.info('Track count calculated', {
+        episodeId,
+        tenantId,
+        trackCount
+      });
     } catch (cleaningError) {
       logger.error('Failed to create cleaned transcript', {
         error: cleaningError.message,
@@ -86,38 +106,26 @@ export const handler = async (event) => {
       });
     }
 
-    try {
-      const transcriptSpeakers = await extractSpeakersFromTranscript(key);
-
-      if (transcriptSpeakers.length > 0) {
-        const matchResult = await matchSpeakers(transcriptSpeakers, episodeSpeakers);
-
-        speakerAnalysis = {
-          matched: matchResult.matches || [],
-          unmatched: matchResult.unmatched || [],
-          suggestion: matchResult.suggestion || null
-        };
-      }
-    } catch (error) {
-      logger.error('Failed to analyze speakers', {
-        error: error.message,
-        stack: error.stack,
-        episodeId,
-        key
-      });
-    }
-
     const now = new Date().toISOString();
     const newStatus = 'transcript uploaded';
 
-    const updateExpression = speakerAnalysis
-      ? 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt, #speakerAnalysis = :speakerAnalysis, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)'
-      : 'SET #transcriptKey = :key, #status = :status, #updatedAt = :updatedAt, #statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)';
+    const updateParts = [
+      '#transcriptKey = :key',
+      '#status = :status',
+      '#updatedAt = :updatedAt',
+      '#hasSpeakers = :hasSpeakers',
+      '#speakers = :speakers',
+      '#trackCount = :trackCount',
+      '#statusHistory = list_append(if_not_exists(#statusHistory, :emptyList), :newStatusEntry)'
+    ];
 
     const expressionAttributeNames = {
       '#transcriptKey': 'transcriptKey',
       '#status': 'status',
       '#updatedAt': 'updatedAt',
+      '#hasSpeakers': 'hasSpeakers',
+      '#speakers': 'speakers',
+      '#trackCount': 'trackCount',
       '#statusHistory': 'statusHistory'
     };
 
@@ -125,6 +133,9 @@ export const handler = async (event) => {
       ':key': key,
       ':status': newStatus,
       ':updatedAt': now,
+      ':hasSpeakers': hasSpeakers,
+      ':speakers': detectedSpeakers,
+      ':trackCount': trackCount,
       ':emptyList': [],
       ':newStatusEntry': [{
         status: newStatus,
@@ -132,10 +143,7 @@ export const handler = async (event) => {
       }]
     };
 
-    if (speakerAnalysis) {
-      expressionAttributeNames['#speakerAnalysis'] = 'speakerAnalysis';
-      expressionAttributeValues[':speakerAnalysis'] = speakerAnalysis;
-    }
+    const updateExpression = 'SET ' + updateParts.join(', ');
 
     await ddb.send(new UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -159,6 +167,12 @@ export const handler = async (event) => {
       });
     }
 
+    const notificationMessage = hasSpeakers
+      ? `Found ${detectedSpeakers.length} speaker${detectedSpeakers.length !== 1 ? 's' : ''}: ${detectedSpeakers.join(', ')}`
+      : trackCount > 1
+        ? 'Transcript uploaded. Consider adding speaker labels for multi-track episodes.'
+        : 'Transcript uploaded successfully';
+
     await eventBridge.send(new PutEventsCommand({
       Entries: [{
         Source: 'nullcheck',
@@ -167,14 +181,14 @@ export const handler = async (event) => {
           type: 'transcript_processed',
           tenantId,
           title: 'Transcript Processed',
-          message: speakerAnalysis
-            ? `Found ${speakerAnalysis.matched.length + speakerAnalysis.unmatched.length} speaker${speakerAnalysis.matched.length + speakerAnalysis.unmatched.length !== 1 ? 's' : ''}`
-            : 'Transcript uploaded successfully',
+          message: notificationMessage,
           url: `/episodes/${episodeId}`,
           persist: false,
           metadata: {
             episodeId,
-            speakerAnalysis
+            hasSpeakers,
+            speakers: detectedSpeakers,
+            trackCount
           }
         })
       }]
