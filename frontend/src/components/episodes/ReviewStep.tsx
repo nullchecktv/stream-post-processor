@@ -35,15 +35,20 @@ export function ReviewStep({ formData, onEdit, isSubmitting, error }: ReviewStep
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Review & Create</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Review & Create</h3>
+        <p className="text-sm text-[var(--color-text-secondary)]">
           Review your episode details before creating. You can edit any section by clicking the edit button.
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
-          {error}
+        <div className="bg-[var(--color-error-bg)] border border-[var(--color-error)] rounded-lg p-4 text-sm text-[var(--color-text-primary)]">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-[var(--color-error)] mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{error}</span>
+          </div>
         </div>
       )}
 
@@ -59,12 +64,12 @@ export function ReviewStep({ formData, onEdit, isSubmitting, error }: ReviewStep
           <ReviewItem label="Series Name" value={formData.seriesName || 'Not set'} />
           {formData.speakers.length > 0 && (
             <div className="pt-2">
-              <span className="text-sm text-gray-600">Speakers:</span>
+              <span className="text-sm text-[var(--color-text-secondary)]">Speakers:</span>
               <div className="flex flex-wrap gap-2 mt-1">
                 {formData.speakers.map((speaker) => (
                   <span
                     key={speaker}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] border border-[var(--color-border)]"
                   >
                     {speaker}
                   </span>
@@ -84,14 +89,14 @@ export function ReviewStep({ formData, onEdit, isSubmitting, error }: ReviewStep
               {formData.platforms.map((platform) => (
                 <span
                   key={platform}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] border border-[var(--color-border)]"
                 >
                   {platform}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 italic">No platforms selected</p>
+            <p className="text-sm text-[var(--color-text-muted)] italic">No platforms selected</p>
           )}
         </ReviewSection>
 
@@ -105,14 +110,14 @@ export function ReviewStep({ formData, onEdit, isSubmitting, error }: ReviewStep
               {formData.themes.map((theme) => (
                 <span
                   key={theme}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] border border-[var(--color-border)]"
                 >
                   {theme}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 italic">No themes added</p>
+            <p className="text-sm text-[var(--color-text-muted)] italic">No themes added</p>
           )}
         </ReviewSection>
       </div>
@@ -129,9 +134,9 @@ interface ReviewSectionProps {
 
 function ReviewSection({ title, onEdit, isSubmitting, children }: ReviewSectionProps) {
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface)]">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-medium text-gray-900">{title}</h4>
+        <h4 className="font-medium text-[var(--color-text-primary)]">{title}</h4>
         <Button
           type="button"
           variant="ghost"
@@ -157,8 +162,8 @@ interface ReviewItemProps {
 function ReviewItem({ label, value }: ReviewItemProps) {
   return (
     <div className="flex justify-between text-sm">
-      <span className="text-gray-600">{label}:</span>
-      <span className="text-gray-900 font-medium">{value}</span>
+      <span className="text-[var(--color-text-secondary)]">{label}:</span>
+      <span className="text-[var(--color-text-primary)] font-medium">{value}</span>
     </div>
   )
 }

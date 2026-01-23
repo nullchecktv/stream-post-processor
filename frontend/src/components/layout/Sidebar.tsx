@@ -75,7 +75,7 @@ export function Sidebar() {
     <>
       {isMobile && isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-[var(--color-overlay)] z-40"
           onClick={handleBackdropClick}
         />
       )}
@@ -83,17 +83,17 @@ export function Sidebar() {
       {isMobile && !isMobileOpen && (
         <button
           onClick={handleToggle}
-          className="fixed top-4 left-4 z-30 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50"
+          className="fixed top-4 left-4 z-30 p-2 bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-md hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)]"
           aria-label="Open menu"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-5 h-5 text-[var(--color-text-primary)]" />
         </button>
       )}
 
       <aside
         className={`
-          fixed left-0 top-16 bg-white border-r border-gray-200
-          flex flex-col transition-all duration-300 ease-in-out z-40 group
+          fixed left-0 top-16 bg-[var(--color-surface)] border-r border-[var(--color-border)]
+          flex flex-col transition-[width,transform] duration-300 ease-in-out z-40 group
           ${sidebarWidth} ${mobileClasses}
         `}
         style={{ height: 'calc(100vh - 4rem)' }}
@@ -105,45 +105,45 @@ export function Sidebar() {
         {!isMobile && isCollapsed && showExpandButton && (
           <button
             onClick={toggleSidebar}
-            className="absolute left-full top-1/2 -translate-y-1/2 bg-white border border-l-0 border-gray-200 rounded-r-lg px-1.5 py-8 hover:bg-gray-50 transition-all shadow-md z-50"
+            className="absolute left-full top-1/2 -translate-y-1/2 bg-[var(--color-surface)] border border-l-0 border-[var(--color-border)] rounded-r-[var(--radius-lg)] px-1.5 py-8 hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)] shadow-md z-50"
             aria-label="Expand sidebar"
           >
-            <ChevronsRight className="w-4 h-4 text-gray-600" />
+            <ChevronsRight className="w-4 h-4 text-[var(--color-text-secondary)]" />
           </button>
         )}
 
         {!isMobile && !isCollapsed && showExpandButton && (
           <button
             onClick={toggleSidebar}
-            className="absolute left-full top-1/2 -translate-y-1/2 bg-white border border-l-0 border-gray-200 rounded-r-lg px-1.5 py-8 hover:bg-gray-50 transition-all shadow-md z-50"
+            className="absolute left-full top-1/2 -translate-y-1/2 bg-[var(--color-surface)] border border-l-0 border-[var(--color-border)] rounded-r-[var(--radius-lg)] px-1.5 py-8 hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)] shadow-md z-50"
             aria-label="Collapse sidebar"
           >
-            <ChevronsLeft className="w-4 h-4 text-gray-600" />
+            <ChevronsLeft className="w-4 h-4 text-[var(--color-text-secondary)]" />
           </button>
         )}
 
         {activeTeam && (
-          <div className={`py-4 border-b border-gray-200 ${isCollapsed ? 'flex justify-center' : 'px-4'}`}>
+          <div className={`py-4 border-b border-[var(--color-border)] ${isCollapsed ? 'flex justify-center' : 'px-4'}`}>
             {isCollapsed ? (
               <button
                 onClick={() => navigate(`/teams/${activeTeam.teamId}`)}
-                className="w-10 h-10 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 hover:bg-gray-800 transition-colors cursor-pointer"
+                className="w-10 h-10 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-[var(--radius-lg)] flex items-center justify-center font-bold text-sm flex-shrink-0 hover:bg-[var(--color-accent-hover)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
               >
                 {activeTeam.name.charAt(0).toUpperCase()}
               </button>
             ) : (
               <button
                 onClick={() => navigate(`/teams/${activeTeam.teamId}`)}
-                className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-2 hover:bg-[var(--color-surface-hover)] rounded-[var(--radius-lg)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
               >
-                <div className="w-10 h-10 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0">
+                <div className="w-10 h-10 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-[var(--radius-lg)] flex items-center justify-center font-bold text-sm flex-shrink-0">
                   {activeTeam.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 text-left min-w-0">
-                  <div className="text-sm font-semibold text-gray-900 truncate">
+                  <div className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
                     {activeTeam.name}
                   </div>
-                  <div className="text-xs text-gray-500">Team Workspace</div>
+                  <div className="text-xs text-[var(--color-text-muted)]">Team Workspace</div>
                 </div>
               </button>
             )}
@@ -154,12 +154,11 @@ export function Sidebar() {
           {isCollapsed ? (
             <button
               onClick={() => navigate('/profile')}
-              className="w-full flex items-center justify-center p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center p-2 hover:bg-[var(--color-surface-hover)] rounded-[var(--radius-lg)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
               aria-label="User profile"
             >
               <div
-                className="w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-medium flex-shrink-0"
-                style={{ backgroundColor: '#5B8C5A' }}
+                className="w-9 h-9 rounded-full text-[var(--color-text-on-accent)] flex items-center justify-center text-sm font-medium flex-shrink-0 bg-[var(--color-accent)]"
               >
                 {getInitials(profile?.name)}
               </div>
@@ -167,49 +166,48 @@ export function Sidebar() {
           ) : (
             <button
               onClick={() => navigate('/profile')}
-              className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3 p-2 hover:bg-[var(--color-surface-hover)] rounded-[var(--radius-lg)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
             >
               <div
-                className="w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-medium flex-shrink-0"
-                style={{ backgroundColor: '#5B8C5A' }}
+                className="w-9 h-9 rounded-full text-[var(--color-text-on-accent)] flex items-center justify-center text-sm font-medium flex-shrink-0 bg-[var(--color-accent)]"
               >
                 {getInitials(profile?.name)}
               </div>
               <div className="flex-1 text-left min-w-0">
-                <div className="text-sm font-medium text-gray-900 truncate">
+                <div className="text-sm font-medium text-[var(--color-text-primary)] truncate">
                   {profile?.name || 'User'}
                 </div>
                 {profile?.email && (
-                  <div className="text-xs text-gray-500 truncate">{profile.email}</div>
+                  <div className="text-xs text-[var(--color-text-muted)] truncate">{profile.email}</div>
                 )}
               </div>
             </button>
           )}
         </div>
 
-        <div className="px-3 py-2 border-b border-gray-200">
+        <div className="px-3 py-2 border-b border-[var(--color-border)]">
           {isCollapsed ? (
             <button
               onClick={() => navigate('/activity')}
-              className="w-full flex items-center justify-center py-3 text-gray-700 relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center justify-center py-3 text-[var(--color-text-primary)] relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] rounded-[var(--radius-lg)] hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)]"
               aria-label="Activity"
             >
               <Activity className="w-7 h-7" />
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--color-error)] rounded-full"></span>
               )}
             </button>
           ) : (
             <button
               onClick={() => navigate('/activity')}
-              className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+              className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--color-surface-hover)] rounded-[var(--radius-lg)] transition-colors duration-[var(--duration-fast)] text-[var(--color-text-primary)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
             >
               <div className="flex items-center gap-3">
                 <Activity className="w-6 h-6" />
                 <span className="text-sm font-medium">Activity</span>
               </div>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-semibold rounded-full">
+                <span className="px-2 py-0.5 bg-[var(--color-error)] text-[var(--color-text-on-accent)] text-xs font-semibold rounded-full">
                   {unreadCount}
                 </span>
               )}
@@ -298,7 +296,7 @@ export function Sidebar() {
           )}
         </nav>
 
-        <div className="border-t border-gray-200 py-2">
+        <div className="border-t border-[var(--color-border)] py-2">
           <SidebarItem
             to="/settings"
             icon={Settings}

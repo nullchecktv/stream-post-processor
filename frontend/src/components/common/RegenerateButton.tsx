@@ -13,11 +13,11 @@ export function RegenerateButton({ onClick, disabled, loading }: Readonly<Regene
       disabled={disabled || loading}
       className={`
         inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
-        transition-colors duration-200
+        transition-colors duration-[var(--duration-fast)]
         ${
           disabled || loading
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-primary text-white hover:bg-primary-dark active:bg-primary-darker'
+            ? 'bg-[var(--color-surface)] text-[var(--color-text-disabled)] cursor-not-allowed'
+            : 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)] hover:bg-[var(--color-accent-hover)]'
         }
       `}
     >

@@ -33,8 +33,8 @@ export function PlatformsStep({ selectedPlatforms, onChange }: PlatformsStepProp
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Platforms</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Platforms</h3>
+        <p className="text-sm text-[var(--color-text-secondary)]">
           Select the platforms where this episode was or will be streamed.
         </p>
       </div>
@@ -44,16 +44,16 @@ export function PlatformsStep({ selectedPlatforms, onChange }: PlatformsStepProp
           type="button"
           onClick={handleSelectAll}
           disabled={allSelected}
-          className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] disabled:text-[var(--color-text-disabled)] disabled:cursor-not-allowed transition-colors"
         >
           Select All
         </button>
-        <span className="text-gray-300">|</span>
+        <span className="text-[var(--color-divider)]">|</span>
         <button
           type="button"
           onClick={handleClearAll}
           disabled={noneSelected}
-          className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] disabled:text-[var(--color-text-disabled)] disabled:cursor-not-allowed transition-colors"
         >
           Clear All
         </button>
@@ -68,11 +68,11 @@ export function PlatformsStep({ selectedPlatforms, onChange }: PlatformsStepProp
               key={platform.id}
               className={`
                 relative flex items-center p-4 border-2 rounded-lg cursor-pointer
-                transition-all duration-200
+                transition-colors duration-200
                 ${
                   isSelected
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]'
+                    : 'border-[var(--color-border)] hover:border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] bg-[var(--color-surface)]'
                 }
               `}
             >
@@ -84,13 +84,13 @@ export function PlatformsStep({ selectedPlatforms, onChange }: PlatformsStepProp
               />
               <div className="flex items-center flex-1">
                 <span className="text-2xl mr-3">{platform.icon}</span>
-                <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                <span className={`font-medium ${isSelected ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-primary)]'}`}>
                   {platform.name}
                 </span>
               </div>
               {isSelected && (
                 <svg
-                  className="w-5 h-5 text-blue-600"
+                  className="w-5 h-5 text-[var(--color-accent)]"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -107,7 +107,7 @@ export function PlatformsStep({ selectedPlatforms, onChange }: PlatformsStepProp
       </div>
 
       {selectedPlatforms.length > 0 && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-[var(--color-text-secondary)]">
           {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? 's' : ''} selected
         </div>
       )}

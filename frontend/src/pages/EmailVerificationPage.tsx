@@ -110,12 +110,12 @@ function EmailVerificationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-8">
+    <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center px-6 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 animate-slideDown">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-accent)] rounded-xl mb-4">
             <svg
-              className="w-10 h-10 text-white"
+              className="w-10 h-10 text-[var(--color-text-on-accent)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -128,16 +128,16 @@ function EmailVerificationPage() {
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Verify Your Email</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Verify Your Email</h1>
+          <p className="text-[var(--color-text-secondary)] mt-2">
             We sent a verification code to <span className="font-medium">{email}</span>
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-8 animate-slideUp">
+        <div className="bg-[var(--color-surface)] rounded-xl shadow-md p-8 animate-slideUp border border-[var(--color-border)]">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="code" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Verification Code
               </label>
               <input
@@ -147,10 +147,10 @@ function EmailVerificationPage() {
                 pattern="[0-9]*"
                 value={code}
                 onChange={handleCodeChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors text-center text-2xl tracking-widest ${
+                className={`w-full px-4 py-3 bg-[var(--color-surface)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors duration-[var(--duration-fast)] text-center text-2xl tracking-widest text-[var(--color-text-primary)] ${
                   codeError
-                    ? 'border-error focus:ring-error focus:border-error'
-                    : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    ? 'border-[var(--color-error)]'
+                    : 'border-[var(--color-border)]'
                 }`}
                 placeholder="000000"
                 maxLength={6}
@@ -160,40 +160,49 @@ function EmailVerificationPage() {
                 autoComplete="one-time-code"
               />
               {codeError && (
-                <p id="code-error" className="mt-2 text-sm text-error" role="alert">
+                <p id="code-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                   {codeError}
                 </p>
               )}
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">
                 Enter the 6-digit code from your email
               </p>
             </div>
 
             {resendSuccess && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg animate-slideDown">
-                <p className="text-sm text-green-700" role="status">
-                  Verification code sent! Please check your email.
-                </p>
+              <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-success)] rounded-lg animate-slideDown">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[var(--color-success)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-[var(--color-text-primary)]" role="status">
+                    Verification code sent! Please check your email.
+                  </p>
+                </div>
               </div>
             )}
 
             {error && (
-              <div className="p-4 bg-error bg-opacity-10 border border-error rounded-lg animate-slideDown">
-                <p className="text-sm text-error" role="alert">
-                  {error}
-                </p>
+              <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-lg animate-slideDown">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[var(--color-error)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-[var(--color-text-primary)]" role="alert">
+                    {error}
+                  </p>
+                </div>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading || resending}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
-              style={{ backgroundColor: '#5B8C5A', color: '#ffffff' }}
+              className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)] font-semibold py-3 px-4 rounded-lg transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
             >
               {loading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  <div className="w-5 h-5 border-2 border-[var(--color-text-on-accent)] border-t-transparent rounded-full animate-spin mr-2" />
                   Verifying...
                 </>
               ) : (
@@ -207,11 +216,11 @@ function EmailVerificationPage() {
               type="button"
               onClick={handleResendCode}
               disabled={loading || resending}
-              className="text-sm text-primary hover:text-primary-dark font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors duration-[var(--duration-fast)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {resending ? (
                 <>
-                  <span className="inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
+                  <span className="inline-block w-4 h-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin mr-1" />
                   Sending...
                 </>
               ) : (
@@ -222,7 +231,7 @@ function EmailVerificationPage() {
             <div>
               <Link
                 to="/signup"
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors duration-[var(--duration-fast)]"
               >
                 Back to sign up
               </Link>

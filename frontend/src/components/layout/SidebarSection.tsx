@@ -23,7 +23,7 @@ export function SidebarSection({ title, isCollapsed, children, defaultOpen = tru
     <div className="px-3 mb-4">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full px-2 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wider hover:text-gray-900 transition-colors"
+        className="flex items-center justify-between w-full px-2 py-2 text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider hover:text-[var(--color-text-primary)] transition-colors duration-[var(--duration-fast)]"
       >
         <span>{title}</span>
         {isOpen ? (

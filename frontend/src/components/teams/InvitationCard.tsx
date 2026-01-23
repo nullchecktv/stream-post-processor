@@ -52,34 +52,34 @@ export const InvitationCard = memo(function InvitationCard({ invitation, onAccep
   const isProcessing = accepting || rejecting
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-          <Users className="w-6 h-6 text-primary" />
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-[var(--space-6)] hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)]">
+      <div className="flex items-start gap-[var(--space-4)]">
+        <div className="w-12 h-12 bg-[var(--color-accent-subtle)] rounded-full flex items-center justify-center flex-shrink-0">
+          <Users className="w-6 h-6 text-[var(--color-accent)]" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-4 mb-2">
+          <div className="flex items-start justify-between gap-[var(--space-4)] mb-[var(--space-2)]">
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">
+              <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] truncate">
                 {invitation.teamName}
               </h3>
               {invitation.teamDescription && (
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)] mt-1 line-clamp-2">
                   {invitation.teamDescription}
                 </p>
               )}
             </div>
 
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary flex-shrink-0">
+            <span className="inline-flex items-center px-[var(--space-2)] py-1 rounded-full text-[length:var(--text-xs)] font-medium bg-[var(--color-accent-subtle)] text-[var(--color-accent)] flex-shrink-0">
               {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
+          <div className="flex flex-wrap items-center gap-[var(--space-4)] text-[length:var(--text-sm)] text-[var(--color-text-muted)] mb-[var(--space-4)]">
             <div className="flex items-center gap-1">
               <span>Invited by</span>
-              <span className="font-medium text-gray-700">{invitation.inviterName}</span>
+              <span className="font-medium text-[var(--color-text-secondary)]">{invitation.inviterName}</span>
             </div>
 
             <div className="flex items-center gap-1">
@@ -88,7 +88,7 @@ export const InvitationCard = memo(function InvitationCard({ invitation, onAccep
             </div>
 
             {invitation.expiresAt && (
-              <div className={`flex items-center gap-1 ${isExpired ? 'text-red-600' : ''}`}>
+              <div className={`flex items-center gap-1 ${isExpired ? 'text-[var(--color-error)]' : ''}`}>
                 <Clock className="w-4 h-4" />
                 <span>
                   {isExpired ? 'Expired' : `Expires ${formatDate(invitation.expiresAt)}`}
@@ -98,13 +98,13 @@ export const InvitationCard = memo(function InvitationCard({ invitation, onAccep
           </div>
 
           {isExpired ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm text-red-800">
+            <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)] rounded-[var(--radius-md)] p-[var(--space-3)]">
+              <p className="text-[length:var(--text-sm)] text-[var(--color-error)]">
                 This invitation has expired. Please contact the team owner for a new invitation.
               </p>
             </div>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex gap-[var(--space-3)]">
               <Button
                 onClick={handleAccept}
                 loading={accepting}

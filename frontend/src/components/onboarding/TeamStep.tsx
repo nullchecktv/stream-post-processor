@@ -59,7 +59,7 @@ export function TeamStep({ onComplete, onSkip }: TeamStepProps) {
           }
           position="bottom"
         >
-          <p className="text-gray-600 mb-4">
+          <p className="text-[var(--color-text-secondary)] mb-4">
             Create a team to collaborate with others. You can always create or join teams later.
           </p>
         </HelpTip>
@@ -75,8 +75,8 @@ export function TeamStep({ onComplete, onSkip }: TeamStepProps) {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-lg">
+          <p className="text-sm text-[var(--color-error)]">{error}</p>
         </div>
       )}
 
@@ -90,24 +90,24 @@ export function TeamStep({ onComplete, onSkip }: TeamStepProps) {
         />
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="description" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
             Description (optional)
           </label>
           <textarea
             id="description"
             {...register('description')}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] focus:border-transparent transition-colors bg-[var(--color-surface)] text-[var(--color-text-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="Describe your team's purpose"
             disabled={isSubmitting}
           />
           {errors.description && (
-            <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+            <p className="mt-1 text-sm text-[var(--color-error)]">{errors.description.message}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
             Default Platforms (optional)
           </label>
           <div className="space-y-2">
@@ -118,12 +118,12 @@ export function TeamStep({ onComplete, onSkip }: TeamStepProps) {
                   id={`platform-${platform.value}`}
                   value={platform.value}
                   {...register('settings.defaultPlatforms')}
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                  className="h-4 w-4 text-[var(--color-accent)] focus:ring-[var(--color-focus)] border-[var(--color-border)] rounded"
                   disabled={isSubmitting}
                 />
                 <label
                   htmlFor={`platform-${platform.value}`}
-                  className="ml-2 text-sm text-gray-700"
+                  className="ml-2 text-sm text-[var(--color-text-primary)]"
                 >
                   {platform.label}
                 </label>

@@ -96,9 +96,9 @@ function EpisodePlanPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-[var(--space-6)]">
         <Breadcrumb />
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
           <LoadingSpinner />
         </div>
       </div>
@@ -106,14 +106,14 @@ function EpisodePlanPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[var(--space-6)]">
       <Breadcrumb />
 
       {!episodePlan?.plan && !showPlanForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-8">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
+          <div className="text-center py-[var(--space-8)]">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-[var(--color-text-muted)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -125,13 +125,13 @@ function EpisodePlanPage() {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No plan yet</h3>
-            <p className="mt-2 text-sm text-gray-500">
+            <h3 className="mt-[var(--space-4)] text-[length:var(--text-lg)] font-medium text-[var(--color-text-primary)]">No plan yet</h3>
+            <p className="mt-[var(--space-2)] text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
               Create a plan to organize your episode and get AI-powered recommendations.
             </p>
             <button
               onClick={() => setShowPlanForm(true)}
-              className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="mt-[var(--space-6)] inline-flex items-center px-[var(--space-4)] py-[var(--space-2)] border border-transparent text-[length:var(--text-sm)] font-medium rounded-[var(--radius-md)] text-[var(--color-text-on-accent)] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus)] transition-colors duration-[var(--duration-fast)]"
             >
               Create Plan
             </button>
@@ -140,15 +140,15 @@ function EpisodePlanPage() {
       )}
 
       {(showPlanForm || episodePlan?.plan) && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
+          <div className="flex items-center justify-between mb-[var(--space-6)]">
+            <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--color-text-primary)]">
               {episodePlan?.plan ? 'Episode Plan' : 'Create Episode Plan'}
             </h2>
             {episodePlan?.plan && !showPlanForm && (
               <button
                 onClick={() => setShowPlanForm(true)}
-                className="text-sm text-primary hover:text-primary-dark font-medium"
+                className="text-[length:var(--text-sm)] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors duration-[var(--duration-fast)]"
               >
                 Edit Plan
               </button>
@@ -164,24 +164,24 @@ function EpisodePlanPage() {
             />
           ) : (
             episodePlan?.plan && (
-              <div className="space-y-4">
+              <div className="space-y-[var(--space-4)]">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Objectives</h3>
-                  <ul className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3 space-y-1">
+                  <h3 className="text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-[var(--space-2)]">Objectives</h3>
+                  <ul className="text-[length:var(--text-sm)] text-[var(--color-text-primary)] bg-[var(--color-surface-raised)] rounded-[var(--radius-lg)] p-[var(--space-3)] space-y-1">
                     {episodePlan.plan.objectives.map((objective, index) => (
                       <li key={index} className="flex items-start">
-                        <span className="text-primary mr-2">•</span>
+                        <span className="text-[var(--color-accent)] mr-[var(--space-2)]">•</span>
                         <span>{objective}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Concepts</h3>
-                  <ul className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3 space-y-1">
+                  <h3 className="text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-[var(--space-2)]">Concepts</h3>
+                  <ul className="text-[length:var(--text-sm)] text-[var(--color-text-primary)] bg-[var(--color-surface-raised)] rounded-[var(--radius-lg)] p-[var(--space-3)] space-y-1">
                     {episodePlan.plan.concepts.map((concept, index) => (
                       <li key={index} className="flex items-start">
-                        <span className="text-primary mr-2">•</span>
+                        <span className="text-[var(--color-accent)] mr-[var(--space-2)]">•</span>
                         <span>{concept}</span>
                       </li>
                     ))}
@@ -189,8 +189,8 @@ function EpisodePlanPage() {
                 </div>
                 {episodePlan.plan.notes && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">Notes</h3>
-                    <p className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+                    <h3 className="text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-[var(--space-2)]">Notes</h3>
+                    <p className="text-[length:var(--text-sm)] text-[var(--color-text-primary)] whitespace-pre-wrap bg-[var(--color-surface-raised)] rounded-[var(--radius-lg)] p-[var(--space-3)]">
                       {episodePlan.plan.notes}
                     </p>
                   </div>
@@ -210,35 +210,35 @@ function EpisodePlanPage() {
 
           {episodePlan.recommendations?.detailedOutline && episodePlan.recommendations?.suggestedFlow && (
             <>
-              <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="grid grid-cols-2 gap-8">
+              <div className="hidden lg:block bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
+                <div className="grid grid-cols-2 gap-[var(--space-8)]">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-[var(--space-4)]">
                       Detailed Episode Outline
                     </h3>
-                    <div className="space-y-6">
+                    <div className="space-y-[var(--space-6)]">
                       {episodePlan.recommendations.detailedOutline.map((section, index) => (
                         <div
                           key={index}
-                          className="border-l-4 border-primary pl-4 py-2"
+                          className="border-l-4 border-[var(--color-accent)] pl-[var(--space-4)] py-[var(--space-2)]"
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="text-base font-semibold text-gray-900">
+                          <div className="flex items-start justify-between mb-[var(--space-2)]">
+                            <h4 className="text-[length:var(--text-base)] font-semibold text-[var(--color-text-primary)]">
                               {index + 1}. {section.section}
                             </h4>
-                            <span className="text-sm text-gray-500 font-medium whitespace-nowrap ml-4">
+                            <span className="text-[length:var(--text-sm)] text-[var(--color-text-muted)] font-medium whitespace-nowrap ml-[var(--space-4)]">
                               {section.duration}
                             </span>
                           </div>
 
-                          <div className="space-y-3">
+                          <div className="space-y-[var(--space-3)]">
                             <div>
-                              <h5 className="text-sm font-medium text-gray-700 mb-1">
+                              <h5 className="text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-1">
                                 Talking Points:
                               </h5>
                               <ul className="list-disc list-inside space-y-1">
                                 {section.talkingPoints.map((point, pointIndex) => (
-                                  <li key={pointIndex} className="text-sm text-gray-600">
+                                  <li key={pointIndex} className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
                                     {point}
                                   </li>
                                 ))}
@@ -247,12 +247,12 @@ function EpisodePlanPage() {
 
                             {section.demoArtifacts && section.demoArtifacts.length > 0 && (
                               <div>
-                                <h5 className="text-sm font-medium text-gray-700 mb-1">
+                                <h5 className="text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-1">
                                   Demo Artifacts:
                                 </h5>
                                 <ul className="list-disc list-inside space-y-1">
                                   {section.demoArtifacts.map((artifact, artifactIndex) => (
-                                    <li key={artifactIndex} className="text-sm text-primary">
+                                    <li key={artifactIndex} className="text-[length:var(--text-sm)] text-[var(--color-accent)]">
                                       {artifact}
                                     </li>
                                   ))}
@@ -264,8 +264,8 @@ function EpisodePlanPage() {
                       ))}
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="mt-[var(--space-6)] pt-[var(--space-4)] border-t border-[var(--color-border)]">
+                      <div className="flex items-center justify-between text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
                         <span>Total Sections: {episodePlan.recommendations.detailedOutline.length}</span>
                         <span>
                           Estimated Duration:{' '}
@@ -284,8 +284,8 @@ function EpisodePlanPage() {
                     </div>
                   </div>
 
-                  <div className="border-l border-gray-200 pl-8">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                  <div className="border-l border-[var(--color-border)] pl-[var(--space-8)]">
+                    <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-[var(--space-4)] text-center">
                       Suggested Episode Flow
                     </h3>
                     <div className="flex items-center justify-center">
@@ -296,67 +296,67 @@ function EpisodePlanPage() {
               </div>
 
               <div className="lg:hidden">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div className="border-b border-gray-200">
+                <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+                  <div className="border-b border-[var(--color-border)]">
                     <nav className="flex -mb-px">
                       <button
                         onClick={() => setActiveTab('flow')}
-                        className={`flex-1 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                        className={`flex-1 py-[var(--space-4)] px-1 text-center border-b-2 font-medium text-[length:var(--text-sm)] transition-colors duration-[var(--duration-fast)] ${
                           activeTab === 'flow'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                            : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:border-[var(--color-border)]'
                         }`}
                       >
                         Episode Flow
                       </button>
                       <button
                         onClick={() => setActiveTab('outline')}
-                        className={`flex-1 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                        className={`flex-1 py-[var(--space-4)] px-1 text-center border-b-2 font-medium text-[length:var(--text-sm)] transition-colors duration-[var(--duration-fast)] ${
                           activeTab === 'outline'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                            : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:border-[var(--color-border)]'
                         }`}
                       >
                         Detailed Outline
                       </button>
                     </nav>
                   </div>
-                  <div className="p-6">
+                  <div className="p-[var(--space-6)]">
                     {activeTab === 'flow' ? (
                       <>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-[var(--space-4)]">
                           Suggested Episode Flow
                         </h3>
                         <MermaidDiagram diagram={episodePlan.recommendations.suggestedFlow} />
                       </>
                     ) : (
                       <>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-[var(--space-4)]">
                           Detailed Episode Outline
                         </h3>
-                        <div className="space-y-6">
+                        <div className="space-y-[var(--space-6)]">
                           {episodePlan.recommendations.detailedOutline.map((section, index) => (
                             <div
                               key={index}
-                              className="border-l-4 border-primary pl-4 py-2"
+                              className="border-l-4 border-[var(--color-accent)] pl-[var(--space-4)] py-[var(--space-2)]"
                             >
-                              <div className="flex items-start justify-between mb-2">
-                                <h4 className="text-base font-semibold text-gray-900">
+                              <div className="flex items-start justify-between mb-[var(--space-2)]">
+                                <h4 className="text-[length:var(--text-base)] font-semibold text-[var(--color-text-primary)]">
                                   {index + 1}. {section.section}
                                 </h4>
-                                <span className="text-sm text-gray-500 font-medium whitespace-nowrap ml-4">
+                                <span className="text-[length:var(--text-sm)] text-[var(--color-text-muted)] font-medium whitespace-nowrap ml-[var(--space-4)]">
                                   {section.duration}
                                 </span>
                               </div>
 
-                              <div className="space-y-3">
+                              <div className="space-y-[var(--space-3)]">
                                 <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">
+                                  <h5 className="text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-1">
                                     Talking Points:
                                   </h5>
                                   <ul className="list-disc list-inside space-y-1">
                                     {section.talkingPoints.map((point, pointIndex) => (
-                                      <li key={pointIndex} className="text-sm text-gray-600">
+                                      <li key={pointIndex} className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
                                         {point}
                                       </li>
                                     ))}
@@ -365,12 +365,12 @@ function EpisodePlanPage() {
 
                                 {section.demoArtifacts && section.demoArtifacts.length > 0 && (
                                   <div>
-                                    <h5 className="text-sm font-medium text-gray-700 mb-1">
+                                    <h5 className="text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-1">
                                       Demo Artifacts:
                                     </h5>
                                     <ul className="list-disc list-inside space-y-1">
                                       {section.demoArtifacts.map((artifact, artifactIndex) => (
-                                        <li key={artifactIndex} className="text-sm text-primary">
+                                        <li key={artifactIndex} className="text-[length:var(--text-sm)] text-[var(--color-accent)]">
                                           {artifact}
                                         </li>
                                       ))}
@@ -394,8 +394,8 @@ function EpisodePlanPage() {
           )}
 
           {episodePlan.recommendations?.suggestedFlow && !episodePlan.recommendations?.detailedOutline && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
+              <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-[var(--space-4)]">
                 Suggested Episode Flow
               </h3>
               <MermaidDiagram diagram={episodePlan.recommendations.suggestedFlow} />

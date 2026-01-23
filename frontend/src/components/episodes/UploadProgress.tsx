@@ -32,14 +32,14 @@ export function UploadProgress({ upload, onRetry, onCancel }: UploadProgressProp
   const getStatusColor = () => {
     switch (upload.status) {
       case 'completed':
-        return 'bg-green-500'
+        return 'bg-[var(--color-success)]'
       case 'failed':
-        return 'bg-red-500'
+        return 'bg-[var(--color-error)]'
       case 'uploading':
       case 'processing':
-        return 'bg-blue-500'
+        return 'bg-[var(--color-accent)]'
       default:
-        return 'bg-gray-300'
+        return 'bg-[var(--color-text-disabled)]'
     }
   }
 
@@ -68,20 +68,20 @@ export function UploadProgress({ upload, onRetry, onCancel }: UploadProgressProp
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-4 space-y-2">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
+          <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
             {upload.filename}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--color-text-muted)]">
             {getTypeLabel()}
           </p>
         </div>
         {(upload.status === 'uploading' || upload.status === 'completed' || upload.status === 'failed') && onCancel && (
           <button
             onClick={() => onCancel(upload.id)}
-            className="ml-2 text-gray-400 hover:text-gray-600 flex-shrink-0"
+            className="ml-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] flex-shrink-0 transition-colors duration-[var(--duration-fast)]"
             aria-label={upload.status === 'uploading' ? 'Cancel upload' : 'Remove'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,18 +93,18 @@ export function UploadProgress({ upload, onRetry, onCancel }: UploadProgressProp
 
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-600">{getStatusText()}</span>
+          <span className="text-[var(--color-text-secondary)]">{getStatusText()}</span>
           <div className="flex items-center gap-2">
             {estimatedTimeRemaining && (
-              <span className="text-gray-500">{estimatedTimeRemaining} remaining</span>
+              <span className="text-[var(--color-text-muted)]">{estimatedTimeRemaining} remaining</span>
             )}
-            <span className="font-medium text-gray-900">{upload.progress}%</span>
+            <span className="font-medium text-[var(--color-text-primary)]">{upload.progress}%</span>
           </div>
         </div>
 
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div className="w-full bg-[var(--color-surface-raised)] rounded-full h-2 overflow-hidden">
           <div
-            className={`h-full transition-all duration-300 ${getStatusColor()}`}
+            className={`h-full transition-[width,background-color] duration-[var(--duration-base)] ${getStatusColor()}`}
             style={{ width: `${upload.progress}%` }}
           />
         </div>
@@ -113,12 +113,12 @@ export function UploadProgress({ upload, onRetry, onCancel }: UploadProgressProp
       {upload.status === 'failed' && (
         <div className="space-y-2">
           {upload.error && (
-            <p className="text-xs text-red-600">{upload.error}</p>
+            <p className="text-xs text-[var(--color-error)]">{upload.error}</p>
           )}
           {onRetry && (
             <button
               onClick={() => onRetry(upload.id)}
-              className="w-full text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+              className="w-full text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium py-1 transition-colors duration-[var(--duration-fast)]"
             >
               Retry Upload
             </button>
@@ -127,7 +127,7 @@ export function UploadProgress({ upload, onRetry, onCancel }: UploadProgressProp
       )}
 
       {upload.status === 'completed' && (
-        <div className="flex items-center gap-1 text-xs text-green-600">
+        <div className="flex items-center gap-1 text-xs text-[var(--color-success)]">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>

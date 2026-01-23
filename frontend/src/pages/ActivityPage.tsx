@@ -78,13 +78,13 @@ export default function ActivityPage() {
       {loading && <LoadingSpinner variant="page" />}
       <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Activity</h1>
-        <p className="mt-2 text-gray-600">Stay updated with your team activities and invitations</p>
+        <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Activity</h1>
+        <p className="mt-2 text-[var(--color-text-secondary)]">Stay updated with your team activities and invitations</p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-800">{error}</p>
+        <div className="mb-6 p-4 bg-[var(--color-error)]/10 border border-[var(--color-error)] rounded-lg">
+          <p className="text-[var(--color-error)]">{error}</p>
         </div>
       )}
 
@@ -92,20 +92,20 @@ export default function ActivityPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setActiveFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-[var(--radius-lg)] font-medium transition-colors duration-[var(--duration-fast)] ${
               activeFilter === 'all'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)]'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)]'
             }`}
           >
             All ({notifications.length})
           </button>
           <button
             onClick={() => setActiveFilter('unread')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-[var(--radius-lg)] font-medium transition-colors duration-[var(--duration-fast)] ${
               activeFilter === 'unread'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)]'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)]'
             }`}
           >
             Unread ({unreadNotifications.length})
@@ -115,7 +115,7 @@ export default function ActivityPage() {
         {unreadNotifications.length > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            className="px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors duration-[var(--duration-fast)]"
           >
             Mark all as read
           </button>
@@ -124,13 +124,13 @@ export default function ActivityPage() {
 
       {filteredNotifications.length === 0 ? (
         <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4 text-gray-400">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-surface)] rounded-full mb-4 text-[var(--color-text-muted)]">
             <ActivityIcon className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
             {activeFilter === 'unread' ? 'No unread activity' : 'No activity'}
           </h3>
-          <p className="text-gray-600">
+          <p className="text-[var(--color-text-secondary)]">
             {activeFilter === 'unread'
               ? "You're all caught up!"
               : "You'll see activity here when you receive team invitations or updates"}

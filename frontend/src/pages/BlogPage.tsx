@@ -335,8 +335,8 @@ function BlogPage() {
 
   if (loading) {
     return (
-      <div className="relative min-h-full">
-        <LoadingSpinner variant="page" />
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
+        <LoadingSpinner variant="section" />
       </div>
     )
   }
@@ -350,7 +350,7 @@ function BlogPage() {
           <div className="mt-6 flex gap-4">
             <button
               onClick={() => navigate(`/episodes/${id}/overview`)}
-              className="text-blue-600 hover:text-blue-800 underline"
+              className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] underline"
             >
               Return to Episode Overview
             </button>
@@ -369,7 +369,7 @@ function BlogPage() {
                     updatedAt: new Date().toISOString()
                   })
                 }}
-                className="text-blue-600 hover:text-blue-800 underline"
+                className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] underline"
               >
                 Continue with Draft
               </button>
@@ -396,17 +396,17 @@ function BlogPage() {
         <InlineError message={error} onRetry={handleRetry} />
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
         <div className="mb-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              <h1 className="text-[length:var(--text-2xl)] font-bold text-[var(--color-text-primary)] mb-2">
                 Blog Post
               </h1>
               <div className="flex items-center gap-3">
                 <StatusIndicator status={blogData.status} size="md" />
                 {isSaving && (
-                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                  <span className="text-[length:var(--text-sm)] text-[var(--color-text-muted)] flex items-center gap-1">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -440,21 +440,21 @@ function BlogPage() {
         </div>
 
         {(activeTeam?.branding?.voice || profile?.branding?.voice) && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Brand Voice</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div className="mb-6 p-[var(--space-4)] bg-[var(--color-surface-raised)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+            <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--color-text-secondary)] mb-2">Brand Voice</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[length:var(--text-sm)]">
               <div>
-                <span className="text-gray-600">Tone:</span>{' '}
-                <span className="text-gray-900">{activeTeam?.branding?.voice?.tone || profile?.branding?.voice?.tone}</span>
+                <span className="text-[var(--color-text-secondary)]">Tone:</span>{' '}
+                <span className="text-[var(--color-text-primary)]">{activeTeam?.branding?.voice?.tone || profile?.branding?.voice?.tone}</span>
               </div>
               <div>
-                <span className="text-gray-600">Writing Style:</span>{' '}
-                <span className="text-gray-900">{activeTeam?.branding?.voice?.writingStyle || profile?.branding?.voice?.writingStyle}</span>
+                <span className="text-[var(--color-text-secondary)]">Writing Style:</span>{' '}
+                <span className="text-[var(--color-text-primary)]">{activeTeam?.branding?.voice?.writingStyle || profile?.branding?.voice?.writingStyle}</span>
               </div>
               {(activeTeam?.branding?.voice?.perspective || profile?.branding?.voice?.perspective) && (
                 <div>
-                  <span className="text-gray-600">Perspective:</span>{' '}
-                  <span className="text-gray-900">
+                  <span className="text-[var(--color-text-secondary)]">Perspective:</span>{' '}
+                  <span className="text-[var(--color-text-primary)]">
                     {(activeTeam?.branding?.voice?.perspective || profile?.branding?.voice?.perspective) === 'first_person' ? 'First Person' : 'Third Person'}
                   </span>
                 </div>
@@ -465,17 +465,17 @@ function BlogPage() {
 
         <div className="space-y-6">
           {isGenerating && viewMode === 'content' ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
+            <div className="bg-[var(--color-accent-subtle)] border border-[var(--color-accent)] rounded-[var(--radius-lg)] p-[var(--space-8)]">
               <div className="flex flex-col items-center justify-center space-y-4">
                 <div className="relative">
-                  <svg className="animate-spin h-12 w-12 text-primary" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-12 w-12 text-[var(--color-accent)]" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                 </div>
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Generating Blog Content</h3>
-                  <p className="text-sm text-gray-600">
+                  <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-1">Generating Blog Content</h3>
+                  <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
                     AI is creating your blog post based on the outline. This may take a minute or two.
                   </p>
                 </div>
@@ -484,26 +484,26 @@ function BlogPage() {
           ) : hasContent ? (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--color-text-primary)]">
                   {viewMode === 'outline' ? 'Outline' : 'Content'}
                 </h2>
                 {viewMode === 'outline' && lastSavedAt && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-[length:var(--text-sm)] text-[var(--color-text-muted)]">
                     Last saved {lastSavedAt.toLocaleTimeString()}
                   </span>
                 )}
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-[var(--color-surface-raised)] rounded-[var(--radius-lg)] p-[var(--space-4)]">
                 {viewMode === 'outline' && formatMode === 'markdown' ? (
                   <textarea
                     value={editedOutline}
                     onChange={(e) => handleOutlineChange(e.target.value)}
                     disabled={isGenerating}
-                    className="w-full min-h-[400px] p-4 text-sm text-gray-900 font-mono bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full min-h-[400px] p-[var(--space-4)] text-[length:var(--text-sm)] text-[var(--color-text-primary)] font-mono bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] disabled:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed transition-colors duration-[var(--duration-fast)]"
                     placeholder="Enter blog outline in markdown format..."
                   />
                 ) : formatMode === 'markdown' ? (
-                  <pre className="whitespace-pre-wrap text-sm text-gray-900 font-mono">
+                  <pre className="whitespace-pre-wrap text-[length:var(--text-sm)] text-[var(--color-text-primary)] font-mono">
                     {currentContent}
                   </pre>
                 ) : (
@@ -511,27 +511,27 @@ function BlogPage() {
                 )}
               </div>
               {viewMode === 'content' && blogData.wordCount && (
-                <p className="mt-2 text-sm text-gray-500">
+                <p className="mt-2 text-[length:var(--text-sm)] text-[var(--color-text-muted)]">
                   Word count: {blogData.wordCount.toLocaleString()}
                 </p>
               )}
               {isDirty && viewMode === 'outline' && (
-                <p className="mt-2 text-sm text-amber-600">
+                <p className="mt-2 text-[length:var(--text-sm)] text-[var(--color-warning)]">
                   Outline has been modified. Click "Regenerate Content" to update the blog post.
                 </p>
               )}
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">
+              <p className="text-[var(--color-text-muted)]">
                 No {viewMode} available yet.
               </p>
             </div>
           )}
 
           {blogData.updatedAt && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-500">
+            <div className="mt-6 pt-6 border-t border-[var(--color-divider)]">
+              <p className="text-[length:var(--text-sm)] text-[var(--color-text-muted)]">
                 Last updated: {new Date(blogData.updatedAt).toLocaleString()}
               </p>
             </div>

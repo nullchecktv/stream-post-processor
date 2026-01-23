@@ -96,17 +96,17 @@ export const ActivityItem = memo(function ActivityItem({
   const getIconColor = () => {
     switch (notification.type) {
       case 'team_invitation':
-        return 'text-blue-600 bg-blue-100'
+        return 'text-[var(--color-info)] bg-[var(--color-surface-raised)]'
       case 'member_added':
-        return 'text-green-600 bg-green-100'
+        return 'text-[var(--color-success)] bg-[var(--color-surface-raised)]'
       case 'member_removed':
-        return 'text-red-600 bg-red-100'
+        return 'text-[var(--color-error)] bg-[var(--color-surface-raised)]'
       case 'role_changed':
-        return 'text-purple-600 bg-purple-100'
+        return 'text-[var(--color-accent)] bg-[var(--color-surface-raised)]'
       case 'clip_processed':
-        return 'text-indigo-600 bg-indigo-100'
+        return 'text-[var(--color-accent)] bg-[var(--color-surface-raised)]'
       default:
-        return 'text-gray-600 bg-gray-100'
+        return 'text-[var(--color-text-muted)] bg-[var(--color-surface-raised)]'
     }
   }
 
@@ -156,11 +156,11 @@ export const ActivityItem = memo(function ActivityItem({
 
   return (
     <div
-      className={`p-4 rounded-lg border transition-all ${
+      className={`p-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] transition-colors ${
         notification.isRead
-          ? 'bg-white border-gray-200'
-          : 'bg-blue-50 border-blue-200'
-      } ${isProcessing ? 'opacity-50 cursor-not-allowed' : hasDestination ? 'cursor-pointer' : ''}`}
+          ? 'bg-[var(--color-surface)]'
+          : 'bg-[var(--color-accent-subtle)]'
+      } ${isProcessing ? 'opacity-50 cursor-not-allowed' : hasDestination ? 'cursor-pointer hover:bg-[var(--color-surface-hover)]' : ''}`}
       onClick={handleNavigate}
     >
       <div className="flex gap-4">
@@ -171,13 +171,13 @@ export const ActivityItem = memo(function ActivityItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">{notification.title}</h3>
-              <p className="mt-1 text-sm text-gray-600">{notification.message}</p>
-              <p className="mt-2 text-xs text-gray-500">{formatTimestamp(notification.createdAt)}</p>
+              <h3 className="font-semibold text-[var(--color-text-primary)]">{notification.title}</h3>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{notification.message}</p>
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">{formatTimestamp(notification.createdAt)}</p>
             </div>
 
             {!notification.isRead && (
-              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full" />
+              <div className="flex-shrink-0 w-2 h-2 bg-[var(--color-accent)] rounded-full" />
             )}
           </div>
 
@@ -196,7 +196,7 @@ export const ActivityItem = memo(function ActivityItem({
                   }
                 }}
                 disabled={actionLoading !== null || isProcessing}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-[var(--radius-md)] hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors duration-[var(--duration-fast)] disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Accept invitation"
               >
                 {actionLoading === 'accept' ? 'Accepting...' : 'Accept'}
@@ -214,7 +214,7 @@ export const ActivityItem = memo(function ActivityItem({
                   }
                 }}
                 disabled={actionLoading !== null || isProcessing}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-[var(--radius-md)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors duration-[var(--duration-fast)] disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Reject invitation"
               >
                 {actionLoading === 'reject' ? 'Rejecting...' : 'Reject'}
@@ -222,7 +222,7 @@ export const ActivityItem = memo(function ActivityItem({
             </div>
           )}
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex gap-2 pt-4 border-t border-[var(--color-divider)]">
             {!notification.isRead && (
               <button
                 onClick={(e) => {
@@ -237,7 +237,7 @@ export const ActivityItem = memo(function ActivityItem({
                   }
                 }}
                 disabled={isProcessing}
-                className="text-sm text-primary hover:text-primary-dark focus:outline-none focus:underline transition-colors disabled:opacity-50"
+                className="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] focus:outline-none focus:underline transition-colors duration-[var(--duration-fast)] disabled:opacity-50"
                 aria-label="Mark activity as read"
               >
                 Mark as read
@@ -256,7 +256,7 @@ export const ActivityItem = memo(function ActivityItem({
                 }
               }}
               disabled={isProcessing}
-              className="text-sm text-red-600 hover:text-red-700 focus:outline-none focus:underline transition-colors disabled:opacity-50"
+              className="text-sm text-[var(--color-error)] hover:opacity-80 focus:outline-none focus:underline transition-opacity duration-[var(--duration-fast)] disabled:opacity-50"
               aria-label="Delete activity"
             >
               Delete

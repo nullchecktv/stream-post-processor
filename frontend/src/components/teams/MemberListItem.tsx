@@ -83,37 +83,37 @@ export const MemberListItem = memo(function MemberListItem({
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'owner':
-        return 'bg-purple-100 text-purple-800'
+        return 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)]'
       case 'administrator':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-[var(--color-info)]/10 text-[var(--color-info)]'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)]'
     }
   }
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
+    <div className="flex items-center justify-between p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg hover:shadow-sm transition-shadow">
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-sm font-semibold text-primary">
+        <div className="w-10 h-10 bg-[var(--color-accent-subtle)] rounded-full flex items-center justify-center flex-shrink-0">
+          <span className="text-sm font-semibold text-[var(--color-accent)]">
             {getInitials(member.name, member.email)}
           </span>
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="text-sm font-medium text-gray-900 truncate">
+            <h4 className="text-sm font-medium text-[var(--color-text-primary)] truncate">
               {member.name || member.email}
               {isCurrentUser && (
-                <span className="ml-2 text-xs text-gray-500">(You)</span>
+                <span className="ml-2 text-xs text-[var(--color-text-muted)]">(You)</span>
               )}
             </h4>
             {isOwner && (
-              <Crown className="w-4 h-4 text-yellow-500 flex-shrink-0" aria-label="Team Owner" />
+              <Crown className="w-4 h-4 text-[var(--color-warning)] flex-shrink-0" aria-label="Team Owner" />
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-muted)]">
             <span className="truncate">{member.email}</span>
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
@@ -129,7 +129,7 @@ export const MemberListItem = memo(function MemberListItem({
             value={member.role}
             onChange={(e) => handleRoleChange(e.target.value)}
             disabled={changingRole}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label={`Change role for ${member.name || member.email}`}
           >
             <option value="administrator">Administrator</option>
@@ -154,7 +154,7 @@ export const MemberListItem = memo(function MemberListItem({
             disabled={removing}
             variant="ghost"
             size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
             aria-label={`Remove ${member.name || member.email}`}
           >
             <Trash2 className="w-4 h-4" />

@@ -16,7 +16,7 @@ export function Toast({ message, type, onClose, duration = 5000, onAction }: Toa
     return () => clearTimeout(timer)
   }, [duration, onClose])
 
-  const bgVar = {
+  const iconColorVar = {
     success: '--color-success',
     error: '--color-error',
     info: '--color-info',
@@ -62,10 +62,6 @@ export function Toast({ message, type, onClose, duration = 5000, onAction }: Toa
     ),
   }[type]
 
-  const textColor = type === 'success' ? 'text-primary' : 'text-white'
-  const buttonHoverBg = type === 'success' ? 'hover:bg-primary/10' : 'hover:bg-white/20'
-  const buttonFocusRing = type === 'success' ? 'focus:ring-primary/50' : 'focus:ring-white/50'
-
   const handleAction = () => {
     if (onAction) {
       onAction()
@@ -75,18 +71,24 @@ export function Toast({ message, type, onClose, duration = 5000, onAction }: Toa
 
   return (
     <div
-      className={`${textColor} px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md animate-slide-in`}
-      style={{ backgroundColor: `var(${bgVar})` }}
+      className="bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] px-[var(--space-6)] py-[var(--space-4)] rounded-[var(--radius-lg)] shadow-lg flex items-center gap-[var(--space-3)] min-w-[300px] max-w-md animate-slide-in border-l-4"
+      style={{ borderLeftColor: `var(${iconColorVar})` }}
       role="alert"
       aria-live="assertive"
       aria-atomic="true"
     >
-      <div className="flex-shrink-0" aria-hidden="true">{icon}</div>
-      <p className="flex-1 text-sm font-medium">{message}</p>
+      <div
+        className="flex-shrink-0"
+        style={{ color: `var(${iconColorVar})` }}
+        aria-hidden="true"
+      >
+        {icon}
+      </div>
+      <p className="flex-1 text-[length:var(--text-sm)] font-medium">{message}</p>
       {onAction && (
         <button
           onClick={handleAction}
-          className={`flex-shrink-0 px-3 py-1 text-xs font-medium rounded ${buttonHoverBg} transition-colors focus:outline-none focus:ring-2 ${buttonFocusRing}`}
+          className="flex-shrink-0 px-[var(--space-3)] py-[var(--space-1)] text-[length:var(--text-xs)] font-medium rounded-[var(--radius-sm)] hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-surface-raised)]"
           aria-label="View"
         >
           View
@@ -94,7 +96,7 @@ export function Toast({ message, type, onClose, duration = 5000, onAction }: Toa
       )}
       <button
         onClick={onClose}
-        className={`flex-shrink-0 ${buttonHoverBg} rounded p-1 transition-colors focus:outline-none focus:ring-2 ${buttonFocusRing}`}
+        className="flex-shrink-0 hover:bg-[var(--color-surface-hover)] rounded-[var(--radius-sm)] p-[var(--space-1)] transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-surface-raised)]"
         aria-label="Close notification"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

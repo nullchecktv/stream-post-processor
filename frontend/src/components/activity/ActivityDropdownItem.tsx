@@ -112,19 +112,19 @@ export const ActivityDropdownItem = memo(function ActivityDropdownItem({
   const getIconColor = (type: string) => {
     switch (type) {
       case 'clip_detected':
-        return 'text-blue-600 bg-blue-100'
+        return 'text-[var(--color-info)] bg-[var(--color-info)]/10'
       case 'clip_processed':
       case 'preprocessing_completed':
-        return 'text-green-600 bg-green-100'
+        return 'text-[var(--color-success)] bg-[var(--color-success)]/10'
       case 'clip_failed':
       case 'preprocessing_failed':
-        return 'text-red-600 bg-red-100'
+        return 'text-[var(--color-error)] bg-[var(--color-error)]/10'
       case 'status_changed':
-        return 'text-purple-600 bg-purple-100'
+        return 'text-[var(--color-accent)] bg-[var(--color-accent-subtle)]'
       case 'team_invitation':
-        return 'text-indigo-600 bg-indigo-100'
+        return 'text-[var(--color-accent)] bg-[var(--color-accent-subtle)]'
       default:
-        return 'text-gray-600 bg-gray-100'
+        return 'text-[var(--color-text-muted)] bg-[var(--color-surface-raised)]'
     }
   }
 
@@ -203,11 +203,11 @@ export const ActivityDropdownItem = memo(function ActivityDropdownItem({
   return (
     <button
       onClick={handleClick}
-      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-        !item.isRead ? 'bg-blue-50' : ''
+      className={`w-full text-left px-[var(--space-4)] py-[var(--space-3)] hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)] cursor-pointer ${
+        !item.isRead ? 'bg-[var(--color-accent-subtle)]' : ''
       }`}
     >
-      <div className="flex gap-3">
+      <div className="flex gap-[var(--space-3)]">
         <div
           className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${getIconColor(
             item.type
@@ -217,15 +217,15 @@ export const ActivityDropdownItem = memo(function ActivityDropdownItem({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-[var(--space-2)]">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{item.title}</p>
-              <p className="text-sm text-gray-600 line-clamp-2">{item.message}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatTimestamp(item.createdAt)}</p>
+              <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-text-primary)] truncate">{item.title}</p>
+              <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)] line-clamp-2">{item.message}</p>
+              <p className="text-[length:var(--text-xs)] text-[var(--color-text-muted)] mt-1">{formatTimestamp(item.createdAt)}</p>
             </div>
 
             {!item.isRead && (
-              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1" />
+              <div className="flex-shrink-0 w-2 h-2 bg-[var(--color-accent)] rounded-full mt-1" />
             )}
           </div>
         </div>

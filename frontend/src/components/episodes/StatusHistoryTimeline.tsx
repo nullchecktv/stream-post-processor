@@ -55,15 +55,15 @@ const statusIcons = {
 }
 
 const statusColors = {
-  draft: 'bg-gray-100 text-gray-700 border-gray-300',
-  processing: 'bg-info/10 text-info border-info/30',
-  'Ready for Clip Gen': 'bg-warning/10 text-warning border-warning/30',
-  published: 'bg-success/10 text-success border-success/30',
-  archived: 'bg-gray-100 text-gray-600 border-gray-300',
-  plan_added: 'bg-purple-100 text-purple-700 border-purple-300',
-  plan_updated: 'bg-purple-100 text-purple-700 border-purple-300',
-  recommendations_generated: 'bg-indigo-100 text-indigo-700 border-indigo-300',
-  recommendations_failed: 'bg-red-100 text-red-700 border-red-300'
+  draft: 'bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)] border-[var(--color-border)]',
+  processing: 'bg-[var(--color-info-bg)] text-[var(--color-text-primary)] border-[var(--color-info)]',
+  'Ready for Clip Gen': 'bg-[var(--color-warning-bg)] text-[var(--color-text-primary)] border-[var(--color-warning)]',
+  published: 'bg-[var(--color-success-bg)] text-[var(--color-text-primary)] border-[var(--color-success)]',
+  archived: 'bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border-[var(--color-border)]',
+  plan_added: 'bg-[var(--color-surface-raised)] text-[var(--color-accent)] border-[var(--color-accent)]',
+  plan_updated: 'bg-[var(--color-surface-raised)] text-[var(--color-accent)] border-[var(--color-accent)]',
+  recommendations_generated: 'bg-[var(--color-surface-raised)] text-[var(--color-accent)] border-[var(--color-accent)]',
+  recommendations_failed: 'bg-[var(--color-error-bg)] text-[var(--color-text-primary)] border-[var(--color-error)]'
 }
 
 function formatRelativeTime(timestamp: string): string {
@@ -97,7 +97,7 @@ function formatDuration(durationMs?: number): string {
 export function StatusHistoryTimeline({ statusHistory, compact = false }: StatusHistoryTimelineProps) {
   if (!statusHistory || statusHistory.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-[var(--color-text-muted)]">
         <p>No status history available</p>
       </div>
     )
@@ -123,28 +123,28 @@ export function StatusHistoryTimeline({ statusHistory, compact = false }: Status
                 </div>
               </div>
               {!isLast && (
-                <div className="w-0.5 h-full bg-gray-200 mt-2"></div>
+                <div className="w-0.5 h-full bg-[var(--color-divider)] mt-2"></div>
               )}
             </div>
 
             <div className={`flex-1 ${!isLast ? 'pb-4' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">
+                  <h4 className="font-semibold text-[var(--color-text-primary)]">
                     {toTitleCase(entry.status)}
                   </h4>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                     {formatRelativeTime(entry.timestamp)}
                   </p>
                   {entry.duration && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
                       Duration: {formatDuration(entry.duration)}
                     </p>
                   )}
                 </div>
                 {!compact && entry.metadata && Object.keys(entry.metadata).length > 0 && (
                   <button
-                    className="text-xs text-primary hover:text-primary-dark"
+                    className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
                     onClick={() => console.log('Metadata:', entry.metadata)}
                   >
                     Details

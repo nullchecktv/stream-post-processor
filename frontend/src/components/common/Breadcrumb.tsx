@@ -96,20 +96,20 @@ export function Breadcrumb() {
   }
 
   return (
-    <nav className="flex items-center gap-2 text-sm text-gray-600 mb-4" aria-label="Breadcrumb">
+    <nav className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] mb-4" aria-label="Breadcrumb">
       {breadcrumbs.map((crumb, index) => (
         <div key={index} className="flex items-center gap-2">
-          {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
+          {index > 0 && <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)]" />}
           {crumb.path ? (
             <Link
               to={crumb.path}
-              className="hover:text-primary transition-colors flex items-center gap-1"
+              className="hover:text-[var(--color-accent)] transition-colors duration-[var(--duration-fast)] flex items-center gap-1"
             >
               {index === 0 && <Home className="w-4 h-4" />}
               <span>{crumb.label}</span>
             </Link>
           ) : (
-            <span className="text-gray-900 font-medium flex items-center gap-1">
+            <span className="text-[var(--color-text-primary)] font-medium flex items-center gap-1">
               {index === 0 && <Home className="w-4 h-4" />}
               <span>{crumb.label}</span>
             </span>

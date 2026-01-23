@@ -129,8 +129,8 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
   return (
     <div className="space-y-4">
       {hasExistingTranscript && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
+        <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-info)] rounded-[var(--radius-lg)]">
+          <p className="text-[length:var(--text-sm)] text-[var(--color-text-primary)]">
             A transcript has already been uploaded for this episode. You can upload a new one to replace it.
           </p>
         </div>
@@ -140,18 +140,18 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
         id="transcript-upload-help"
         content={
           <div className="space-y-2">
-            <p className="font-semibold text-gray-900">About Transcript Upload</p>
-            <p className="text-sm text-gray-700">
+            <p className="font-semibold text-[var(--color-text-primary)]">About Transcript Upload</p>
+            <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
               Upload an SRT (SubRip) format transcript file. This file contains timestamped text of your episode's dialogue.
             </p>
-            <p className="text-sm text-gray-700">
+            <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
               The AI will analyze the transcript to detect engaging moments and suggest clips automatically.
             </p>
           </div>
         }
         position="bottom"
       >
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+        <div className="border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)] p-[var(--space-6)] text-center hover:border-[var(--color-accent)] transition-colors duration-[var(--duration-fast)]">
           <input
             ref={fileInputRef}
             type="file"
@@ -166,7 +166,7 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
             className="cursor-pointer block"
           >
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-[var(--color-text-muted)]"
               stroke="currentColor"
               fill="none"
               viewBox="0 0 48 48"
@@ -179,10 +179,10 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
                 strokeLinejoin="round"
               />
             </svg>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
               {selectedFile ? selectedFile.name : hasExistingTranscript ? 'Drop .srt file to replace or click to browse' : 'Drop .srt file or click to browse'}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
               SRT format only, max {MAX_FILE_SIZE / 1024 / 1024}MB
             </p>
           </label>
@@ -193,13 +193,13 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
         <div className="flex gap-2">
           <button
             onClick={handleUpload}
-            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex-1 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] px-4 py-2 rounded-[var(--radius-lg)] hover:bg-[var(--color-accent-hover)] transition-colors duration-[var(--duration-fast)]"
           >
             {hasExistingTranscript ? 'Replace Transcript' : 'Upload Transcript'}
           </button>
           <button
             onClick={handleCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-[var(--color-border)] rounded-[var(--radius-lg)] hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)] text-[var(--color-text-primary)]"
           >
             Cancel
           </button>
@@ -207,7 +207,7 @@ export function TranscriptUploader({ episodeId, hasExistingTranscript = false, o
       )}
 
       {isUploading && (
-        <div className="text-center text-sm text-gray-600">
+        <div className="text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
           Uploading transcript...
         </div>
       )}

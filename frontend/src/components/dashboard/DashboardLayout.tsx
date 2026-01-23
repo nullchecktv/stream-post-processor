@@ -8,13 +8,12 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, onCreateEpisode }: DashboardLayoutProps) {
   return (
-    <div className="relative min-h-full bg-gradient-to-br from-gray-50 via-primary/3 to-accent/5">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,200,180,0.02),transparent_50%),radial-gradient(circle_at_70%_60%,rgba(100,180,220,0.02),transparent_50%)] hidden sm:block"></div>
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="relative min-h-full bg-[var(--color-background)]">
+      <div className="relative max-w-7xl mx-auto px-[var(--space-4)] sm:px-[var(--space-6)] lg:px-[var(--space-8)] py-[var(--space-8)]">
         {children}
       </div>
 
-      <div className="fixed bottom-8 right-8 z-40">
+      <div className="fixed bottom-[var(--space-8)] right-[var(--space-8)] z-40">
         <HelpTip
           id="dashboard-create-episode"
           content={
@@ -27,10 +26,9 @@ export function DashboardLayout({ children, onCreateEpisode }: DashboardLayoutPr
         >
           <button
             onClick={onCreateEpisode}
-            className="relative bg-gradient-to-br from-primary via-primary-dark to-primary-light text-white rounded-full p-5 shadow-2xl hover:shadow-primary/50 transition-all transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-primary/40 focus:ring-offset-2 group"
+            className="relative bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-[var(--radius-full)] p-[var(--space-6)] shadow-2xl hover:bg-[var(--color-accent-hover)] transition-colors duration-[var(--duration-fast)] transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] group"
             aria-label="Create new episode"
           >
-            <div className="absolute inset-0 bg-white/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity animate-pulse"></div>
             <svg
               className="w-7 h-7 relative z-10"
               fill="none"

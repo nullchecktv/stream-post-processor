@@ -8,6 +8,7 @@ import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
 import { ColorPicker } from '../components/common/ColorPicker'
 import { BrandingPreview } from '../components/common/BrandingPreview'
+import { ThemeToggle } from '../components/common/ThemeToggle'
 import ProfileSkeleton from '../components/common/ProfileSkeleton'
 import { z } from 'zod'
 import type { BrandingConfig } from '../types'
@@ -239,22 +240,22 @@ function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-        <p className="text-gray-600 mt-1">Manage your account information and preferences</p>
+        <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Profile Settings</h1>
+        <p className="text-[var(--color-text-secondary)] mt-1">Manage your account information and preferences</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Information</h2>
+      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-6 mb-6">
+        <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-6">Account Information</h2>
 
         <div className="space-y-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <p className="text-gray-900">{profile.email}</p>
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Email</label>
+            <p className="text-[var(--color-text-primary)]">{profile.email}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
-            <p className="text-gray-900">{formatDate(profile.createdAt)}</p>
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Account Created</label>
+            <p className="text-[var(--color-text-primary)]">{formatDate(profile.createdAt)}</p>
           </div>
         </div>
 
@@ -271,7 +272,7 @@ function ProfilePage() {
           />
 
           <div>
-            <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="timezone" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
               Timezone (Optional)
             </label>
             <select
@@ -279,7 +280,7 @@ function ProfilePage() {
               value={formData.timezone}
               onChange={(e) => handleChange('timezone', e.target.value)}
               disabled={submitting}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-surface)] text-[var(--color-text-primary)]"
             >
               <option value="">Select timezone</option>
               {TIMEZONE_OPTIONS.map((tz) => (
@@ -289,7 +290,7 @@ function ProfilePage() {
               ))}
             </select>
             {errors.timezone && (
-              <p className="mt-1 text-sm text-red-600">{errors.timezone}</p>
+              <p className="mt-1 text-sm text-[var(--color-error)]">{errors.timezone}</p>
             )}
           </div>
 
@@ -300,13 +301,13 @@ function ProfilePage() {
                 checked={formData.notifications}
                 onChange={(e) => handleChange('notifications', e.target.checked)}
                 disabled={submitting}
-                className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                className="mr-2 h-4 w-4 text-[var(--color-accent)] focus:ring-[var(--color-focus)] border-[var(--color-border)] rounded"
               />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-[var(--color-text-secondary)]">
                 Enable email activity notifications
               </span>
             </label>
-            <p className="mt-1 text-sm text-gray-500 ml-6">
+            <p className="mt-1 text-sm text-[var(--color-text-muted)] ml-6">
               Receive email notifications about team invitations and clip processing
             </p>
           </div>
@@ -323,9 +324,9 @@ function ProfilePage() {
         </form>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Writing Voice</h2>
-        <p className="text-gray-600 mb-6">
+      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-6 mb-6">
+        <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">Writing Voice</h2>
+        <p className="text-[var(--color-text-secondary)] mb-6">
           Configure your writing voice to personalize AI-generated blog content. By default, your team's writing settings are used.
         </p>
 
@@ -337,19 +338,19 @@ function ProfilePage() {
                 checked={useTeamWriting}
                 onChange={(e) => setUseTeamWriting(e.target.checked)}
                 disabled={submitting}
-                className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                className="mr-2 h-4 w-4 text-[var(--color-accent)] focus:ring-[var(--color-focus)] border-[var(--color-border)] rounded"
               />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-[var(--color-text-secondary)]">
                 Use team writing settings
               </span>
             </label>
-            <p className="mt-1 text-sm text-gray-500 ml-6">
+            <p className="mt-1 text-sm text-[var(--color-text-muted)] ml-6">
               When enabled, blog posts will use your team's tone and writing style
             </p>
           </div>
 
           {!useTeamWriting && (
-            <form onSubmit={handleSubmit} className="space-y-6 border-t border-gray-200 pt-6">
+            <form onSubmit={handleSubmit} className="space-y-6 border-t border-[var(--color-divider)] pt-6">
               <Input
                 label="Tone"
                 type="text"
@@ -359,12 +360,12 @@ function ProfilePage() {
                 placeholder="e.g., professional and conversational, casual and humorous"
                 disabled={submitting}
               />
-              <p className="mt-1 text-xs text-gray-500 -mt-4">
+              <p className="mt-1 text-xs text-[var(--color-text-muted)] -mt-4">
                 Examples: "professional and conversational", "casual and humorous", "technical and authoritative"
               </p>
 
               <div>
-                <label htmlFor="writingStyle" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="writingStyle" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
                   Writing Style
                 </label>
                 <textarea
@@ -374,18 +375,18 @@ function ProfilePage() {
                   placeholder="e.g., storytelling with code examples, technical with practical examples"
                   disabled={submitting}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-surface)] text-[var(--color-text-primary)]"
                 />
                 {errors.writingStyle && (
-                  <p className="mt-1 text-sm text-red-600">{errors.writingStyle}</p>
+                  <p className="mt-1 text-sm text-[var(--color-error)]">{errors.writingStyle}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                   Examples: "storytelling with code examples", "technical with practical examples", "educational with step-by-step guides"
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-3">
                   Writing Perspective
                 </label>
                 <div className="space-y-3">
@@ -397,11 +398,11 @@ function ProfilePage() {
                       checked={formData.perspective === 'first_person'}
                       onChange={(e) => handleChange('perspective', e.target.value)}
                       disabled={submitting}
-                      className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                      className="mt-1 mr-3 h-4 w-4 text-[var(--color-accent)] focus:ring-[var(--color-focus)] border-[var(--color-border)]"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-900">First Person</span>
-                      <p className="text-xs text-gray-600 mt-0.5">
+                      <span className="text-sm font-medium text-[var(--color-text-primary)]">First Person</span>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                         Write as if you're speaking directly (I, we, my, our). Best for personal blogs and direct engagement.
                       </p>
                     </div>
@@ -414,25 +415,25 @@ function ProfilePage() {
                       checked={formData.perspective === 'third_person'}
                       onChange={(e) => handleChange('perspective', e.target.value)}
                       disabled={submitting}
-                      className="mt-1 mr-3 h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                      className="mt-1 mr-3 h-4 w-4 text-[var(--color-accent)] focus:ring-[var(--color-focus)] border-[var(--color-border)]"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-900">Third Person</span>
-                      <p className="text-xs text-gray-600 mt-0.5">
+                      <span className="text-sm font-medium text-[var(--color-text-primary)]">Third Person</span>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                         Write from an outside perspective (they, the team, the author). Best for company blogs and professional content.
                       </p>
                     </div>
                   </label>
                 </div>
                 {errors.perspective && (
-                  <p className="mt-1 text-sm text-red-600">{errors.perspective}</p>
+                  <p className="mt-1 text-sm text-[var(--color-error)]">{errors.perspective}</p>
                 )}
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-[var(--color-info)] bg-opacity-10 border border-[var(--color-info)] border-opacity-30 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <svg
-                    className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                    className="w-5 h-5 text-[var(--color-info)] flex-shrink-0 mt-0.5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -444,9 +445,9 @@ function ProfilePage() {
                       d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <div className="text-sm text-blue-800">
+                  <div className="text-sm text-[var(--color-text-primary)]">
                     <p className="font-semibold mb-1">Personal writing voice</p>
-                    <p>
+                    <p className="text-[var(--color-text-secondary)]">
                       These settings will override your team's writing voice for blog posts you generate.
                     </p>
                   </div>
@@ -467,9 +468,9 @@ function ProfilePage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Personal Branding</h2>
-        <p className="text-gray-600 mb-6">
+      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-6 mb-6">
+        <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-6">Personal Branding</h2>
+        <p className="text-[var(--color-text-secondary)] mb-6">
           Customize the appearance of your quote graphics. By default, your team's branding is used.
         </p>
 
@@ -481,21 +482,21 @@ function ProfilePage() {
                 checked={formData.useTeamBranding}
                 onChange={(e) => handleChange('useTeamBranding', e.target.checked)}
                 disabled={submitting}
-                className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                className="mr-2 h-4 w-4 text-[var(--color-accent)] focus:ring-[var(--color-focus)] border-[var(--color-border)] rounded"
               />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-[var(--color-text-secondary)]">
                 Use team branding
               </span>
             </label>
-            <p className="mt-1 text-sm text-gray-500 ml-6">
+            <p className="mt-1 text-sm text-[var(--color-text-muted)] ml-6">
               When enabled, your quote graphics will use your team's branding settings
             </p>
           </div>
 
           {!formData.useTeamBranding && (
             <>
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Brand Colors</h3>
+              <div className="border-t border-[var(--color-divider)] pt-6">
+                <h3 className="text-lg font-medium text-[var(--color-text-primary)] mb-4">Brand Colors</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <ColorPicker
                     label="Primary Color"
@@ -529,7 +530,7 @@ function ProfilePage() {
               </div>
 
               <div>
-                <label htmlFor="fontFamily" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="fontFamily" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
                   Font Family
                 </label>
                 <select
@@ -537,7 +538,7 @@ function ProfilePage() {
                   value={formData.branding!.fontFamily}
                   onChange={(e) => handleBrandingFontChange(e.target.value)}
                   disabled={submitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-surface)] text-[var(--color-text-primary)]"
                 >
                   {FONT_OPTIONS.map((font) => (
                     <option key={font} value={font}>
@@ -546,7 +547,7 @@ function ProfilePage() {
                   ))}
                 </select>
                 {errors['branding.fontFamily'] && (
-                  <p className="mt-1 text-sm text-red-600">{errors['branding.fontFamily']}</p>
+                  <p className="mt-1 text-sm text-[var(--color-error)]">{errors['branding.fontFamily']}</p>
                 )}
               </div>
 
@@ -567,9 +568,20 @@ function ProfilePage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Sign Out</h2>
-        <p className="text-gray-600 mb-4">
+      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-6 mb-6">
+        <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-4">Appearance</h2>
+        <p className="text-[var(--color-text-secondary)] mb-4">
+          Choose between dark and light theme for the interface.
+        </p>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-[var(--color-text-secondary)]">Theme:</span>
+          <ThemeToggle />
+        </div>
+      </div>
+
+      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-6">
+        <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-4">Sign Out</h2>
+        <p className="text-[var(--color-text-secondary)] mb-4">
           Sign out of your account on this device.
         </p>
         <Button

@@ -78,7 +78,7 @@ export function InviteMemberModal({ isOpen, onClose, teamId, onSuccess }: Invite
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Invite Team Member" size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-[var(--space-4)]">
         <div>
           <Input
             label="Email Address"
@@ -94,13 +94,13 @@ export function InviteMemberModal({ isOpen, onClose, teamId, onSuccess }: Invite
             autoFocus
             required
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
             If the user already has an account, they'll be added immediately. Otherwise, they'll receive an invitation email.
           </p>
         </div>
 
         <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="role" className="block text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-1">
             Role
           </label>
           <select
@@ -108,19 +108,19 @@ export function InviteMemberModal({ isOpen, onClose, teamId, onSuccess }: Invite
             value={role}
             onChange={(e) => setRole(e.target.value as 'administrator' | 'member')}
             disabled={loading}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-[var(--space-3)] py-[var(--space-2)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-[var(--duration-fast)]"
           >
             <option value="member">Member</option>
             <option value="administrator">Administrator</option>
           </select>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
             {role === 'administrator'
               ? 'Administrators can invite and remove members'
               : 'Members can view and collaborate on team content'}
           </p>
         </div>
 
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-[var(--space-3)] pt-[var(--space-4)]">
           <Button
             type="button"
             onClick={handleClose}

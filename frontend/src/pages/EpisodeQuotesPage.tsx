@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { QuoteCard } from '../components/episodes/QuoteCard'
+import ContentGrid from '../components/common/ContentGrid'
 import type { EpisodeDetail, Quote } from '../types'
 
 function EpisodeQuotesPage() {
@@ -126,26 +127,6 @@ function EpisodeQuotesPage() {
     }
   }
 
-  const handleDownload = async (quoteId: string, imageUrl: string) => {
-    try {
-      const response = await fetch(imageUrl)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `quote-${quoteId}.png`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Failed to download quote:', err)
-      showToast('Failed to download quote. Please try again.', 'error')
-    }
-  }
-
-
-
   const handleLoadMore = () => {
     if (nextCursor && !loadingQuotes) {
       fetchQuotes(nextCursor)
@@ -159,24 +140,24 @@ function EpisodeQuotesPage() {
   if (error || !episode || !id) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error || 'Episode not found'}</p>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-error)] rounded-lg p-4">
+          <p className="text-[var(--color-error)]">{error || 'Episode not found'}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[var(--space-6)]">
       <Breadcrumb />
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
+        <div className="flex items-center justify-between mb-[var(--space-4)]">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-[length:var(--text-2xl)] font-semibold text-[var(--color-text-primary)]">
               Episode Quotes
             </h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)] mt-1">
               {quotes.length} quote{quotes.length !== 1 ? 's' : ''} for this episode
             </p>
           </div>
@@ -184,9 +165,9 @@ function EpisodeQuotesPage() {
       </div>
 
       {quotes.length === 0 && !loadingQuotes ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-[var(--color-text-muted)]"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -196,35 +177,34 @@ function EpisodeQuotesPage() {
           >
             <path d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No quotes yet</h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <h3 className="mt-[var(--space-4)] text-[length:var(--text-lg)] font-medium text-[var(--color-text-primary)]">No quotes yet</h3>
+          <p className="mt-[var(--space-2)] text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
             Quotes will appear here once they are created from the episode transcript.
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]">
+          <ContentGrid columns={{ sm: 1, md: 2, lg: 3, xl: 3 }} gap={6}>
             {quotes.map(quote => (
               <QuoteCard
                 key={quote.id}
                 quote={quote}
                 onDelete={handleDelete}
-                onDownload={handleDownload}
               />
             ))}
-          </div>
+          </ContentGrid>
 
           {loadingQuotes && (
-            <div className="mt-6 flex justify-center">
+            <div className="mt-[var(--space-6)] flex justify-center">
               <LoadingSpinner variant="inline" />
             </div>
           )}
 
           {hasMore && !loadingQuotes && (
-            <div className="mt-6 flex justify-center">
+            <div className="mt-[var(--space-6)] flex justify-center">
               <button
                 onClick={handleLoadMore}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                className="inline-flex items-center gap-[var(--space-2)] px-[var(--space-6)] py-[var(--space-3)] bg-[var(--color-surface)] text-[var(--color-text-primary)] text-[length:var(--text-sm)] font-medium rounded-[var(--radius-md)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors duration-[var(--duration-fast)]"
               >
                 Load More
               </button>

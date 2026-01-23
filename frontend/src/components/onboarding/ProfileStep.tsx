@@ -48,14 +48,14 @@ export function ProfileStep({ onComplete }: ProfileStepProps) {
         }
         position="bottom"
       >
-        <p className="text-gray-600">
+        <p className="text-[var(--color-text-secondary)]">
           Let's start by setting up your profile. This information helps us personalize your experience.
         </p>
       </HelpTip>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-lg">
+          <p className="text-sm text-[var(--color-error)]">{error}</p>
         </div>
       )}
 
@@ -81,10 +81,10 @@ export function ProfileStep({ onComplete }: ProfileStepProps) {
           type="checkbox"
           id="notifications"
           {...register('preferences.notifications')}
-          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+          className="h-4 w-4 text-[var(--color-accent)] focus:ring-[var(--color-focus)] border-[var(--color-border)] rounded"
           disabled={isSubmitting}
         />
-        <label htmlFor="notifications" className="ml-2 text-sm text-gray-700">
+        <label htmlFor="notifications" className="ml-2 text-sm text-[var(--color-text-primary)]">
           Enable email notifications for important updates
         </label>
       </div>
@@ -92,7 +92,7 @@ export function ProfileStep({ onComplete }: ProfileStepProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full px-6 py-3 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-lg font-medium hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors duration-[var(--duration-fast)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting ? 'Saving...' : 'Continue'}
       </button>

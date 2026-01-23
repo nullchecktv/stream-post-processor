@@ -4,15 +4,23 @@ on:
   workflow_call:
 
 jobs:
-  # eslint:
-  #   name: Lint JS
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - name: Configure NPM
-  #       run: |
-  #         npm ci
-  #         npm run lint
+  eslint:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
 
   # spectral:
   #   name: Lint OpenAPI

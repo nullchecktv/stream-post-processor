@@ -9,42 +9,58 @@ interface StatusIndicatorProps {
 
 const statusConfig: Record<BlogStatus, {
   label: string
-  colors: string
+  bgColor: string
+  textColor: string
+  borderColor: string
   icon: 'loading' | 'success' | 'error' | 'info'
 }> = {
   outline_created: {
     label: 'Outline Created',
-    colors: 'bg-blue-100 text-blue-800 border-blue-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-info)]',
+    borderColor: 'border-[var(--color-info)]',
     icon: 'info'
   },
   content_generating: {
     label: 'Generating Content',
-    colors: 'bg-amber-100 text-amber-800 border-amber-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-warning)]',
+    borderColor: 'border-[var(--color-warning)]',
     icon: 'loading'
   },
   content_generated: {
     label: 'Content Generated',
-    colors: 'bg-green-100 text-green-800 border-green-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-success)]',
+    borderColor: 'border-[var(--color-success)]',
     icon: 'success'
   },
   outline_edited: {
     label: 'Outline Edited',
-    colors: 'bg-purple-100 text-purple-800 border-purple-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-accent)]',
+    borderColor: 'border-[var(--color-accent)]',
     icon: 'info'
   },
   content_edited: {
     label: 'Content Edited',
-    colors: 'bg-purple-100 text-purple-800 border-purple-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-accent)]',
+    borderColor: 'border-[var(--color-accent)]',
     icon: 'info'
   },
   regenerating: {
     label: 'Regenerating',
-    colors: 'bg-amber-100 text-amber-800 border-amber-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-warning)]',
+    borderColor: 'border-[var(--color-warning)]',
     icon: 'loading'
   },
   failed: {
     label: 'Generation Failed',
-    colors: 'bg-red-100 text-red-800 border-red-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-error)]',
+    borderColor: 'border-[var(--color-error)]',
     icon: 'error'
   }
 }
@@ -88,14 +104,16 @@ const icons = {
 export function StatusIndicator({ status, size = 'md', showIcon = true }: StatusIndicatorProps) {
   const config = statusConfig[status] || {
     label: status || 'Unknown',
-    colors: 'bg-gray-100 text-gray-800 border-gray-200',
+    bgColor: 'bg-[var(--color-surface-raised)]',
+    textColor: 'text-[var(--color-text-secondary)]',
+    borderColor: 'border-[var(--color-border)]',
     icon: 'info' as const
   }
   const sizes = sizeConfig[size]
 
   return (
     <output
-      className={`inline-flex items-center gap-1.5 font-semibold rounded-lg border ${config.colors} ${sizes.container}`}
+      className={`inline-flex items-center gap-1.5 font-semibold rounded-[var(--radius-lg)] border ${config.bgColor} ${config.textColor} ${config.borderColor} ${sizes.container}`}
       aria-label={`Blog status: ${config.label}`}
     >
       {showIcon && (

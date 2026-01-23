@@ -18,7 +18,7 @@ const statusDescriptions: Record<string, string> = {
 
 const statusConfig: Record<string, { colors: string; icon: React.ReactElement }> = {
   Draft: {
-    colors: 'bg-gray-100 text-gray-800 border-gray-200',
+    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)] border-[var(--color-border)]',
     icon: (
       <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
         <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -26,7 +26,7 @@ const statusConfig: Record<string, { colors: string; icon: React.ReactElement }>
     )
   },
   Planning: {
-    colors: 'bg-purple-100 text-purple-800 border-purple-200',
+    colors: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-accent)]',
     icon: (
       <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
         <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -34,7 +34,7 @@ const statusConfig: Record<string, { colors: string; icon: React.ReactElement }>
     )
   },
   Ready: {
-    colors: 'bg-warning/10 text-warning border-warning/20',
+    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-warning)] border-[var(--color-warning)]',
     icon: (
       <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
         <path d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -42,7 +42,7 @@ const statusConfig: Record<string, { colors: string; icon: React.ReactElement }>
     )
   },
   Processing: {
-    colors: 'bg-info/10 text-info border-info/20',
+    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-info)] border-[var(--color-info)]',
     icon: (
       <svg className="w-full h-full animate-spin" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -51,7 +51,7 @@ const statusConfig: Record<string, { colors: string; icon: React.ReactElement }>
     )
   },
   Published: {
-    colors: 'bg-success/10 text-success border-success/20',
+    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-success)] border-[var(--color-success)]',
     icon: (
       <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
         <path d="M5 13l4 4L19 7" />
@@ -59,7 +59,7 @@ const statusConfig: Record<string, { colors: string; icon: React.ReactElement }>
     )
   },
   Archived: {
-    colors: 'bg-gray-100 text-gray-600 border-gray-200',
+    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border-[var(--color-border)]',
     icon: (
       <svg className="w-full h-full" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
         <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -106,8 +106,8 @@ export function EpisodeStatusChip({ status, size = 'md', showIcon = false, showH
         id={`status-chip-help-${status}`}
         content={
           <div className="space-y-2">
-            <p className="font-semibold text-gray-900">Status: {status}</p>
-            <p className="text-sm text-gray-700">{statusDescriptions[status] || 'Episode status'}</p>
+            <p className="font-semibold text-[var(--color-text-primary)]">Status: {status}</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">{statusDescriptions[status] || 'Episode status'}</p>
           </div>
         }
         position="bottom"

@@ -25,6 +25,19 @@ export type BrandingConfig = Branding
 export type { StatusHistoryEntry }
 export type { WorkflowSteps, WorkflowStep, WorkflowStepStatus } from './workflow'
 
+export type {
+  AspectRatio,
+  ButtonVariant,
+  ButtonSize,
+  StatusBadgeSize,
+  ColorPalette,
+  BaseCardProps,
+  GridColumns,
+  ContentGridProps,
+  ButtonProps,
+  StatusIndicatorProps
+} from './design-tokens'
+
 export interface EpisodeListView {
   id: string
   title: string

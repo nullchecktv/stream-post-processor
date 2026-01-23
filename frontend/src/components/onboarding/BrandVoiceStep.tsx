@@ -58,7 +58,7 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
           }
           position="bottom"
         >
-          <p className="text-gray-600 mb-4">
+          <p className="text-[var(--color-text-secondary)] mb-4">
             Configure your brand voice to personalize AI-generated blog content. This is optional and can be set up later.
           </p>
         </HelpTip>
@@ -74,8 +74,8 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-lg">
+          <p className="text-sm text-[var(--color-error)]">{error}</p>
         </div>
       )}
 
@@ -89,58 +89,58 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
             helperText="Describe the overall tone you want for your content"
             disabled={isSubmitting}
           />
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
             Examples: "professional and conversational", "casual and humorous", "technical and authoritative"
           </p>
         </div>
 
         <div>
-          <label htmlFor="writingStyle" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="writingStyle" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
             Writing Style
           </label>
           <textarea
             id="writingStyle"
             {...register('writingStyle')}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] focus:border-transparent transition-colors bg-[var(--color-surface)] text-[var(--color-text-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="e.g., storytelling with code examples, technical with practical examples"
             disabled={isSubmitting}
           />
           {errors.writingStyle && (
-            <p className="mt-1 text-sm text-red-600">{errors.writingStyle.message}</p>
+            <p className="mt-1 text-sm text-[var(--color-error)]">{errors.writingStyle.message}</p>
           )}
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
             Examples: "storytelling with code examples", "technical with practical examples", "educational with step-by-step guides"
           </p>
         </div>
 
         <div>
-          <label htmlFor="perspective" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="perspective" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
             Writing Perspective
           </label>
           <select
             id="perspective"
             {...register('perspective')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] focus:border-transparent transition-colors bg-[var(--color-surface)] text-[var(--color-text-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting}
           >
             <option value="first_person">First Person (I, we, our)</option>
             <option value="third_person">Third Person (they, the team, the company)</option>
           </select>
           {errors.perspective && (
-            <p className="mt-1 text-sm text-red-600">{errors.perspective.message}</p>
+            <p className="mt-1 text-sm text-[var(--color-error)]">{errors.perspective.message}</p>
           )}
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
             <strong>First person</strong> creates personal, relatable content ("I discovered that...").
             <strong>Third person</strong> maintains professional distance ("The team found that...").
             Choose based on whether you're writing as an individual or representing an organization.
           </p>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-[var(--color-surface-raised)] border border-[var(--color-info)] rounded-lg p-4">
           <div className="flex items-start gap-3">
             <svg
-              className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+              className="w-5 h-5 text-[var(--color-info)] flex-shrink-0 mt-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -152,9 +152,9 @@ export function BrandVoiceStep({ onComplete, onSkip }: BrandVoiceStepProps) {
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <div className="text-sm text-blue-800">
+            <div className="text-sm text-[var(--color-text-primary)]">
               <p className="font-semibold mb-1">How this helps</p>
-              <p>
+              <p className="text-[var(--color-text-secondary)]">
                 When you generate blog posts from episode transcripts, the AI will use these settings to match your brand's voice and style, creating content that feels authentic to your audience.
               </p>
             </div>

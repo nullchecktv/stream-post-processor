@@ -33,28 +33,28 @@ const ICON_MAP: Record<string, React.ReactElement> = {
 
 const ACTION_STYLES: Record<string, { bg: string; text: string; icon: string; button: string }> = {
   lightbulb: {
-    bg: 'bg-gradient-to-br from-yellow-50 to-amber-50',
-    text: 'text-yellow-900',
-    icon: 'text-yellow-600',
-    button: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'
+    bg: 'bg-[var(--color-surface-raised)]',
+    text: 'text-[var(--color-text-primary)]',
+    icon: 'text-[var(--color-accent)]',
+    button: 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] focus:ring-[var(--color-focus)]'
   },
   document: {
-    bg: 'bg-gradient-to-br from-blue-50 to-indigo-50',
-    text: 'text-blue-900',
-    icon: 'text-blue-600',
-    button: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+    bg: 'bg-[var(--color-surface-raised)]',
+    text: 'text-[var(--color-text-primary)]',
+    icon: 'text-[var(--color-accent)]',
+    button: 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] focus:ring-[var(--color-focus)]'
   },
   video: {
-    bg: 'bg-gradient-to-br from-purple-50 to-pink-50',
-    text: 'text-purple-900',
-    icon: 'text-purple-600',
-    button: 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'
+    bg: 'bg-[var(--color-surface-raised)]',
+    text: 'text-[var(--color-text-primary)]',
+    icon: 'text-[var(--color-accent)]',
+    button: 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] focus:ring-[var(--color-focus)]'
   },
   'check-circle': {
-    bg: 'bg-gradient-to-br from-green-50 to-emerald-50',
-    text: 'text-green-900',
-    icon: 'text-green-600',
-    button: 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+    bg: 'bg-[var(--color-surface-raised)]',
+    text: 'text-[var(--color-text-primary)]',
+    icon: 'text-[var(--color-success)]',
+    button: 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] focus:ring-[var(--color-focus)]'
   }
 }
 
@@ -64,17 +64,17 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
   if (isLoading) {
     return (
       <section
-        className="bg-white rounded-lg shadow-sm border border-gray-200 p-8"
+        className="bg-[var(--color-surface)] rounded-lg shadow-sm border border-[var(--color-border)] p-8"
         aria-label="Next action"
         aria-busy="true"
       >
         <div className="animate-pulse">
           <div className="flex items-start space-x-6">
-            <div className="w-16 h-16 bg-gray-200 rounded-full" />
+            <div className="w-16 h-16 bg-[var(--color-surface-raised)] rounded-full" />
             <div className="flex-1 space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/3" />
-              <div className="h-4 bg-gray-200 rounded w-2/3" />
-              <div className="h-10 bg-gray-200 rounded w-32" />
+              <div className="h-6 bg-[var(--color-surface-raised)] rounded w-1/3" />
+              <div className="h-4 bg-[var(--color-surface-raised)] rounded w-2/3" />
+              <div className="h-10 bg-[var(--color-surface-raised)] rounded w-32" />
             </div>
           </div>
         </div>
@@ -85,19 +85,19 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
   if (error) {
     return (
       <section
-        className="bg-white rounded-lg shadow-sm border border-red-200 p-8"
+        className="bg-[var(--color-surface)] rounded-lg shadow-sm border border-[var(--color-error)] p-8"
         aria-label="Next action error"
         role="alert"
       >
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8 text-[var(--color-error)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Unable to Determine Next Action</h3>
-            <p className="text-sm text-red-700">{error}</p>
+            <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Unable to Determine Next Action</h3>
+            <p className="text-sm text-[var(--color-text-secondary)]">{error}</p>
           </div>
         </div>
       </section>
@@ -107,17 +107,17 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
   if (!action) {
     return (
       <section
-        className="bg-white rounded-lg shadow-sm border border-gray-200 p-8"
+        className="bg-[var(--color-surface)] rounded-lg shadow-sm border border-[var(--color-border)] p-8"
         aria-label="No action needed"
       >
         <div className="text-center py-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-surface-raised)] rounded-full mb-4">
+            <svg className="w-8 h-8 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Action Required</h3>
-          <p className="text-sm text-gray-600">Everything is up to date.</p>
+          <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">No Action Required</h3>
+          <p className="text-sm text-[var(--color-text-secondary)]">Everything is up to date.</p>
         </div>
       </section>
     )
@@ -148,12 +148,12 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
 
   return (
     <section
-      className={`rounded-lg shadow-sm border border-gray-200 p-8 ${styles.bg}`}
+      className={`rounded-lg shadow-sm border border-[var(--color-border)] p-8 ${styles.bg}`}
       aria-label="Next action"
     >
       <div className="flex items-start space-x-6">
         <div
-          className={`flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center ${styles.icon} bg-white shadow-sm`}
+          className={`flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center ${styles.icon} bg-[var(--color-surface)] shadow-sm border border-[var(--color-border)]`}
           aria-hidden="true"
         >
           {icon}
@@ -178,7 +178,7 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
               type="button"
               onClick={handleAction}
               onKeyDown={handleKeyDown}
-              className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white ${styles.button} focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200`}
+              className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-[var(--color-text-on-accent)] ${styles.button} focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200`}
               aria-label={`${action.buttonText} - Navigate to ${action.title}`}
             >
               {action.buttonText}
@@ -191,7 +191,7 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
               <button
                 type="button"
                 onClick={handleSkip}
-                className={`inline-flex items-center px-6 py-3 border-2 ${styles.text} border-current text-base font-medium rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200`}
+                className={`inline-flex items-center px-6 py-3 border-2 ${styles.text} border-current text-base font-medium rounded-md bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus)] transition-colors duration-200`}
                 aria-label={action.skipText}
               >
                 {action.skipText}

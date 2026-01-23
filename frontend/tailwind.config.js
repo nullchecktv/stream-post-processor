@@ -68,6 +68,10 @@ export default {
         md: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
         lg: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
         xl: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+        'flat-sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        'flat': '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+        'flat-md': '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+        'flat-lg': '0 10px 15px -3px rgb(0 0 0 / 0.1)',
       },
       borderRadius: {
         sm: '0.125rem',
@@ -77,6 +81,9 @@ export default {
         xl: '0.75rem',
         '2xl': '1rem',
         full: '9999px',
+        'flat': '0.5rem',
+        'flat-lg': '0.75rem',
+        'flat-xl': '1rem',
       },
       transitionDuration: {
         DEFAULT: '200ms',

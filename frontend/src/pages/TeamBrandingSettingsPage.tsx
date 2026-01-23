@@ -135,16 +135,16 @@ function TeamBrandingSettingsPage() {
       <div className="space-y-6">
         <Breadcrumb />
 
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">Brand Colors & Fonts</h2>
-          <p className="text-sm text-gray-600 mb-6">
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border border-[var(--color-border)]">
+          <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-text-primary)] mb-4 sm:mb-6">Brand Colors & Fonts</h2>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-6">
             Customize the colors and fonts used in your quote graphics and other branded content.
           </p>
 
           <form onSubmit={handleSaveBranding} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="primary-color" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="primary-color" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                   Primary Color
                 </label>
                 <div className="flex items-center gap-3">
@@ -154,7 +154,7 @@ function TeamBrandingSettingsPage() {
                     value={brandingData.colors.primary}
                     onChange={(e) => handleBrandingChange('colors.primary', e.target.value)}
                     disabled={savingBranding}
-                    className="h-10 w-20 rounded border border-gray-300 cursor-pointer disabled:opacity-50"
+                    className="h-10 w-20 rounded border border-[var(--color-border)] cursor-pointer disabled:opacity-50"
                   />
                   <Input
                     type="text"
@@ -166,13 +166,13 @@ function TeamBrandingSettingsPage() {
                   />
                 </div>
                 {brandingErrors['colors.primary'] && (
-                  <p className="mt-1 text-sm text-red-600">{brandingErrors['colors.primary']}</p>
+                  <p className="mt-1 text-sm text-[var(--color-error)]">{brandingErrors['colors.primary']}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">Used for borders and accents</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Used for borders and accents</p>
               </div>
 
               <div>
-                <label htmlFor="secondary-color" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="secondary-color" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                   Secondary Color
                 </label>
                 <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ function TeamBrandingSettingsPage() {
                     value={brandingData.colors.secondary}
                     onChange={(e) => handleBrandingChange('colors.secondary', e.target.value)}
                     disabled={savingBranding}
-                    className="h-10 w-20 rounded border border-gray-300 cursor-pointer disabled:opacity-50"
+                    className="h-10 w-20 rounded border border-[var(--color-border)] cursor-pointer disabled:opacity-50"
                   />
                   <Input
                     type="text"
@@ -194,13 +194,13 @@ function TeamBrandingSettingsPage() {
                   />
                 </div>
                 {brandingErrors['colors.secondary'] && (
-                  <p className="mt-1 text-sm text-red-600">{brandingErrors['colors.secondary']}</p>
+                  <p className="mt-1 text-sm text-[var(--color-error)]">{brandingErrors['colors.secondary']}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">Used for speaker names</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Used for speaker names</p>
               </div>
 
               <div>
-                <label htmlFor="background-color" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="background-color" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                   Background Color
                 </label>
                 <div className="flex items-center gap-3">
@@ -210,7 +210,7 @@ function TeamBrandingSettingsPage() {
                     value={brandingData.colors.background}
                     onChange={(e) => handleBrandingChange('colors.background', e.target.value)}
                     disabled={savingBranding}
-                    className="h-10 w-20 rounded border border-gray-300 cursor-pointer disabled:opacity-50"
+                    className="h-10 w-20 rounded border border-[var(--color-border)] cursor-pointer disabled:opacity-50"
                   />
                   <Input
                     type="text"
@@ -222,13 +222,13 @@ function TeamBrandingSettingsPage() {
                   />
                 </div>
                 {brandingErrors['colors.background'] && (
-                  <p className="mt-1 text-sm text-red-600">{brandingErrors['colors.background']}</p>
+                  <p className="mt-1 text-sm text-[var(--color-error)]">{brandingErrors['colors.background']}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">Main background color</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Main background color</p>
               </div>
 
               <div>
-                <label htmlFor="text-color" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="text-color" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                   Text Color
                 </label>
                 <div className="flex items-center gap-3">
@@ -238,7 +238,7 @@ function TeamBrandingSettingsPage() {
                     value={brandingData.colors.text}
                     onChange={(e) => handleBrandingChange('colors.text', e.target.value)}
                     disabled={savingBranding}
-                    className="h-10 w-20 rounded border border-gray-300 cursor-pointer disabled:opacity-50"
+                    className="h-10 w-20 rounded border border-[var(--color-border)] cursor-pointer disabled:opacity-50"
                   />
                   <Input
                     type="text"
@@ -250,14 +250,14 @@ function TeamBrandingSettingsPage() {
                   />
                 </div>
                 {brandingErrors['colors.text'] && (
-                  <p className="mt-1 text-sm text-red-600">{brandingErrors['colors.text']}</p>
+                  <p className="mt-1 text-sm text-[var(--color-error)]">{brandingErrors['colors.text']}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">Quote text color</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Quote text color</p>
               </div>
             </div>
 
             <div>
-              <label htmlFor="font-family" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="font-family" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Font Family
               </label>
               <select
@@ -265,7 +265,7 @@ function TeamBrandingSettingsPage() {
                 value={brandingData.fontFamily}
                 onChange={(e) => handleBrandingChange('fontFamily', e.target.value)}
                 disabled={savingBranding}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-surface)] text-[var(--color-text-primary)]"
               >
                 {FONT_OPTIONS.map((font) => (
                   <option key={font} value={font}>
@@ -274,13 +274,13 @@ function TeamBrandingSettingsPage() {
                 ))}
               </select>
               {brandingErrors.fontFamily && (
-                <p className="mt-1 text-sm text-red-600">{brandingErrors.fontFamily}</p>
+                <p className="mt-1 text-sm text-[var(--color-error)]">{brandingErrors.fontFamily}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">Font used in quote graphics</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">Font used in quote graphics</p>
             </div>
 
-            <div className="border-t pt-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Preview</h3>
+            <div className="border-t border-[var(--color-divider)] pt-6">
+              <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-4">Preview</h3>
               <div
                 className="relative w-full aspect-video rounded-lg overflow-hidden shadow-lg"
                 style={{ backgroundColor: brandingData.colors.background }}

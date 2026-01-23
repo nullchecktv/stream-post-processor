@@ -27,7 +27,7 @@ export function ClipQualityIndicator({ segments, trackCount, hasSpeakers }: Clip
       return (
         <div className="relative inline-block">
           <div
-            className="flex items-center gap-1.5 px-2 py-1 bg-green-50 border border-green-200 rounded text-xs font-medium text-green-700"
+            className="flex items-center gap-1.5 px-[var(--space-2)] py-[var(--space-1)] bg-[var(--color-surface)] border border-[var(--color-success)] rounded-[var(--radius-sm)] text-[length:var(--text-xs)] font-medium text-[var(--color-success)]"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
@@ -37,9 +37,9 @@ export function ClipQualityIndicator({ segments, trackCount, hasSpeakers }: Clip
             <span>Optimal</span>
           </div>
           {showTooltip && (
-            <div className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg pointer-events-none">
+            <div className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 px-[var(--space-3)] py-[var(--space-2)] bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] text-[length:var(--text-xs)] rounded-[var(--radius-sm)] shadow-lg pointer-events-none border border-[var(--color-border)]">
               All segments have speaker attribution for optimal track selection
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--color-surface-raised)]" />
             </div>
           )}
         </div>
@@ -50,7 +50,7 @@ export function ClipQualityIndicator({ segments, trackCount, hasSpeakers }: Clip
   return (
     <div className="relative inline-block">
       <div
-        className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded text-xs font-medium text-amber-700"
+        className="flex items-center gap-1.5 px-[var(--space-2)] py-[var(--space-1)] bg-[var(--color-surface)] border border-[var(--color-warning)] rounded-[var(--radius-sm)] text-[length:var(--text-xs)] font-medium text-[var(--color-warning)]"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
@@ -60,9 +60,9 @@ export function ClipQualityIndicator({ segments, trackCount, hasSpeakers }: Clip
         <span>Fallback</span>
       </div>
       {showTooltip && (
-        <div className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg pointer-events-none">
+        <div className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-[var(--space-3)] py-[var(--space-2)] bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] text-[length:var(--text-xs)] rounded-[var(--radius-sm)] shadow-lg pointer-events-none border border-[var(--color-border)]">
           Using fallback track selection. Add speaker labels to your transcript for better results.
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--color-surface-raised)]" />
         </div>
       )}
     </div>

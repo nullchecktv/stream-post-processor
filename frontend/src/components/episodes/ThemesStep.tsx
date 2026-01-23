@@ -71,8 +71,8 @@ export function ThemesStep({ themes, onChange }: ThemesStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Themes</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Themes</h3>
+        <p className="text-sm text-[var(--color-text-secondary)]">
           Add themes or topics covered in this episode to help with organization and discovery.
         </p>
       </div>
@@ -95,20 +95,20 @@ export function ThemesStep({ themes, onChange }: ThemesStepProps) {
 
       {themes.length > 0 && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
             Selected Themes
           </label>
           <div className="flex flex-wrap gap-2">
             {themes.map((theme) => (
               <span
                 key={theme}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] border border-[var(--color-border)]"
               >
                 {theme}
                 <button
                   type="button"
                   onClick={() => handleRemoveTheme(theme)}
-                  className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors"
                   aria-label={`Remove ${theme}`}
                 >
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -127,7 +127,7 @@ export function ThemesStep({ themes, onChange }: ThemesStepProps) {
 
       {availableSuggestions.length > 0 && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
             Suggested Themes
           </label>
           <div className="flex flex-wrap gap-2">
@@ -136,7 +136,7 @@ export function ThemesStep({ themes, onChange }: ThemesStepProps) {
                 key={suggestion}
                 type="button"
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] transition-colors"
               >
                 <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path

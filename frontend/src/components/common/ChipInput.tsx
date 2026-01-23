@@ -71,28 +71,28 @@ export function ChipInput({
   return (
     <div>
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-          {label} {required && <span className="text-red-500">*</span>}
+        <label htmlFor={id} className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+          {label} {required && <span className="text-[var(--color-error)]">*</span>}
         </label>
       )}
       <div
-        className={`w-full min-h-[42px] px-3 py-2 border rounded-lg transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-1 ${
+        className={`w-full min-h-[42px] px-3 py-2 border rounded-lg bg-[var(--color-surface)] transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-1 ${
           error
-            ? 'border-red-500 focus-within:ring-red-500 focus-within:border-red-500'
-            : 'border-gray-300 focus-within:ring-primary focus-within:border-primary'
+            ? 'border-[var(--color-error)] focus-within:ring-[var(--color-error)] focus-within:border-[var(--color-error)]'
+            : 'border-[var(--color-border)] focus-within:ring-[var(--color-focus)] focus-within:border-[var(--color-focus)]'
         }`}
       >
         <div className="flex flex-wrap gap-2 items-center">
           {value.map((chip, index) => (
             <span
               key={index}
-              className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium"
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full text-sm font-medium"
             >
               {chip}
               <button
                 type="button"
                 onClick={() => removeChip(index)}
-                className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                className="hover:bg-[var(--color-accent)]/20 rounded-full p-0.5 transition-colors duration-[var(--duration-fast)]"
                 aria-label={`Remove ${chip}`}
               >
                 <svg
@@ -119,16 +119,16 @@ export function ChipInput({
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             placeholder={value.length === 0 ? placeholder : ''}
-            className="flex-1 min-w-[120px] outline-none bg-transparent text-sm"
+            className="flex-1 min-w-[120px] outline-none bg-transparent text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]"
           />
         </div>
       </div>
       {error && (
-        <p className="mt-1 text-sm text-red-600" role="alert">
+        <p className="mt-1 text-sm text-[var(--color-error)]" role="alert">
           {error}
         </p>
       )}
-      <p className="mt-1 text-xs text-gray-500">
+      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
         Press Enter or comma to add. Click × to remove.
       </p>
     </div>

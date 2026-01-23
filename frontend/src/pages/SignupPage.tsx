@@ -173,20 +173,20 @@ function SignupPage() {
     if (/[0-9]/.test(password)) score++
     if (/[^A-Za-z0-9]/.test(password)) score++
 
-    if (score <= 2) return { strength: 'Weak', color: 'bg-error', width: '33%' }
-    if (score <= 4) return { strength: 'Medium', color: 'bg-yellow-500', width: '66%' }
-    return { strength: 'Strong', color: 'bg-green-500', width: '100%' }
+    if (score <= 2) return { strength: 'Weak', color: 'bg-[var(--color-error)]', width: '33%' }
+    if (score <= 4) return { strength: 'Medium', color: 'bg-[var(--color-warning)]', width: '66%' }
+    return { strength: 'Strong', color: 'bg-[var(--color-success)]', width: '100%' }
   }
 
   const passwordStrength = getPasswordStrength(password)
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-8">
+    <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center px-6 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 animate-slideDown">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-accent)] rounded-xl mb-4">
             <svg
-              className="w-10 h-10 text-white"
+              className="w-10 h-10 text-[var(--color-text-on-accent)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -199,16 +199,16 @@ function SignupPage() {
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Encore</h1>
-          <p className="text-gray-600 mt-2">Transform your livestreams into engaging clips</p>
+          <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Encore</h1>
+          <p className="text-[var(--color-text-secondary)] mt-2">Transform your livestreams into engaging clips</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-8 animate-slideUp">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Create Account</h2>
+        <div className="bg-[var(--color-surface)] rounded-xl shadow-md p-8 animate-slideUp border border-[var(--color-border)]">
+          <h2 className="text-2xl font-semibold text-[var(--color-text-primary)] mb-6">Create Account</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Name
               </label>
               <input
@@ -216,10 +216,10 @@ function SignupPage() {
                 type="text"
                 value={name}
                 onChange={handleNameChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                   nameError
-                    ? 'border-error focus:ring-error focus:border-error'
-                    : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                 }`}
                 placeholder="Your name"
                 disabled={loading}
@@ -227,14 +227,14 @@ function SignupPage() {
                 aria-describedby={nameError ? 'name-error' : undefined}
               />
               {nameError && (
-                <p id="name-error" className="mt-2 text-sm text-error" role="alert">
+                <p id="name-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                   {nameError}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Email
               </label>
               <input
@@ -242,10 +242,10 @@ function SignupPage() {
                 type="email"
                 value={email}
                 onChange={handleEmailChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                   emailError
-                    ? 'border-error focus:ring-error focus:border-error'
-                    : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                 }`}
                 placeholder="you@example.com"
                 disabled={loading}
@@ -253,14 +253,14 @@ function SignupPage() {
                 aria-describedby={emailError ? 'email-error' : undefined}
               />
               {emailError && (
-                <p id="email-error" className="mt-2 text-sm text-error" role="alert">
+                <p id="email-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                   {emailError}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Password
               </label>
               <input
@@ -268,10 +268,10 @@ function SignupPage() {
                 type="password"
                 value={password}
                 onChange={handlePasswordChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                   passwordError
-                    ? 'border-error focus:ring-error focus:border-error'
-                    : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                 }`}
                 placeholder="Create a strong password"
                 disabled={loading}
@@ -281,25 +281,25 @@ function SignupPage() {
               {password && (
                 <div id="password-strength" className="mt-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-[var(--color-surface-raised)] rounded-full overflow-hidden">
                       <div
-                        className={`h-full ${passwordStrength.color} transition-all duration-300`}
+                        className={`h-full ${passwordStrength.color} transition-[width] duration-[var(--duration-base)]`}
                         style={{ width: passwordStrength.width }}
                       />
                     </div>
-                    <span className="text-xs text-gray-600">{passwordStrength.strength}</span>
+                    <span className="text-xs text-[var(--color-text-muted)]">{passwordStrength.strength}</span>
                   </div>
                 </div>
               )}
               {passwordError && (
-                <p id="password-error" className="mt-2 text-sm text-error" role="alert">
+                <p id="password-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                   {passwordError}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Confirm Password
               </label>
               <input
@@ -307,10 +307,10 @@ function SignupPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={handleConfirmPasswordChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                   confirmPasswordError
-                    ? 'border-error focus:ring-error focus:border-error'
-                    : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                 }`}
                 placeholder="Confirm your password"
                 disabled={loading}
@@ -318,20 +318,20 @@ function SignupPage() {
                 aria-describedby={confirmPasswordError ? 'confirm-password-error' : undefined}
               />
               {confirmPasswordError && (
-                <p id="confirm-password-error" className="mt-2 text-sm text-error" role="alert">
+                <p id="confirm-password-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                   {confirmPasswordError}
                 </p>
               )}
             </div>
 
             {error && (
-              <div className="p-4 bg-error bg-opacity-10 border border-error rounded-lg animate-slideDown">
-                <p className="text-sm text-error" role="alert">
+              <div className="p-4 bg-[var(--color-error)] bg-opacity-10 border border-[var(--color-error)] rounded-lg animate-slideDown">
+                <p className="text-sm text-[var(--color-error)]" role="alert">
                   {error}
                   {error.includes('already exists') && (
                     <>
                       {' '}
-                      <Link to="/login" className="underline hover:text-error-dark">
+                      <Link to="/login" className="underline hover:opacity-80 transition-opacity">
                         Sign in instead
                       </Link>
                     </>
@@ -343,12 +343,11 @@ function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
-              style={{ backgroundColor: '#5B8C5A', color: '#ffffff' }}
+              className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)] font-semibold py-3 px-4 rounded-lg transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
             >
               {loading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  <div className="w-5 h-5 border-2 border-[var(--color-text-on-accent)] border-t-transparent rounded-full animate-spin mr-2" />
                   Creating account...
                 </>
               ) : (
@@ -358,9 +357,9 @@ function SignupPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:text-primary-dark font-medium transition-colors">
+              <Link to="/login" className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors duration-[var(--duration-fast)]">
                 Sign in
               </Link>
             </p>

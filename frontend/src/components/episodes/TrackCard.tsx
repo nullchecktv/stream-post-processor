@@ -151,7 +151,7 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 capitalize flex-shrink-0">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-accent)] text-white capitalize flex-shrink-0">
             {track.status}
           </span>
           <button

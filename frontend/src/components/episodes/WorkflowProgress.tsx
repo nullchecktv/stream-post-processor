@@ -141,32 +141,32 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
   const getStepClasses = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
     const state = getStepState(stepKey)
     const disabled = stepKey !== 'generatePlan' && isUploadDisabled()
-    const baseClasses = 'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm'
+    const baseClasses = 'w-11 h-11 rounded-xl flex items-center justify-center transition-colors duration-300 shadow-sm'
 
     if (disabled) {
-      return `${baseClasses} bg-gray-100 text-gray-300 border border-gray-200 cursor-not-allowed opacity-50`
+      return `${baseClasses} bg-[var(--color-surface)] text-[var(--color-text-disabled)] border border-[var(--color-border)] cursor-not-allowed opacity-50`
     }
 
     if (state === 'complete') {
-      return `${baseClasses} bg-gradient-to-br from-emerald-500 to-emerald-600 text-white`
+      return `${baseClasses} bg-[var(--color-success)] text-[var(--color-text-on-accent)]`
     }
     if (state === 'in-progress') {
-      return `${baseClasses} bg-gradient-to-br from-blue-500 to-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 shadow-lg`
+      return `${baseClasses} bg-[var(--color-accent)] text-[var(--color-text-on-accent)] ring-2 ring-[var(--color-accent)] ring-opacity-40 ring-offset-2 shadow-lg`
     }
     if (state === 'failed') {
-      return `${baseClasses} bg-gradient-to-br from-red-500 to-red-600 text-white ring-2 ring-red-400 ring-offset-2`
+      return `${baseClasses} bg-[var(--color-error)] text-[var(--color-text-on-accent)] ring-2 ring-[var(--color-error)] ring-opacity-40 ring-offset-2`
     }
     if (state === 'skipped') {
-      return `${baseClasses} bg-gradient-to-br from-gray-400 to-gray-500 text-white`
+      return `${baseClasses} bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]`
     }
-    return `${baseClasses} bg-gray-100 text-gray-400 border border-gray-200`
+    return `${baseClasses} bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)]`
   }
 
   const getConnectorClasses = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
     const nextStep = stepKey === 'generatePlan' ? 'uploadTranscript' : 'uploadTracks'
     const isComplete = getStepState(nextStep) === 'complete'
-    return `flex-1 h-0.5 mx-3 transition-all duration-300 ${
-      isComplete ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gray-200'
+    return `flex-1 h-0.5 mx-3 transition-colors duration-300 ${
+      isComplete ? 'bg-[var(--color-success)]' : 'bg-[var(--color-divider)]'
     }`
   }
 
@@ -174,12 +174,12 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
     const state = getStepState(stepKey)
     const disabled = stepKey !== 'generatePlan' && isUploadDisabled()
 
-    if (disabled) return 'text-gray-400'
-    if (state === 'complete') return 'text-gray-900 font-medium'
-    if (state === 'in-progress') return 'text-gray-900 font-semibold'
-    if (state === 'failed') return 'text-red-700 font-medium'
-    if (state === 'skipped') return 'text-gray-600 font-medium'
-    return 'text-gray-500'
+    if (disabled) return 'text-[var(--color-text-disabled)]'
+    if (state === 'complete') return 'text-[var(--color-text-primary)] font-medium'
+    if (state === 'in-progress') return 'text-[var(--color-text-primary)] font-semibold'
+    if (state === 'failed') return 'text-[var(--color-error)] font-medium'
+    if (state === 'skipped') return 'text-[var(--color-text-muted)] font-medium'
+    return 'text-[var(--color-text-secondary)]'
   }
 
   const getStatusBadge = (stepKey: 'generatePlan' | 'uploadTranscript' | 'uploadTracks') => {
@@ -190,7 +190,7 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
     if (disabled) {
       return (
         <span
-          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400 cursor-help"
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface)] text-[var(--color-text-disabled)] cursor-help"
           title={getDisabledTooltip()}
         >
           Locked
@@ -200,14 +200,14 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
 
     if (state === 'complete') {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-success)] border border-[var(--color-success)]">
           Complete
         </span>
       )
     }
     if (state === 'in-progress') {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-info)] border border-[var(--color-info)]">
           In Progress
         </span>
       )
@@ -215,7 +215,7 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
     if (state === 'failed') {
       return (
         <span
-          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 cursor-help"
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-error)] border border-[var(--color-error)] cursor-help"
           title={step?.error || 'Processing failed'}
         >
           Failed
@@ -224,13 +224,13 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
     }
     if (state === 'skipped') {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
           Skipped
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
         Not Started
         </span>
     )
@@ -240,19 +240,19 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
 
   return (
     <section
-      className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-sm border border-gray-200 p-5"
+      className="bg-[var(--color-surface)] rounded-xl shadow-sm border border-[var(--color-border)] p-5"
       aria-label="Episode workflow progress"
     >
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Workflow Progress</h2>
-        <div className="text-xs text-gray-500">
+        <h2 className="text-sm font-semibold text-[var(--color-text-primary)] uppercase tracking-wide">Workflow Progress</h2>
+        <div className="text-xs text-[var(--color-text-secondary)]">
           {completedCount} of {WORKFLOW_STEPS.length} complete
         </div>
       </div>
 
       <div className="hidden md:flex gap-4">
-        <div className="flex-1 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
-          <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        <div className="flex-1 bg-[var(--color-surface-raised)] rounded-lg p-4 border border-[var(--color-warning)]">
+          <div className="text-xs font-semibold text-[var(--color-warning)] uppercase tracking-wide mb-3 flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -274,7 +274,7 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
                       type="button"
                       onClick={handleSkipPlan}
                       disabled={isSkipping}
-                      className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                      className="mt-2 text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium disabled:opacity-50 transition-colors"
                     >
                       {isSkipping ? 'Skipping...' : 'Skip'}
                     </button>
@@ -285,8 +285,8 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
           </div>
         </div>
 
-        <div className="flex-[2] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-          <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        <div className="flex-[2] bg-[var(--color-surface-raised)] rounded-lg p-4 border border-[var(--color-info)]">
+          <div className="text-xs font-semibold text-[var(--color-info)] uppercase tracking-wide mb-3 flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
@@ -320,8 +320,8 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
       </div>
 
       <div className="md:hidden space-y-3">
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-3 border border-amber-200">
-          <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <div className="bg-[var(--color-surface-raised)] rounded-lg p-3 border border-[var(--color-warning)]">
+          <div className="text-xs font-semibold text-[var(--color-warning)] uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -342,7 +342,7 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
                     type="button"
                     onClick={handleSkipPlan}
                     disabled={isSkipping}
-                    className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                    className="mt-2 text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium disabled:opacity-50 transition-colors"
                   >
                     {isSkipping ? 'Skipping...' : 'Skip'}
                   </button>
@@ -352,8 +352,8 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
           ))}
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
-          <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <div className="bg-[var(--color-surface-raised)] rounded-lg p-3 border border-[var(--color-info)]">
+          <div className="text-xs font-semibold text-[var(--color-info)] uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
@@ -372,10 +372,10 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
 
                   {index < arr.length - 1 && (
                     <div
-                      className={`w-0.5 h-8 mt-2 transition-all duration-300 rounded-full ${
+                      className={`w-0.5 h-8 mt-2 transition-colors duration-300 rounded-full ${
                         getStepState(arr[index + 1].key) === 'complete'
-                          ? 'bg-gradient-to-b from-emerald-500 to-emerald-600'
-                          : 'bg-gray-200'
+                          ? 'bg-[var(--color-success)]'
+                          : 'bg-[var(--color-divider)]'
                       }`}
                       aria-hidden="true"
                     />

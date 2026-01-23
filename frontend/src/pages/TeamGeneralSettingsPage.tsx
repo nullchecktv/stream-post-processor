@@ -153,8 +153,8 @@ function TeamGeneralSettingsPage() {
       <div className="space-y-6">
         <Breadcrumb />
 
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">General Settings</h2>
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-text-primary)] mb-4 sm:mb-6">General Settings</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <Input
@@ -169,7 +169,7 @@ function TeamGeneralSettingsPage() {
             />
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="description" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
                 Description (Optional)
               </label>
               <textarea
@@ -179,25 +179,25 @@ function TeamGeneralSettingsPage() {
                 placeholder="Enter team description"
                 disabled={submitting}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-surface)] text-[var(--color-text-primary)]"
               />
               {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                <p className="mt-1 text-sm text-[var(--color-error)]">{errors.description}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Default Platforms (Optional)
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {PLATFORM_OPTIONS.map((platform) => (
                   <label
                     key={platform}
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all min-h-[44px] ${
+                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors min-h-[44px] ${
                       selectedPlatforms.includes(platform)
-                        ? 'border-primary bg-primary/5'
-                        : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]'
+                        : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
                     }`}
                   >
                     <input
@@ -207,7 +207,7 @@ function TeamGeneralSettingsPage() {
                       disabled={submitting}
                       className="mr-2 min-w-[16px] min-h-[16px]"
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-[var(--color-text-primary)]">
                       {platform === 'linkedin live' ? 'LinkedIn Live' : platform.charAt(0).toUpperCase() + platform.slice(1)}
                     </span>
                   </label>
@@ -216,7 +216,7 @@ function TeamGeneralSettingsPage() {
             </div>
 
             <div>
-              <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="timezone" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
                 Timezone (Optional)
               </label>
               <select
@@ -224,7 +224,7 @@ function TeamGeneralSettingsPage() {
                 value={formData.timezone}
                 onChange={(e) => handleChange('timezone', e.target.value)}
                 disabled={submitting}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-surface)] text-[var(--color-text-primary)]"
               >
                 <option value="">Select timezone</option>
                 {TIMEZONE_OPTIONS.map((tz) => (
@@ -234,7 +234,7 @@ function TeamGeneralSettingsPage() {
                 ))}
               </select>
               {errors.timezone && (
-                <p className="mt-1 text-sm text-red-600">{errors.timezone}</p>
+                <p className="mt-1 text-sm text-[var(--color-error)]">{errors.timezone}</p>
               )}
             </div>
 
@@ -251,9 +251,9 @@ function TeamGeneralSettingsPage() {
           </form>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-2 border-red-200">
-          <h2 className="text-lg sm:text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-4">
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border-2 border-[var(--color-error)]">
+          <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-error)] mb-4">Danger Zone</h2>
+          <p className="text-sm sm:text-base text-[var(--color-text-secondary)] mb-4">
             Deleting a team is permanent and cannot be undone. All team data, including episodes and clips, will be permanently deleted.
           </p>
 
@@ -266,8 +266,8 @@ function TeamGeneralSettingsPage() {
               Delete Team
             </Button>
           ) : (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm sm:text-base text-red-800 font-medium mb-3">
+            <div className="bg-[var(--color-error)] bg-opacity-10 border border-[var(--color-error)] rounded-lg p-4">
+              <p className="text-sm sm:text-base text-[var(--color-error)] font-medium mb-3">
                 Are you absolutely sure? This action cannot be undone.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">

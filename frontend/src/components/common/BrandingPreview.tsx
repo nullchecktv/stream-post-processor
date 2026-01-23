@@ -9,8 +9,8 @@ export function BrandingPreview({ branding }: BrandingPreviewProps) {
   const isPressStart = branding.fontFamily === 'Press Start 2P'
 
   return (
-    <div className="border border-gray-300 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">Preview</h3>
+    <div className="border border-[var(--color-border)] rounded-lg p-4">
+      <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-3">Preview</h3>
       <div
         className="relative rounded-lg overflow-hidden"
         style={{

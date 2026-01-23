@@ -207,8 +207,8 @@ function TeamMembersPage() {
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Team Members</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">{team?.name}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)]">Team Members</h1>
+              <p className="text-sm sm:text-base text-[var(--color-text-secondary)] mt-1">{team?.name}</p>
             </div>
             {canManage && (
               <Button onClick={handleInviteMember} variant="primary" className="w-full sm:w-auto">
@@ -231,17 +231,17 @@ function TeamMembersPage() {
         </div>
 
         {canManage && pendingInvitations.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Pending Invitations</h2>
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-text-primary)] mb-4">Pending Invitations</h2>
             <div className="space-y-3">
               {pendingInvitations.map((invitation) => (
                 <div
                   key={invitation.email}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-gray-200 rounded-lg"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-[var(--color-border)] rounded-[var(--radius-lg)]"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{invitation.email}</p>
-                    <p className="text-xs sm:text-sm text-gray-500">
+                    <p className="font-medium text-[var(--color-text-primary)] truncate">{invitation.email}</p>
+                    <p className="text-xs sm:text-sm text-[var(--color-text-muted)]">
                       Invited by {invitation.inviterName} • {invitation.role}
                     </p>
                   </div>
@@ -259,14 +259,14 @@ function TeamMembersPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-md">
           <div className="p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-text-primary)] mb-4">
               Members ({filteredMembers.length})
             </h2>
 
             {filteredMembers.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 text-gray-500">
+              <div className="text-center py-6 sm:py-8 text-[var(--color-text-muted)]">
                 <p className="text-sm">No members found</p>
               </div>
             ) : (
@@ -278,28 +278,28 @@ function TeamMembersPage() {
                   return (
                     <div
                       key={member.userId}
-                      className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 border border-[var(--color-border)] rounded-[var(--radius-lg)] hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)]"
                     >
                       <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                        <div className="w-10 h-10 bg-[var(--color-accent)] rounded-[var(--radius-full)] flex items-center justify-center text-[var(--color-text-on-accent)] font-semibold flex-shrink-0">
                           {((member.name || member.email || 'U').charAt(0).toUpperCase())}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-medium text-gray-900 text-sm sm:text-base truncate">
+                            <p className="font-medium text-[var(--color-text-primary)] text-sm sm:text-base truncate">
                               {member.name || member.email || 'Unknown User'}
                               {isCurrentUser && (
-                                <span className="ml-2 text-xs sm:text-sm text-gray-500">(You)</span>
+                                <span className="ml-2 text-xs sm:text-sm text-[var(--color-text-muted)]">(You)</span>
                               )}
                             </p>
                             {isOwner && (
-                              <span className="px-2 py-1 bg-primary text-white text-xs rounded-full flex-shrink-0">
+                              <span className="px-2 py-1 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] text-xs rounded-[var(--radius-full)] flex-shrink-0">
                                 Owner
                               </span>
                             )}
                           </div>
-                          <p className="text-xs sm:text-sm text-gray-500 truncate">{member.email}</p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">{member.email}</p>
+                          <p className="text-xs text-[var(--color-text-muted)]">
                             Joined {new Date(member.joinedAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -310,7 +310,7 @@ function TeamMembersPage() {
                           <select
                             value={member.role}
                             onChange={(e) => handleRoleChange(member.userId, e.target.value)}
-                            className="flex-1 sm:flex-initial px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+                            className="flex-1 sm:flex-initial px-3 py-2 border border-[var(--color-border)] rounded-[var(--radius-lg)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] min-h-[44px] bg-[var(--color-surface)] text-[var(--color-text-primary)]"
                           >
                             <option value="administrator">Administrator</option>
                             <option value="member">Member</option>
@@ -318,8 +318,8 @@ function TeamMembersPage() {
                         )}
 
                         {!canUpdateRole && !isOwner && (
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            member.role === 'administrator' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                          <span className={`px-3 py-1 rounded-[var(--radius-full)] text-xs font-medium ${
+                            member.role === 'administrator' ? 'bg-[var(--color-info)]/10 text-[var(--color-info)]' : 'bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)]'
                           }`}>
                             {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
                           </span>
@@ -359,7 +359,7 @@ function TeamMembersPage() {
           />
 
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="role" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
               Role
             </label>
             <select
@@ -367,17 +367,17 @@ function TeamMembersPage() {
               value={formData.role}
               onChange={(e) => handleChange('role', e.target.value)}
               disabled={submitting}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-[var(--color-border)] rounded-[var(--radius-lg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-surface)] text-[var(--color-text-primary)]"
             >
               <option value="member">Member</option>
               <option value="administrator">Administrator</option>
             </select>
             {errors.role && (
-              <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+              <p className="mt-1 text-sm text-[var(--color-error)]">{errors.role}</p>
             )}
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+          <div className="bg-[var(--color-info)]/10 border border-[var(--color-info)] rounded-[var(--radius-lg)] p-3 text-sm text-[var(--color-info)]">
             <p className="font-medium mb-1">Role Permissions:</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li><strong>Member:</strong> Can view and create content</li>

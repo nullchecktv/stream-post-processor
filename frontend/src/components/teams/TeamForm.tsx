@@ -126,15 +126,15 @@ export function TeamForm({ mode, initialData, onSubmit, onCancel, loading = fals
           required
           maxLength={100}
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
           {name.length}/100 characters
         </p>
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="description" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
           Description
-          <span className="text-gray-400 font-normal ml-1">(optional)</span>
+          <span className="text-[var(--color-text-muted)] font-normal ml-1">(optional)</span>
         </label>
         <textarea
           id="description"
@@ -149,20 +149,20 @@ export function TeamForm({ mode, initialData, onSubmit, onCancel, loading = fals
           disabled={loading}
           maxLength={500}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+          className="w-full px-3 py-2 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed resize-none"
         />
         {errors.description && (
-          <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+          <p className="mt-1 text-sm text-[var(--color-error)]">{errors.description}</p>
         )}
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
           {description.length}/500 characters
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
           Default Platforms
-          <span className="text-gray-400 font-normal ml-1">(optional)</span>
+          <span className="text-[var(--color-text-muted)] font-normal ml-1">(optional)</span>
         </label>
         <div className="grid grid-cols-2 gap-3">
           {PLATFORMS.map((platform) => (
@@ -171,32 +171,32 @@ export function TeamForm({ mode, initialData, onSubmit, onCancel, loading = fals
               type="button"
               onClick={() => togglePlatform(platform.value)}
               disabled={loading}
-              className={`px-4 py-2 rounded-lg border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
                 selectedPlatforms.includes(platform.value)
-                  ? 'border-primary bg-primary/10 text-primary font-medium'
-                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                  ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)] font-medium'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]'
               }`}
             >
               {platform.label}
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
           Select the platforms your team typically publishes to
         </p>
       </div>
 
       <div>
-        <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="timezone" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
           Timezone
-          <span className="text-gray-400 font-normal ml-1">(optional)</span>
+          <span className="text-[var(--color-text-muted)] font-normal ml-1">(optional)</span>
         </label>
         <select
           id="timezone"
           value={timezone}
           onChange={(e) => setTimezone(e.target.value)}
           disabled={loading}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-3 py-2 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {TIMEZONES.map((tz) => (
             <option key={tz} value={tz}>
@@ -204,12 +204,12 @@ export function TeamForm({ mode, initialData, onSubmit, onCancel, loading = fals
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
           Used for scheduling and timestamps
         </p>
       </div>
 
-      <div className="flex gap-3 pt-4 border-t border-gray-200">
+      <div className="flex gap-3 pt-4 border-t border-[var(--color-divider)]">
         {onCancel && (
           <Button
             type="button"

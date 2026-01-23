@@ -14,7 +14,7 @@ export function EpisodeLayout() {
   }, [location.pathname, id, navigate])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+    <div className="max-w-7xl mx-auto px-[var(--space-4)] sm:px-[var(--space-6)] lg:px-[var(--space-8)] py-[var(--space-4)] sm:py-[var(--space-6)] lg:py-[var(--space-8)]">
       <ErrorBoundary>
         <Outlet />
       </ErrorBoundary>

@@ -92,6 +92,37 @@ Run ESLint:
 npm run lint
 ```
 
+#### Color Usage Rules
+
+The project enforces strict rules against hardcoded colors to maintain theme consistency and enable future theme toggling. ESLint will fail if you use:
+
+1. **Tailwind color utilities** (e.g., `text-gray-500`, `bg-blue-600`, `border-red-400`)
+   - ❌ Bad: `className="text-gray-500 bg-blue-600"`
+   - ✅ Good: `className="text-[var(--color-text-primary)] bg-[var(--color-surface)]"`
+
+2. **Absolute colors** (e.g., `text-white`, `bg-black`)
+   - ❌ Bad: `className="text-white bg-black"`
+   - ✅ Good: `className="text-[var(--color-text-on-accent)] bg-[var(--color-background)]"`
+
+3. **Arbitrary color values** (e.g., `bg-[#3B82F6]`, `text-[rgb(59,130,246)]`)
+   - ❌ Bad: `className="bg-[#3B82F6] text-[rgb(59,130,246)]"`
+   - ✅ Good: `className="bg-[var(--color-accent)] text-[var(--color-text-primary)]"`
+
+4. **Inline style colors** (e.g., `style={{ color: '#000', backgroundColor: '#fff' }}`)
+   - ❌ Bad: `style={{ color: '#000', backgroundColor: '#fff' }}`
+   - ✅ Good: `style={{ color: 'var(--color-text-primary)', backgroundColor: 'var(--color-surface)' }}`
+
+**Available CSS Variables:**
+- Surface: `--color-background`, `--color-surface`, `--color-surface-raised`, `--color-border`
+- Text: `--color-text-primary`, `--color-text-secondary`, `--color-text-muted`, `--color-text-disabled`
+- Accent: `--color-accent`, `--color-accent-hover`, `--color-accent-subtle`
+- Semantic: `--color-success`, `--color-warning`, `--color-error`, `--color-info`
+
+See `src/index.css` for the complete list of available CSS variables.
+
+**CI Integration:**
+The lint check runs automatically in the CI pipeline on all pull requests. Any hardcoded colors will cause the build to fail, ensuring theme consistency across the codebase.
+
 ## Design System
 
 ### Colors
