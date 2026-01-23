@@ -125,7 +125,7 @@ function ForgotPasswordPage() {
       await resetPassword({ username: email })
       setSuccessMessage('Verification code sent to your email')
       setStep('reset')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reset password error:', err)
       setError(mapAuthError(err))
     } finally {
@@ -161,7 +161,7 @@ function ForgotPasswordPage() {
       setTimeout(() => {
         navigate('/login')
       }, 2000)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Confirm reset password error:', err)
       setError(mapAuthError(err))
     } finally {
@@ -177,7 +177,7 @@ function ForgotPasswordPage() {
     try {
       await resetPassword({ username: email })
       setSuccessMessage('Verification code resent to your email')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Resend code error:', err)
       setError(mapAuthError(err))
     } finally {

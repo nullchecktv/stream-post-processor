@@ -127,7 +127,20 @@ function ProfilePage() {
       setErrors({})
       setSubmitting(true)
 
-      const updateData: any = {
+      const updateData: {
+        name: string
+        preferences: {
+          timezone?: string
+          notifications: boolean
+        }
+        branding?: {
+          voice?: {
+            tone: string
+            writingStyle: string
+            perspective: string
+          }
+        }
+      } = {
         name: validated.name,
         preferences: {
           timezone: validated.timezone || undefined,

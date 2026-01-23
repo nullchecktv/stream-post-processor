@@ -73,13 +73,14 @@ function EmailVerificationPage() {
         confirmationCode: code,
       })
       navigate('/onboarding')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Verification error:', err)
       const errorMessage = mapAuthError(err)
+      const error = err as { name?: string }
 
-      if (err.name === 'CodeMismatchException') {
+      if (error.name === 'CodeMismatchException') {
         setCodeError('Invalid verification code. Please try again.')
-      } else if (err.name === 'ExpiredCodeException') {
+      } else if (error.name === 'ExpiredCodeException') {
         setError('Verification code has expired. Please request a new code.')
       } else {
         setError(errorMessage)
@@ -101,7 +102,7 @@ function EmailVerificationPage() {
       })
       setResendSuccess(true)
       setCode('')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Resend code error:', err)
       setError(mapAuthError(err))
     } finally {

@@ -76,7 +76,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(null)
         setMomentoToken(null)
       }
-    } catch (error) {
+    } catch (_error) {
       setIsAuthenticated(false)
       setUser(null)
       setMomentoToken(null)

@@ -149,7 +149,7 @@ function SignupPage() {
         },
       })
       navigate('/verify-email', { state: { email } })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Signup error:', err)
 
       if (err.name === 'UsernameExistsException') {

@@ -25,6 +25,25 @@ function ClipsCardComponent({
     navigate(`/episodes/${episodeId}/clips`)
   }, [navigate, episodeId])
 
+  const statusBreakdown = useMemo(() => {
+    if (!clips || clips.length === 0) {
+      return { proposed: 0, processing: 0, created: 0, failed: 0 }
+    }
+    return clips.reduce((acc, clip) => {
+      const status = clip.status.toLowerCase()
+      if (status === 'proposed') {
+        acc.proposed++
+      } else if (status === 'processing') {
+        acc.processing++
+      } else if (status === 'created') {
+        acc.created++
+      } else if (status === 'failed') {
+        acc.failed++
+      }
+      return acc
+    }, { proposed: 0, processing: 0, created: 0, failed: 0 })
+  }, [clips])
+
   if (isLoading) {
     return (
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-[var(--space-6)]" aria-busy="true">
@@ -105,22 +124,6 @@ function ClipsCardComponent({
       </div>
     )
   }
-
-  const statusBreakdown = useMemo(() => {
-    return clips.reduce((acc, clip) => {
-      const status = clip.status.toLowerCase()
-      if (status === 'proposed') {
-        acc.proposed++
-      } else if (status === 'processing') {
-        acc.processing++
-      } else if (status === 'created') {
-        acc.created++
-      } else if (status === 'failed') {
-        acc.failed++
-      }
-      return acc
-    }, { proposed: 0, processing: 0, created: 0, failed: 0 })
-  }, [clips])
 
   const totalClips = clips.length
 

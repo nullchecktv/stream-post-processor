@@ -54,7 +54,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [proactiveRefreshTimer, setProactiveRefreshTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const subscriptionRef = useRef<any>(null);
+  const subscriptionRef = useRef<TopicSubscribe.Subscription | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isValidMessage = (msg: unknown): msg is MomentoMessage => {
@@ -389,7 +389,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         if (currentTenantId && topicClient && momentoToken) {
           await subscribeTenant(currentTenantId, topicClient, momentoToken);
         }
-      } catch (error) {
+      } catch (_error) {
         if (attempt < 5) {
           reconnect(attempt + 1);
         } else {

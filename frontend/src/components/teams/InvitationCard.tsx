@@ -25,7 +25,7 @@ export const InvitationCard = memo(function InvitationCard({ invitation, onAccep
     try {
       setAccepting(true)
       await onAccept(invitation.invitationId)
-    } catch (error) {
+    } catch (_error) {
       setAccepting(false)
     }
   }
@@ -34,7 +34,7 @@ export const InvitationCard = memo(function InvitationCard({ invitation, onAccep
     try {
       setRejecting(true)
       await onReject(invitation.invitationId)
-    } catch (error) {
+    } catch (_error) {
       setRejecting(false)
     }
   }

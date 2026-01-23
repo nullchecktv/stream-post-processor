@@ -61,6 +61,28 @@ const ACTION_STYLES: Record<string, { bg: string; text: string; icon: string; bu
 function NextActionCardComponent({ action, isLoading = false, error = null }: NextActionCardProps) {
   const navigate = useNavigate()
 
+  const styles = action ? (ACTION_STYLES[action.icon] || ACTION_STYLES.lightbulb) : ACTION_STYLES.lightbulb
+  const icon = action ? (ICON_MAP[action.icon] || ICON_MAP.lightbulb) : ICON_MAP.lightbulb
+
+  const handleAction = useCallback(() => {
+    if (action) {
+      navigate(action.route)
+    }
+  }, [navigate, action])
+
+  const handleSkip = useCallback(() => {
+    if (action?.skipRoute) {
+      navigate(action.skipRoute)
+    }
+  }, [navigate, action])
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleAction()
+    }
+  }, [handleAction])
+
   if (isLoading) {
     return (
       <section
@@ -122,26 +144,6 @@ function NextActionCardComponent({ action, isLoading = false, error = null }: Ne
       </section>
     )
   }
-
-  const styles = ACTION_STYLES[action.icon] || ACTION_STYLES.lightbulb
-  const icon = ICON_MAP[action.icon] || ICON_MAP.lightbulb
-
-  const handleAction = useCallback(() => {
-    navigate(action.route)
-  }, [navigate, action.route])
-
-  const handleSkip = useCallback(() => {
-    if (action.skipRoute) {
-      navigate(action.skipRoute)
-    }
-  }, [navigate, action.skipRoute])
-
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      handleAction()
-    }
-  }, [handleAction])
 
   const isCompletionState = action.icon === 'check-circle'
   const hasSkipOption = action.skipRoute && action.skipText

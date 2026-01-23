@@ -94,10 +94,10 @@ function EpisodeOverviewPage() {
         episodesApi.getStatus(id),
       ])
       console.log('Overview: Fetched episode data', {
-        workflowSteps: (episodeData as any).workflowSteps,
+        workflowSteps: episodeData.workflowSteps,
         statusHistory: statusData.statusHistory
       })
-      setEpisode({ ...(episodeData as any), statusHistory: statusData.statusHistory } as EpisodeDetail)
+      setEpisode({ ...episodeData, statusHistory: statusData.statusHistory } as EpisodeDetail)
       setError(null)
     } catch (err) {
       console.error('Failed to fetch episode or status history:', err)

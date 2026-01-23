@@ -36,7 +36,7 @@ export class ApiError extends Error {
   }
 }
 
-function getErrorMessage(status: number, errorData: any): string {
+function getErrorMessage(status: number, errorData: Record<string, unknown>): string {
   if (errorData.message) {
     return errorData.message
   }

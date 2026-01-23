@@ -63,7 +63,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
     setHasUnsavedChanges(false)
   }, [hasUnsavedChanges])
 
-  const validateField = (field: string, value: any): string | null => {
+  const validateField = (field: string, value: unknown): string | null => {
     switch (field) {
       case 'title':
         if (!value || value.trim().length === 0) {
@@ -142,7 +142,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
     return null
   }
 
-  const handleFieldBlur = (field: string, value: any) => {
+  const handleFieldBlur = (field: string, value: unknown) => {
     const error = validateField(field, value)
     setValidationErrors(prev => {
       const newErrors = { ...prev }

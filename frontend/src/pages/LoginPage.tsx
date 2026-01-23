@@ -81,7 +81,7 @@ function LoginPage() {
     try {
       await authSignIn(email, password)
       navigate('/')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Authentication error:', err)
       setError(mapAuthError(err))
     } finally {
