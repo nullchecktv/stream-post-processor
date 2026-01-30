@@ -74,7 +74,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         }
         break
 
-      case 'episodeNumber':
+      case 'episodeNumber': {
         if (value === undefined || value === null || value === '') {
           return 'Episode number is required'
         }
@@ -86,6 +86,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
           return 'Episode number must be an integer'
         }
         break
+      }
 
       case 'description':
         if (value && typeof value === 'string' && value.length > 1000) {
