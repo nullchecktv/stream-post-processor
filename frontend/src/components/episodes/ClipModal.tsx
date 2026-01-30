@@ -72,16 +72,16 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--color-overlay)] backdrop-blur-sm"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-label="Clip video player"
     >
-      <div className="relative bg-white rounded-lg p-6 max-w-4xl w-full mx-4">
+      <div className="relative bg-[var(--color-surface-raised)] rounded-[var(--radius-lg)] p-[var(--space-6)] max-w-4xl w-full mx-4">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded z-10"
+          className="absolute top-4 right-4 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-surface-raised)] rounded z-10"
           aria-label="Close modal"
         >
           <svg
@@ -98,20 +98,20 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
         </button>
 
         {loading && (
-          <div className="bg-black rounded-lg aspect-video flex items-center justify-center">
+          <div className="bg-[var(--color-background)] rounded-[var(--radius-lg)] aspect-video flex items-center justify-center">
             <div className="text-center">
               <LoadingSpinner size="lg" />
-              <p className="mt-4 text-white text-sm">Loading video...</p>
+              <p className="mt-4 text-[var(--color-text-primary)] text-sm">Loading video...</p>
             </div>
           </div>
         )}
 
         {error && !loading && (
-          <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center p-8">
+          <div className="bg-[var(--color-background)] rounded-[var(--radius-lg)] aspect-video flex items-center justify-center p-8">
             <div className="text-center max-w-md">
               <div className="mb-4">
                 <svg
-                  className="w-16 h-16 text-red-400 mx-auto"
+                  className="w-16 h-16 text-[var(--color-error)] mx-auto"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -122,11 +122,11 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
                   <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Playback Error</h3>
-              <p className="text-gray-400 mb-6">{error}</p>
+              <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-2">Playback Error</h3>
+              <p className="text-[var(--color-text-secondary)] mb-6">{error}</p>
               <button
                 onClick={handleRetry}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] text-sm font-medium rounded-[var(--radius-md)] hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-surface-raised)] transition-colors duration-[var(--duration-fast)]"
               >
                 <svg
                   className="w-4 h-4"
@@ -150,7 +150,7 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
             src={playbackUrl}
             controls
             autoPlay
-            className="w-full rounded aspect-video"
+            className="w-full rounded-[var(--radius-md)] aspect-video"
             controlsList="nodownload"
           >
             <track kind="captions" />

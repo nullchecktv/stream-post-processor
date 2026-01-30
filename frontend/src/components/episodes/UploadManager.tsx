@@ -53,15 +53,15 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
       <div className={`fixed ${positionClasses} z-50`}>
         <button
           onClick={handleMinimize}
-          className="bg-white border border-gray-200 rounded-full shadow-lg p-3 hover:bg-gray-50 transition-colors"
+          className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full shadow-lg p-3 hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)]"
           aria-label="Show uploads"
         >
           <div className="relative">
-            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-[var(--color-text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
             {activeUploadsCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                 {activeUploadsCount}
               </span>
             )}
@@ -73,14 +73,14 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
 
   return (
     <div className={`fixed ${positionClasses} z-50 w-96 max-w-[calc(100vw-2rem)]`}>
-      <div className="bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
-        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-xl overflow-hidden">
+        <div className="bg-[var(--color-surface-raised)] border-b border-[var(--color-divider)] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
               Uploads
             </h3>
             {activeUploadsCount > 0 && (
-              <span className="bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5">
+              <span className="bg-[var(--color-accent)] text-[var(--color-text-on-accent)] text-xs font-bold rounded-full px-2 py-0.5">
                 {activeUploadsCount} active
               </span>
             )}
@@ -89,11 +89,11 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
             {collapsible && (
               <button
                 onClick={handleToggleExpand}
-                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                className="p-1 hover:bg-[var(--color-surface-hover)] rounded-[var(--radius-sm)] transition-colors duration-[var(--duration-fast)]"
                 aria-label={isExpanded ? 'Collapse' : 'Expand'}
               >
                 <svg
-                  className={`w-5 h-5 text-gray-600 transition-transform ${isExpanded ? '' : 'rotate-180'}`}
+                  className={`w-5 h-5 text-[var(--color-text-secondary)] transition-transform ${isExpanded ? '' : 'rotate-180'}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -104,10 +104,10 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
             )}
             <button
               onClick={handleMinimize}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              className="p-1 hover:bg-[var(--color-surface-hover)] rounded-[var(--radius-sm)] transition-colors duration-[var(--duration-fast)]"
               aria-label="Minimize"
             >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
               </svg>
             </button>
@@ -119,10 +119,10 @@ export function UploadManager({ position = 'bottom-right', collapsible = true }:
             <div className="p-4 space-y-3">
               {uploads.length === 0 ? (
                 <div className="text-center py-8">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="mx-auto h-12 w-12 text-[var(--color-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  <p className="mt-2 text-sm text-gray-500">No uploads</p>
+                  <p className="mt-2 text-sm text-[var(--color-text-muted)]">No uploads</p>
                 </div>
               ) : (
                 uploads.map((upload) => (

@@ -57,8 +57,8 @@ function EpisodesListPage() {
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Episodes</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your livestream episodes and content</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)]">Episodes</h1>
+              <p className="text-sm sm:text-base text-[var(--color-text-secondary)] mt-1">Manage your livestream episodes and content</p>
             </div>
             <Button onClick={handleCreateEpisode} variant="primary" className="w-full sm:w-auto">
               <svg className="w-5 h-5 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,7 +137,7 @@ function EpisodesListPage() {
         >
           <button
             onClick={handleCreateEpisode}
-            className="relative bg-gradient-to-br from-primary via-primary-dark to-primary-light text-white rounded-full p-5 shadow-2xl hover:shadow-primary/50 transition-all transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-primary/40 focus:ring-offset-2 group"
+            className="relative bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-full p-5 shadow-2xl hover:shadow-[var(--color-accent)]/50 transition-[transform,shadow] transform hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] group"
             aria-label="Create new episode"
           >
             <div className="absolute inset-0 bg-white/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />

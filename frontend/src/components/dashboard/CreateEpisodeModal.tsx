@@ -102,7 +102,7 @@ export function CreateEpisodeModal({ isOpen, onClose, onSuccess }: CreateEpisode
     <Modal isOpen={isOpen} onClose={handleClose} title="Create New Episode" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         {apiError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800 animate-slideDown">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-error)] rounded-lg p-3 text-sm text-[var(--color-error)] animate-slideDown">
             {apiError}
           </div>
         )}

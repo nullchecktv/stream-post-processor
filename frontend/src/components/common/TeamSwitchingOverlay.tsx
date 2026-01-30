@@ -6,10 +6,10 @@ export function TeamSwitchingOverlay() {
   if (!switching) return null
 
   return (
-    <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 animate-fadeIn">
+    <div className="fixed inset-0 bg-[var(--color-overlay)] backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
+      <div className="bg-[var(--color-surface-raised)] rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 animate-fadeIn">
         <svg
-          className="animate-spin w-12 h-12 text-primary"
+          className="animate-spin w-12 h-12 text-[var(--color-accent)]"
           fill="none"
           viewBox="0 0 24 24"
         >
@@ -28,8 +28,8 @@ export function TeamSwitchingOverlay() {
           ></path>
         </svg>
         <div className="text-center">
-          <p className="text-lg font-semibold text-gray-900">Switching team...</p>
-          <p className="text-sm text-gray-500 mt-1">Please wait</p>
+          <p className="text-lg font-semibold text-[var(--color-text-primary)]">Switching team...</p>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">Please wait</p>
         </div>
       </div>
     </div>

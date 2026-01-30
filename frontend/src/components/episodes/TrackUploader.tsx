@@ -255,7 +255,7 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-[length:var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-1">
           Speakers (optional)
         </label>
         <MultiSelect
@@ -270,12 +270,12 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
           disabled={episodeSpeakers.length === 0}
         />
         {episodeSpeakers.length === 0 && (
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
             Add speakers to the episode first to enable speaker selection.
           </p>
         )}
         {episodeSpeakers.length > 0 && (
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
             Select speakers who appear in this track. Speakers must be defined in the episode.
           </p>
         )}
@@ -285,18 +285,18 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
         id="track-upload-help"
         content={
           <div className="space-y-2">
-            <p className="font-semibold text-gray-900">About Track Upload</p>
-            <p className="text-sm text-gray-700">
+            <p className="font-semibold text-[var(--color-text-primary)]">About Track Upload</p>
+            <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
               Upload video tracks from your livestream. The filename will be used as the track name.
             </p>
-            <p className="text-sm text-gray-700">
+            <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
               Large files (&gt;100MB) use multipart upload for reliability.
             </p>
           </div>
         }
         position="bottom"
       >
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+        <div className="border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)] p-[var(--space-6)] text-center hover:border-[var(--color-text-muted)] transition-colors duration-[var(--duration-fast)]">
           <input
             ref={fileInputRef}
             type="file"
@@ -310,7 +310,7 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
             className="cursor-pointer block"
           >
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-[var(--color-text-muted)]"
               stroke="currentColor"
               fill="none"
               viewBox="0 0 48 48"
@@ -323,10 +323,10 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
                 strokeLinejoin="round"
               />
             </svg>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
               {selectedFile ? selectedFile.name : 'Drop video file or click to browse'}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
               MP4, MOV, AVI, MKV, or WebM format
             </p>
           </label>
@@ -337,13 +337,13 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
         <div className="flex gap-2">
           <button
             onClick={handleUpload}
-            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex-1 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] px-4 py-2 rounded-[var(--radius-lg)] hover:bg-[var(--color-accent-hover)] transition-colors duration-[var(--duration-fast)]"
           >
             Upload Track
           </button>
           <button
             onClick={handleCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-[var(--color-border)] rounded-[var(--radius-lg)] hover:bg-[var(--color-surface-hover)] transition-colors duration-[var(--duration-fast)]"
           >
             Cancel
           </button>
@@ -351,11 +351,11 @@ export function TrackUploader({ episodeId, onUploadComplete, onUploadError }: Tr
       )}
 
       {isUploading && (
-        <div className="flex items-center justify-between text-sm text-gray-600">
+        <div className="flex items-center justify-between text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
           <span>Uploading track...</span>
           <button
             onClick={handleCancel}
-            className="text-red-600 hover:text-red-700"
+            className="text-[var(--color-error)] hover:opacity-80 transition-opacity duration-[var(--duration-fast)]"
           >
             Cancel Upload
           </button>

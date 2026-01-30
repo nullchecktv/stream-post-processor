@@ -82,10 +82,10 @@ export function HelpTip({ id, content, position = 'bottom', children }: HelpTipP
   }
 
   const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-white',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-white',
-    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-white',
-    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-white',
+    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-[var(--color-surface-raised)]',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-[var(--color-surface-raised)]',
+    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-[var(--color-surface-raised)]',
+    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-[var(--color-surface-raised)]',
   }
 
   return (
@@ -100,10 +100,10 @@ export function HelpTip({ id, content, position = 'bottom', children }: HelpTipP
           role="tooltip"
         >
           <div className={`${transformClasses[position]} animate-fadeIn pointer-events-auto`}>
-            <div className="bg-white text-gray-800 text-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-64 relative animate-scaleIn">
+            <div className="bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] text-sm rounded-xl shadow-2xl border border-[var(--color-border)] p-4 w-64 relative animate-scaleIn">
               <button
                 onClick={handleDismiss}
-                className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                className="absolute top-2 right-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors duration-[var(--duration-fast)] focus:outline-none"
                 aria-label="Dismiss help tip"
               >
                 <svg

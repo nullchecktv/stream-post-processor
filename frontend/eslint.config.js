@@ -19,5 +19,36 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'react-refresh/only-export-components': 'off',
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'JSXAttribute[name.name="className"] Literal[value=/\\b(text|bg|border|ring|from|to|via)-(gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900|950)\\b/]',
+          message: 'Use CSS variables instead of Tailwind color utilities (e.g., text-gray-500). Replace with bg-[var(--color-surface)] or text-[var(--color-text-primary)].',
+        },
+        {
+          selector: 'JSXAttribute[name.name="className"] Literal[value=/\\b(text|bg|border|ring)-(white|black)\\b/]',
+          message: 'Use CSS variables instead of absolute colors (white/black). Replace with var(--color-*) tokens.',
+        },
+        {
+          selector: 'JSXAttribute[name.name="className"] Literal[value=/\\b(text|bg|border|ring)-\\[#[0-9A-Fa-f]{3,8}\\]/]',
+          message: 'Use CSS variables instead of arbitrary color values (e.g., bg-[#...]). Replace with bg-[var(--color-*)].',
+        },
+        {
+          selector: 'JSXAttribute[name.name="className"] Literal[value=/\\b(text|bg|border|ring)-\\[(rgb|rgba|hsl|hsla)\\(/]',
+          message: 'Use CSS variables instead of arbitrary color values (e.g., bg-[rgb(...)]). Replace with bg-[var(--color-*)].',
+        },
+        {
+          selector: 'JSXAttribute[name.name="style"] ObjectExpression Property[key.name=/^(color|backgroundColor|borderColor|borderTopColor|borderRightColor|borderBottomColor|borderLeftColor)$/]',
+          message: 'Use CSS variables instead of inline style colors. Replace with var(--color-*) tokens.',
+        },
+      ],
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }],
+    },
   },
 ])

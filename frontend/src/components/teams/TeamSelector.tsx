@@ -52,7 +52,7 @@ export function TeamSelector() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg">
+      <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface-raised)] rounded-lg">
         <Users className="w-4 h-4" />
         <span className="text-sm">Loading...</span>
       </div>
@@ -63,7 +63,7 @@ export function TeamSelector() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="Select team"
         aria-expanded={isOpen}
         aria-haspopup="true"
@@ -84,9 +84,9 @@ export function TeamSelector() {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 animate-slideDown">
-          <div className="px-3 py-2 border-b border-gray-200">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Switch Team</p>
+        <div className="absolute top-full right-0 mt-2 w-64 bg-[var(--color-surface-raised)] rounded-lg shadow-xl border border-[var(--color-border)] py-2 z-50 animate-slideDown">
+          <div className="px-3 py-2 border-b border-[var(--color-divider)]">
+            <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase">Switch Team</p>
           </div>
 
           <div className="max-h-64 overflow-y-auto">
@@ -98,25 +98,25 @@ export function TeamSelector() {
                   handleTeamSwitch(null)
                 }
               }}
-              className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 text-left hover:bg-[var(--color-surface-hover)] focus:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--color-focus)] transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={switching}
             >
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                  <Users className="w-4 h-4 text-gray-600" />
+                <div className="w-8 h-8 bg-[var(--color-surface)] rounded-full flex items-center justify-center">
+                  <Users className="w-4 h-4 text-[var(--color-text-secondary)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Individual Mode</p>
-                  <p className="text-xs text-gray-500">Work independently</p>
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">Individual Mode</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">Work independently</p>
                 </div>
               </div>
               {!activeTeam && (
-                <Check className="w-4 h-4 text-primary" />
+                <Check className="w-4 h-4 text-[var(--color-accent)]" />
               )}
             </button>
 
             {teams.length > 0 && (
-              <div className="border-t border-gray-200 mt-2 pt-2">
+              <div className="border-t border-[var(--color-divider)] mt-2 pt-2">
                 {teams.map((team) => (
                   <button
                     key={team.id}
@@ -127,24 +127,24 @@ export function TeamSelector() {
                         handleTeamSwitch(team.id)
                       }
                     }}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-left hover:bg-[var(--color-surface-hover)] focus:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--color-focus)] transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={switching}
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">
+                      <div className="w-8 h-8 bg-[var(--color-accent-subtle)] rounded-full flex items-center justify-center">
+                        <span className="text-sm font-semibold text-[var(--color-accent)]">
                           {team.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{team.name}</p>
+                        <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{team.name}</p>
                         {team.description && (
-                          <p className="text-xs text-gray-500 truncate">{team.description}</p>
+                          <p className="text-xs text-[var(--color-text-muted)] truncate">{team.description}</p>
                         )}
                       </div>
                     </div>
                     {activeTeam?.id === team.id && (
-                      <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                      <Check className="w-4 h-4 text-[var(--color-accent)] flex-shrink-0" />
                     )}
                   </button>
                 ))}
@@ -152,7 +152,7 @@ export function TeamSelector() {
             )}
           </div>
 
-          <div className="border-t border-gray-200 mt-2 pt-2">
+          <div className="border-t border-[var(--color-divider)] mt-2 pt-2">
             <button
               onClick={handleCreateTeam}
               onKeyDown={(e) => {
@@ -161,7 +161,7 @@ export function TeamSelector() {
                   handleCreateTeam()
                 }
               }}
-              className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary transition-colors flex items-center gap-2 text-primary font-medium"
+              className="w-full px-3 py-2 text-left hover:bg-[var(--color-surface-hover)] focus:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--color-focus)] transition-colors flex items-center gap-2 text-[var(--color-accent)] font-medium"
             >
               <Plus className="w-4 h-4" />
               <span className="text-sm">Create New Team</span>

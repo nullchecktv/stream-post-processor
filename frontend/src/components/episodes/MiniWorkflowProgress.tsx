@@ -15,9 +15,9 @@ export function MiniWorkflowProgress({ currentStep, totalSteps = 4 }: MiniWorkfl
           <div
             key={step}
             className={`
-              h-1.5 flex-1 rounded-full transition-all duration-200
-              ${isComplete ? 'bg-green-500' : 'bg-gray-200'}
-              ${isCurrent ? 'ring-2 ring-green-500 ring-offset-1' : ''}
+              h-1.5 flex-1 rounded-full transition-colors duration-[var(--duration-base)]
+              ${isComplete ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'}
+              ${isCurrent ? 'ring-2 ring-[var(--color-accent)] ring-offset-1 ring-offset-[var(--color-surface)]' : ''}
             `}
             title={`Step ${step}${isComplete ? ' - Complete' : ''}`}
           />

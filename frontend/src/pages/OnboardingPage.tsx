@@ -73,9 +73,9 @@ function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
       <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 sm:p-8">
           {currentStep === 'welcome' && (
             <WelcomeStep onContinue={handleWelcomeContinue} />
           )}
@@ -83,8 +83,8 @@ function OnboardingPage() {
           {currentStep === 'profile' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Set Up Your Profile</h2>
-                <p className="text-gray-600 mt-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">Set Up Your Profile</h2>
+                <p className="text-[var(--color-text-secondary)] mt-2">
                   Tell us a bit about yourself to personalize your experience
                 </p>
               </div>
@@ -95,10 +95,10 @@ function OnboardingPage() {
           {currentStep === 'brandVoice' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">
                   Configure Brand Voice (Optional)
                 </h2>
-                <p className="text-gray-600 mt-2">
+                <p className="text-[var(--color-text-secondary)] mt-2">
                   Define your content's tone and writing style for AI-generated blog posts
                 </p>
               </div>
@@ -112,8 +112,8 @@ function OnboardingPage() {
           {currentStep === 'invitations' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Team Invitations</h2>
-                <p className="text-gray-600 mt-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">Team Invitations</h2>
+                <p className="text-[var(--color-text-secondary)] mt-2">
                   You have pending invitations to join teams
                 </p>
               </div>
@@ -127,10 +127,10 @@ function OnboardingPage() {
           {currentStep === 'team' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">
                   Create a Team (Optional)
                 </h2>
-                <p className="text-gray-600 mt-2">
+                <p className="text-[var(--color-text-secondary)] mt-2">
                   Collaborate with others or continue in individual mode
                 </p>
               </div>

@@ -2,7 +2,7 @@ import { useState, type FormEvent, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resetPassword, confirmResetPassword } from 'aws-amplify/auth'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { mapAuthError, getPasswordRequirements } from '../utils/authErrors'
+import { mapAuthError, getPasswordRequirements, type AuthError } from '../utils/authErrors'
 
 type Step = 'request' | 'reset'
 
@@ -125,9 +125,9 @@ function ForgotPasswordPage() {
       await resetPassword({ username: email })
       setSuccessMessage('Verification code sent to your email')
       setStep('reset')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reset password error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }
@@ -161,9 +161,9 @@ function ForgotPasswordPage() {
       setTimeout(() => {
         navigate('/login')
       }, 2000)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Confirm reset password error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }
@@ -177,21 +177,21 @@ function ForgotPasswordPage() {
     try {
       await resetPassword({ username: email })
       setSuccessMessage('Verification code resent to your email')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Resend code error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-8">
+    <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center px-6 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 animate-slideDown">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-accent)] rounded-xl mb-4">
             <svg
-              className="w-10 h-10 text-white"
+              className="w-10 h-10 text-[var(--color-text-on-accent)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -204,22 +204,22 @@ function ForgotPasswordPage() {
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Encore</h1>
-          <p className="text-gray-600 mt-2">Transform your livestreams into engaging clips</p>
+          <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Encore</h1>
+          <p className="text-[var(--color-text-secondary)] mt-2">Transform your livestreams into engaging clips</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-8 animate-slideUp">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Reset Password</h2>
+        <div className="bg-[var(--color-surface)] rounded-xl shadow-md p-8 animate-slideUp">
+          <h2 className="text-2xl font-semibold text-[var(--color-text-primary)] mb-6">Reset Password</h2>
 
           {step === 'request' ? (
             <form onSubmit={handleRequestCode} className="space-y-6">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[var(--color-text-secondary)]">
                 Enter your email address and we'll send you a verification code to reset your
                 password.
               </p>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                   Email
                 </label>
                 <input
@@ -227,10 +227,10 @@ function ForgotPasswordPage() {
                   type="email"
                   value={email}
                   onChange={handleEmailChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                  className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                     emailError
-                      ? 'border-error focus:ring-error focus:border-error'
-                      : 'border-gray-300 focus:ring-primary focus:border-primary'
+                      ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                      : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                   }`}
                   placeholder="you@example.com"
                   disabled={loading}
@@ -238,23 +238,23 @@ function ForgotPasswordPage() {
                   aria-describedby={emailError ? 'email-error' : undefined}
                 />
                 {emailError && (
-                  <p id="email-error" className="mt-2 text-sm text-error" role="alert">
+                  <p id="email-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                     {emailError}
                   </p>
                 )}
               </div>
 
               {error && (
-                <div className="p-4 bg-error bg-opacity-10 border border-error rounded-lg animate-slideDown">
-                  <p className="text-sm text-error" role="alert">
+                <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-lg animate-slideDown">
+                  <p className="text-sm text-[var(--color-error)]" role="alert">
                     {error}
                   </p>
                 </div>
               )}
 
               {successMessage && (
-                <div className="p-4 bg-success bg-opacity-10 border border-success rounded-lg animate-slideDown">
-                  <p className="text-sm text-success" role="status">
+                <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-success)] rounded-lg animate-slideDown">
+                  <p className="text-sm text-[var(--color-success)]" role="status">
                     {successMessage}
                   </p>
                 </div>
@@ -263,11 +263,11 @@ function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)] font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {loading ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    <div className="w-5 h-5 border-2 border-[var(--color-text-on-accent)] border-t-transparent rounded-full animate-spin mr-2" />
                     Sending code...
                   </>
                 ) : (
@@ -279,7 +279,7 @@ function ForgotPasswordPage() {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="text-sm text-primary hover:text-primary-dark font-medium transition-colors"
+                  className="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors"
                 >
                   Back to sign in
                 </button>
@@ -287,12 +287,12 @@ function ForgotPasswordPage() {
             </form>
           ) : (
             <form onSubmit={handleResetPassword} className="space-y-6">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[var(--color-text-secondary)]">
                 Enter the verification code sent to <strong>{email}</strong> and your new password.
               </p>
 
               <div>
-                <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="code" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                   Verification Code
                 </label>
                 <input
@@ -300,10 +300,10 @@ function ForgotPasswordPage() {
                   type="text"
                   value={code}
                   onChange={handleCodeChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                  className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                     codeError
-                      ? 'border-error focus:ring-error focus:border-error'
-                      : 'border-gray-300 focus:ring-primary focus:border-primary'
+                      ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                      : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                   }`}
                   placeholder="Enter verification code"
                   disabled={loading}
@@ -311,7 +311,7 @@ function ForgotPasswordPage() {
                   aria-describedby={codeError ? 'code-error' : undefined}
                 />
                 {codeError && (
-                  <p id="code-error" className="mt-2 text-sm text-error" role="alert">
+                  <p id="code-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                     {codeError}
                   </p>
                 )}
@@ -320,7 +320,7 @@ function ForgotPasswordPage() {
               <div>
                 <label
                   htmlFor="newPassword"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2"
                 >
                   New Password
                 </label>
@@ -329,10 +329,10 @@ function ForgotPasswordPage() {
                   type="password"
                   value={newPassword}
                   onChange={handleNewPasswordChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                  className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                     passwordError
-                      ? 'border-error focus:ring-error focus:border-error'
-                      : 'border-gray-300 focus:ring-primary focus:border-primary'
+                      ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                      : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                   }`}
                   placeholder="Enter new password"
                   disabled={loading}
@@ -340,7 +340,7 @@ function ForgotPasswordPage() {
                   aria-describedby={passwordError ? 'password-error' : undefined}
                 />
                 {passwordError && (
-                  <p id="password-error" className="mt-2 text-sm text-error" role="alert">
+                  <p id="password-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                     {passwordError}
                   </p>
                 )}
@@ -349,7 +349,7 @@ function ForgotPasswordPage() {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2"
                 >
                   Confirm Password
                 </label>
@@ -358,10 +358,10 @@ function ForgotPasswordPage() {
                   type="password"
                   value={confirmPassword}
                   onChange={handleConfirmPasswordChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                  className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                     confirmPasswordError
-                      ? 'border-error focus:ring-error focus:border-error'
-                      : 'border-gray-300 focus:ring-primary focus:border-primary'
+                      ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                      : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                   }`}
                   placeholder="Confirm new password"
                   disabled={loading}
@@ -369,23 +369,23 @@ function ForgotPasswordPage() {
                   aria-describedby={confirmPasswordError ? 'confirm-password-error' : undefined}
                 />
                 {confirmPasswordError && (
-                  <p id="confirm-password-error" className="mt-2 text-sm text-error" role="alert">
+                  <p id="confirm-password-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                     {confirmPasswordError}
                   </p>
                 )}
               </div>
 
               {error && (
-                <div className="p-4 bg-error bg-opacity-10 border border-error rounded-lg animate-slideDown">
-                  <p className="text-sm text-error" role="alert">
+                <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-lg animate-slideDown">
+                  <p className="text-sm text-[var(--color-error)]" role="alert">
                     {error}
                   </p>
                 </div>
               )}
 
               {successMessage && (
-                <div className="p-4 bg-success bg-opacity-10 border border-success rounded-lg animate-slideDown">
-                  <p className="text-sm text-success" role="status">
+                <div className="p-4 bg-[var(--color-surface-raised)] border border-[var(--color-success)] rounded-lg animate-slideDown">
+                  <p className="text-sm text-[var(--color-success)]" role="status">
                     {successMessage}
                   </p>
                 </div>
@@ -394,11 +394,11 @@ function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)] font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {loading ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    <div className="w-5 h-5 border-2 border-[var(--color-text-on-accent)] border-t-transparent rounded-full animate-spin mr-2" />
                     Resetting password...
                   </>
                 ) : (
@@ -411,7 +411,7 @@ function ForgotPasswordPage() {
                   type="button"
                   onClick={handleResendCode}
                   disabled={loading}
-                  className="text-sm text-primary hover:text-primary-dark font-medium transition-colors disabled:opacity-50"
+                  className="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors disabled:opacity-50"
                 >
                   Resend verification code
                 </button>
@@ -419,7 +419,7 @@ function ForgotPasswordPage() {
                   <button
                     type="button"
                     onClick={() => navigate('/login')}
-                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                    className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                   >
                     Back to sign in
                   </button>

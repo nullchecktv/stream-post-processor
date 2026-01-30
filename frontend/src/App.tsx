@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { UserProvider } from './contexts/UserContext'
 import { TeamProvider } from './contexts/TeamContext'
@@ -46,15 +47,16 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <AuthProvider>
-          <ToastProvider>
-            <UserProvider>
-              <NotificationProvider>
-                <TeamProvider>
-                  <ActivityProvider>
-                    <UploadProvider>
-                      <SidebarProvider>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <ToastProvider>
+              <UserProvider>
+                <NotificationProvider>
+                  <TeamProvider>
+                    <ActivityProvider>
+                      <UploadProvider>
+                        <SidebarProvider>
                     <TeamSwitchingOverlay />
                     <Suspense fallback={<LoadingSpinner variant="page" />}>
                       <Routes>
@@ -105,6 +107,7 @@ function App() {
           </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }

@@ -5,10 +5,10 @@ interface InlineErrorProps {
 
 export function InlineError({ message, onRetry }: InlineErrorProps) {
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 rounded-lg p-4">
       <div className="flex items-start gap-3">
         <svg
-          className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
+          className="w-5 h-5 text-[var(--color-error)] flex-shrink-0 mt-0.5"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -19,11 +19,11 @@ export function InlineError({ message, onRetry }: InlineErrorProps) {
           />
         </svg>
         <div className="flex-1">
-          <p className="text-sm text-red-800">{message}</p>
+          <p className="text-sm text-[var(--color-error)]">{message}</p>
           {onRetry && (
             <button
               onClick={onRetry}
-              className="mt-2 text-sm font-medium text-red-600 hover:text-red-700 underline"
+              className="mt-2 text-sm font-medium text-[var(--color-error)] hover:text-[var(--color-error)]/80 underline transition-colors duration-[var(--duration-fast)]"
             >
               Try again
             </button>

@@ -81,28 +81,33 @@ export function PlanForm({ plan, onSubmit, onCancel, isSubmitting = false }: Pla
       />
 
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="notes" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
           Notes
         </label>
         <textarea
           id="notes"
           {...register('notes')}
           rows={6}
-          className={`w-full px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+          className={`w-full px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] ${
             errors.notes
-              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 focus:ring-primary focus:border-primary'
+              ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+              : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
           }`}
           placeholder="Additional notes, talking points, or reminders for the episode"
         />
         {errors.notes && (
-          <p className="mt-1 text-sm text-red-600" role="alert">
-            {errors.notes.message}
+          <p className="mt-1 text-sm text-[var(--color-text-primary)]" role="alert">
+            <span className="inline-flex items-center">
+              <svg className="w-4 h-4 text-[var(--color-error)] mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {errors.notes.message}
+            </span>
           </p>
         )}
       </div>
 
-      <div className="flex gap-3 justify-end pt-4 border-t">
+      <div className="flex gap-3 justify-end pt-4 border-t border-[var(--color-border)]">
         {onCancel && (
           <Button
             type="button"

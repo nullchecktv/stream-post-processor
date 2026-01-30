@@ -8,11 +8,11 @@ export function PageLayout() {
   const { isCollapsed } = useSidebar()
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
       <TopHeader />
       <Sidebar />
       <div
-        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out pt-16 ${
+        className={`flex-1 flex flex-col overflow-hidden transition-[margin] duration-300 ease-in-out pt-16 ${
           isCollapsed ? 'md:ml-16' : 'md:ml-60'
         }`}
       >

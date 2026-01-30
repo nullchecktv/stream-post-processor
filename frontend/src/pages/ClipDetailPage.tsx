@@ -23,11 +23,11 @@ function ClipDetailPage() {
   usePageTitle(clip ? clip.title : 'Clip Details')
 
   const clipTypeConfig: Record<string, { colors: string; label: string }> = {
-    educational: { colors: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Educational' },
-    funny: { colors: 'bg-pink-50 text-pink-700 border-pink-200', label: 'Funny' },
-    demo: { colors: 'bg-purple-50 text-purple-700 border-purple-200', label: 'Demo' },
-    hot_take: { colors: 'bg-red-50 text-red-700 border-red-200', label: 'Hot Take' },
-    insight: { colors: 'bg-green-50 text-green-700 border-green-200', label: 'Insight' },
+    educational: { colors: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-border)]', label: 'Educational' },
+    funny: { colors: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-border)]', label: 'Funny' },
+    demo: { colors: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-border)]', label: 'Demo' },
+    hot_take: { colors: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-border)]', label: 'Hot Take' },
+    insight: { colors: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-border)]', label: 'Insight' },
   }
 
   const fetchData = async () => {
@@ -111,10 +111,10 @@ function ClipDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-      Proposed: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Proposed' },
-      Processing: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Processing' },
-      Created: { bg: 'bg-green-100', text: 'text-green-800', label: 'Created' },
-      Failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' }
+      Proposed: { bg: 'bg-[var(--color-warning)]', text: 'text-[var(--color-text-on-accent)]', label: 'Proposed' },
+      Processing: { bg: 'bg-[var(--color-info)]', text: 'text-[var(--color-text-on-accent)]', label: 'Processing' },
+      Created: { bg: 'bg-[var(--color-success)]', text: 'text-[var(--color-text-on-accent)]', label: 'Created' },
+      Failed: { bg: 'bg-[var(--color-error)]', text: 'text-[var(--color-text-on-accent)]', label: 'Failed' }
     }
 
     const config = statusConfig[status] || statusConfig.Proposed
@@ -133,8 +133,8 @@ function ClipDetailPage() {
   if (error || !clip || !episode) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error || 'Clip not found'}</p>
+        <div className="bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-lg p-4">
+          <p className="text-[var(--color-error)]">{error || 'Clip not found'}</p>
         </div>
       </div>
     )
@@ -142,42 +142,42 @@ function ClipDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6" aria-label="Breadcrumb">
-        <Link to="/" className="hover:text-primary transition-colors flex items-center gap-1">
+      <nav className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] mb-6" aria-label="Breadcrumb">
+        <Link to="/" className="hover:text-[var(--color-accent)] transition-colors duration-[var(--duration-fast)] flex items-center gap-1">
           <Home className="w-4 h-4" />
           <span>Home</span>
         </Link>
-        <ChevronRight className="w-4 h-4 text-gray-400" />
-        <Link to="/episodes" className="hover:text-primary transition-colors">
+        <ChevronRight className="w-4 h-4 text-[var(--color-text-disabled)]" />
+        <Link to="/episodes" className="hover:text-[var(--color-accent)] transition-colors duration-[var(--duration-fast)]">
           Episodes
         </Link>
-        <ChevronRight className="w-4 h-4 text-gray-400" />
-        <Link to={`/episodes/${episodeId}`} className="hover:text-primary transition-colors">
+        <ChevronRight className="w-4 h-4 text-[var(--color-text-disabled)]" />
+        <Link to={`/episodes/${episodeId}`} className="hover:text-[var(--color-accent)] transition-colors duration-[var(--duration-fast)]">
           {episode.title}
         </Link>
-        <ChevronRight className="w-4 h-4 text-gray-400" />
-        <Link to={`/episodes/${episodeId}/clips`} className="hover:text-primary transition-colors">
+        <ChevronRight className="w-4 h-4 text-[var(--color-text-disabled)]" />
+        <Link to={`/episodes/${episodeId}/clips`} className="hover:text-[var(--color-accent)] transition-colors duration-[var(--duration-fast)]">
           Clips
         </Link>
-        <ChevronRight className="w-4 h-4 text-gray-400" />
-        <span className="text-gray-900 font-medium">{clip.title}</span>
+        <ChevronRight className="w-4 h-4 text-[var(--color-text-disabled)]" />
+        <span className="text-[var(--color-text-primary)] font-medium">{clip.title}</span>
       </nav>
 
       <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-[var(--color-surface)] rounded-flat border border-gray-200 shadow-flat p-[var(--space-6)]">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{clip.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">{clip.title}</h1>
+              <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)]">
                 {getStatusBadge(clip.status)}
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   <span>{formatDuration(clip.duration)}</span>
                 </div>
                 {clip.clipType && (() => {
-                  const cfg = clipTypeConfig[clip.clipType] || { colors: 'bg-gray-100 text-gray-700 border-gray-300', label: clip.clipType }
+                  const cfg = clipTypeConfig[clip.clipType] || { colors: 'bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] border-[var(--color-border)]', label: clip.clipType }
                   return (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-lg border ${cfg.colors}`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-flat border ${cfg.colors}`}>
                       <Tag className="w-3.5 h-3.5 mr-1" />
                       {cfg.label}
                     </span>
@@ -188,7 +188,7 @@ function ClipDetailPage() {
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-[var(--color-error)] bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-flat shadow-flat-sm hover:shadow-flat hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               title="Delete clip"
             >
               <Trash2 className="w-4 h-4" />
@@ -201,7 +201,7 @@ function ClipDetailPage() {
               <video
                 src={playbackUrl}
                 controls
-                className="w-full rounded-lg bg-black"
+                className="w-full rounded-flat bg-[var(--color-background)] shadow-flat"
                 onError={() => setVideoError(true)}
               >
                 Your browser does not support the video tag.
@@ -210,35 +210,35 @@ function ClipDetailPage() {
           )}
 
           {clip.status === 'Created' && videoError && (
-            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-yellow-800">
+            <div className="mb-6 bg-[var(--color-surface-raised)] border border-[var(--color-warning)] rounded-flat shadow-flat-sm p-4">
+              <p className="text-[var(--color-text-primary)]">
                 Unable to load video. The playback URL may have expired. Please refresh the page.
               </p>
             </div>
           )}
 
           {clip.status === 'Processing' && (
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
-              <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+            <div className="mb-6 bg-[var(--color-surface-raised)] border border-[var(--color-info)] rounded-flat shadow-flat-sm p-4 flex items-center gap-3">
+              <svg className="animate-spin h-5 w-5 text-[var(--color-info)]" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <p className="text-blue-800">
+              <p className="text-[var(--color-text-primary)]">
                 This clip is currently being processed. Check back soon!
               </p>
             </div>
           )}
 
           {clip.status === 'Failed' && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="mb-6 bg-[var(--color-surface-raised)] border border-[var(--color-error)] rounded-flat shadow-flat-sm p-4">
               <div className="flex items-start justify-between gap-4">
-                <p className="text-red-800 flex-1">
+                <p className="text-[var(--color-text-primary)] flex-1">
                   Clip generation failed. Please try generating it again.
                 </p>
                 <button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] text-sm font-medium rounded-flat shadow-flat hover:shadow-flat-md hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
                 >
                   {generating ? (
                     <>
@@ -266,7 +266,7 @@ function ClipDetailPage() {
               <button
                 onClick={handleGenerate}
                 disabled={generating || !episode.metrics?.tracksCount}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] text-sm font-medium rounded-flat shadow-flat hover:shadow-flat-md hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-focus)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {generating ? (
                   <>
@@ -284,9 +284,9 @@ function ClipDetailPage() {
                 )}
               </button>
               {!episode.metrics?.tracksCount && (
-                <p className="text-sm text-gray-500 italic">
+                <p className="text-sm text-[var(--color-text-muted)] italic">
                   Video tracks must be uploaded first.{' '}
-                  <Link to={`/episodes/${episodeId}`} className="text-primary hover:text-primary-dark font-medium not-italic">
+                  <Link to={`/episodes/${episodeId}`} className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium not-italic transition-colors duration-[var(--duration-fast)]">
                     Upload tracks
                   </Link>
                 </p>
@@ -296,18 +296,18 @@ function ClipDetailPage() {
 
           {clip.summary && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Summary</h2>
-              <p className="text-gray-700">{clip.summary}</p>
+              <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Summary</h2>
+              <p className="text-[var(--color-text-secondary)]">{clip.summary}</p>
             </div>
           )}
 
           {clip.transcript && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
                 Transcript {clip.segmentCount && `(${clip.segmentCount} segment${clip.segmentCount !== 1 ? 's' : ''})`}
               </h2>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-gray-700 whitespace-pre-wrap">{clip.transcript}</p>
+              <div className="bg-[var(--color-surface-raised)] rounded-flat shadow-flat-sm p-4">
+                <p className="text-[var(--color-text-secondary)] whitespace-pre-wrap">{clip.transcript}</p>
               </div>
             </div>
           )}

@@ -63,10 +63,10 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
     setHasUnsavedChanges(false)
   }, [hasUnsavedChanges])
 
-  const validateField = (field: string, value: any): string | null => {
+  const validateField = (field: string, value: unknown): string | null => {
     switch (field) {
       case 'title':
-        if (!value || value.trim().length === 0) {
+        if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return 'Title is required'
         }
         if (value.length > 200) {
@@ -74,20 +74,22 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         }
         break
 
-      case 'episodeNumber':
+      case 'episodeNumber': {
         if (value === undefined || value === null || value === '') {
           return 'Episode number is required'
         }
-        if (value < 1) {
+        const numValue = Number(value)
+        if (numValue < 1) {
           return 'Episode number must be a positive integer'
         }
-        if (!Number.isInteger(Number(value))) {
+        if (!Number.isInteger(numValue)) {
           return 'Episode number must be an integer'
         }
         break
+      }
 
       case 'description':
-        if (value && value.length > 1000) {
+        if (value && typeof value === 'string' && value.length > 1000) {
           return 'Description must not exceed 1000 characters'
         }
         break
@@ -95,7 +97,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
       case 'airDate':
         if (value) {
           try {
-            const date = new Date(value)
+            const date = new Date(value as string | number | Date)
             if (isNaN(date.getTime())) {
               return 'Air date must be a valid date'
             }
@@ -115,13 +117,13 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         if (value && !Array.isArray(value)) {
           return 'Invalid themes'
         }
-        if (value && value.length > 10) {
+        if (value && Array.isArray(value) && value.length > 10) {
           return 'Maximum 10 themes allowed'
         }
         break
 
       case 'seriesName':
-        if (value && value.length > 100) {
+        if (value && typeof value === 'string' && value.length > 100) {
           return 'Series name must not exceed 100 characters'
         }
         break
@@ -130,10 +132,10 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         if (value && !Array.isArray(value)) {
           return 'Invalid speakers'
         }
-        if (value && value.length > 20) {
+        if (value && Array.isArray(value) && value.length > 20) {
           return 'Maximum 20 speakers allowed'
         }
-        if (value && value.some((s: string) => s.length > 100)) {
+        if (value && Array.isArray(value) && value.some((s: unknown) => typeof s === 'string' && s.length > 100)) {
           return 'Speaker name must not exceed 100 characters'
         }
         break
@@ -142,7 +144,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
     return null
   }
 
-  const handleFieldBlur = (field: string, value: any) => {
+  const handleFieldBlur = (field: string, value: unknown) => {
     const error = validateField(field, value)
     setValidationErrors(prev => {
       const newErrors = { ...prev }
@@ -287,12 +289,12 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
 
   if (isEditing) {
     return (
-      <div className="bg-yellow-50 border border-yellow-300 rounded-lg shadow-sm p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 space-y-4">
+      <div className="bg-[var(--color-surface-raised)] border border-[var(--color-warning)] rounded-[var(--radius-lg)] shadow-sm p-[var(--space-6)]">
+        <div className="flex items-start justify-between mb-[var(--space-4)]">
+          <div className="flex-1 space-y-[var(--space-4)]">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Title <span className="text-red-500">*</span>
+              <label htmlFor="title" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                Title <span className="text-[var(--color-error)]">*</span>
               </label>
               <input
                 id="title"
@@ -300,14 +302,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                 value={editedData.title || ''}
                 onChange={(e) => setEditedData({ ...editedData, title: e.target.value })}
                 onBlur={(e) => handleFieldBlur('title', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  validationErrors.title ? 'border-red-500' : 'border-gray-300'
-                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] ${
+                  validationErrors.title ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'
+                } focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors`}
                 aria-invalid={!!validationErrors.title}
                 aria-describedby={validationErrors.title ? 'title-error' : undefined}
               />
               {validationErrors.title && (
-                <div id="title-error" className="flex items-center text-red-600 text-xs mt-1" role="alert">
+                <div id="title-error" className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
@@ -317,8 +319,8 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
             </div>
 
             <div>
-              <label htmlFor="episodeNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Episode Number <span className="text-red-500">*</span>
+              <label htmlFor="episodeNumber" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                Episode Number <span className="text-[var(--color-error)]">*</span>
               </label>
               <input
                 id="episodeNumber"
@@ -326,14 +328,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                 value={editedData.episodeNumber || ''}
                 onChange={(e) => setEditedData({ ...editedData, episodeNumber: parseInt(e.target.value) || 0 })}
                 onBlur={(e) => handleFieldBlur('episodeNumber', parseInt(e.target.value) || 0)}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  validationErrors.episodeNumber ? 'border-red-500' : 'border-gray-300'
-                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] ${
+                  validationErrors.episodeNumber ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'
+                } focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors`}
                 aria-invalid={!!validationErrors.episodeNumber}
                 aria-describedby={validationErrors.episodeNumber ? 'episodeNumber-error' : undefined}
               />
               {validationErrors.episodeNumber && (
-                <div id="episodeNumber-error" className="flex items-center text-red-600 text-xs mt-1" role="alert">
+                <div id="episodeNumber-error" className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
@@ -343,7 +345,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
             </div>
 
             <div>
-              <label htmlFor="seriesName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="seriesName" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
                 Series Name
               </label>
               <input
@@ -352,14 +354,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                 value={editedData.seriesName || ''}
                 onChange={(e) => setEditedData({ ...editedData, seriesName: e.target.value })}
                 onBlur={(e) => handleFieldBlur('seriesName', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${
-                  validationErrors.seriesName ? 'border-red-500' : 'border-gray-300'
-                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] ${
+                  validationErrors.seriesName ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'
+                } focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors`}
                 aria-invalid={!!validationErrors.seriesName}
                 aria-describedby={validationErrors.seriesName ? 'seriesName-error' : undefined}
               />
               {validationErrors.seriesName && (
-                <div id="seriesName-error" className="flex items-center text-red-600 text-xs mt-1" role="alert">
+                <div id="seriesName-error" className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
@@ -370,9 +372,9 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-[var(--space-4)]">
           <div>
-            <label htmlFor="airDate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="airDate" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
               Air Date
             </label>
             <input
@@ -381,14 +383,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
               value={editedData.airDate ? new Date(editedData.airDate).toISOString().slice(0, 16) : ''}
               onChange={(e) => setEditedData({ ...editedData, airDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
               onBlur={(e) => handleFieldBlur('airDate', e.target.value ? new Date(e.target.value).toISOString() : '')}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                validationErrors.airDate ? 'border-red-500' : 'border-gray-300'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] ${
+                validationErrors.airDate ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'
+              } focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)]`}
               aria-invalid={!!validationErrors.airDate}
               aria-describedby={validationErrors.airDate ? 'airDate-error' : undefined}
             />
             {validationErrors.airDate && (
-              <div id="airDate-error" className="flex items-center text-red-600 text-xs mt-1" role="alert">
+              <div id="airDate-error" className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -398,7 +400,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
               Platforms
             </label>
             <div className="flex flex-wrap gap-2">
@@ -408,14 +410,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                     type="checkbox"
                     checked={(editedData.platforms || []).includes(platform)}
                     onChange={() => handlePlatformToggle(platform)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-[var(--color-border)] text-[var(--color-accent)] focus:ring-[var(--color-focus)]"
                   />
-                  <span className="ml-2 text-sm text-gray-700">{platform}</span>
+                  <span className="ml-2 text-sm text-[var(--color-text-secondary)]">{platform}</span>
                 </label>
               ))}
             </div>
             {validationErrors.platforms && (
-              <div className="flex items-center text-red-600 text-xs mt-1" role="alert">
+              <div className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -425,22 +427,22 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
           </div>
 
           <div>
-            <label htmlFor="themes" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="themes" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
               Themes {(editedData.themes || []).length > 0 && (
-                <span className="text-xs text-gray-500">({(editedData.themes || []).length}/10)</span>
+                <span className="text-xs text-[var(--color-text-muted)]">({(editedData.themes || []).length}/10)</span>
               )}
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {(editedData.themes || []).map((theme: string) => (
                 <span
                   key={theme}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
                 >
                   {theme}
                   <button
                     type="button"
                     onClick={() => handleThemeRemove(theme)}
-                    className="ml-1 text-primary hover:text-primary/80"
+                    className="ml-1 text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
                     aria-label={`Remove ${theme} theme`}
                   >
                     ×
@@ -459,14 +461,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                   e.currentTarget.value = ''
                 }
               }}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                validationErrors.themes ? 'border-red-500' : 'border-gray-300'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] ${
+                validationErrors.themes ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'
+              } focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors`}
               aria-invalid={!!validationErrors.themes}
               aria-describedby={validationErrors.themes ? 'themes-error' : undefined}
             />
             {validationErrors.themes && (
-        <div id="themes-error" className="flex items-center text-red-600 text-xs mt-1" role="alert">
+        <div id="themes-error" className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -476,22 +478,22 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
           </div>
 
           <div>
-            <label htmlFor="speakers" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="speakers" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
               Speakers {(editedData.speakers || []).length > 0 && (
-                <span className="text-xs text-gray-500">({(editedData.speakers || []).length}/20)</span>
+                <span className="text-xs text-[var(--color-text-muted)]">({(editedData.speakers || []).length}/20)</span>
               )}
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {(editedData.speakers || []).map((speaker: string) => (
                 <span
                   key={speaker}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-success)] bg-opacity-10 text-[var(--color-success)]"
                 >
                   {speaker}
                   <button
                     type="button"
                     onClick={() => handleSpeakerRemove(speaker)}
-                    className="ml-1 text-green-800 hover:text-green-600"
+                    className="ml-1 text-[var(--color-success)] hover:opacity-80"
                     aria-label={`Remove ${speaker} speaker`}
                   >
                     ×
@@ -516,14 +518,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                   e.target.value = ''
                 }
               }}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                validationErrors.speakers ? 'border-red-500' : 'border-gray-300'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] ${
+                validationErrors.speakers ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'
+              } focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors`}
               aria-invalid={!!validationErrors.speakers}
               aria-describedby={validationErrors.speakers ? 'speakers-error' : undefined}
             />
             {validationErrors.speakers && (
-              <div id="speakers-error" className="flex items-center text-red-600 text-xs mt-1" role="alert">
+              <div id="speakers-error" className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -533,9 +535,9 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
               Description {editedData.description && (
-                <span className="text-xs text-gray-500">({editedData.description.length}/1000)</span>
+                <span className="text-xs text-[var(--color-text-muted)]">({editedData.description.length}/1000)</span>
               )}
             </label>
             <textarea
@@ -544,14 +546,14 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
               onChange={(e) => setEditedData({ ...editedData, description: e.target.value })}
               onBlur={(e) => handleFieldBlur('description', e.target.value)}
               rows={4}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                validationErrors.description ? 'border-red-500' : 'border-gray-300'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full px-3 py-2 border rounded-[var(--radius-md)] text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] ${
+                validationErrors.description ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'
+              } focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors`}
               aria-invalid={!!validationErrors.description}
               aria-describedby={validationErrors.description ? 'description-error' : undefined}
             />
             {validationErrors.description && (
-              <div id="description-error" className="flex items-center text-red-600 text-xs mt-1" role="alert">
+              <div id="description-error" className="flex items-center text-[var(--color-error)] text-xs mt-1" role="alert">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -561,7 +563,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-3 mt-[var(--space-6)]">
           <Button
             onClick={handleSave}
             disabled={isSaving || isUpdating}
@@ -586,16 +588,16 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-start justify-between mb-4">
+    <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-sm border border-[var(--color-border)] p-[var(--space-6)]">
+      <div className="flex items-start justify-between mb-[var(--space-4)]">
         <div className="flex-1">
           <div className="mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
               Episode #{episode.episodeNumber}: {episode.title}
             </h1>
           </div>
           {episode.seriesName && (
-            <p className="text-sm text-gray-600">Series: {episode.seriesName}</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">Series: {episode.seriesName}</p>
           )}
         </div>
         <Button
@@ -613,51 +615,51 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
 
       <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
         <div className="flex items-start">
-          <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
             <path d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
           </svg>
           <div>
-            <span className="text-gray-500">Episode Number</span>
-            <p className="text-gray-900 font-medium">#{episode.episodeNumber}</p>
+            <span className="text-[var(--color-text-muted)]">Episode Number</span>
+            <p className="text-[var(--color-text-primary)] font-medium">#{episode.episodeNumber}</p>
           </div>
         </div>
 
         {episode.airDate && (
           <div className="flex items-start">
-            <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <div>
-              <span className="text-gray-500">Aired</span>
-              <p className="text-gray-900 font-medium">{formatDate(episode.airDate)}</p>
+              <span className="text-[var(--color-text-muted)]">Aired</span>
+              <p className="text-[var(--color-text-primary)] font-medium">{formatDate(episode.airDate)}</p>
             </div>
           </div>
         )}
 
         {episode.platforms && episode.platforms.length > 0 && (
           <div className="flex items-start">
-            <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
             <div>
-              <span className="text-gray-500">Platforms</span>
-              <p className="text-gray-900 font-medium">{episode.platforms.join(', ')}</p>
+              <span className="text-[var(--color-text-muted)]">Platforms</span>
+              <p className="text-[var(--color-text-primary)] font-medium">{episode.platforms.join(', ')}</p>
             </div>
           </div>
         )}
 
         {episode.themes && episode.themes.length > 0 && (
           <div className="flex items-start col-span-2">
-            <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
             <div>
-              <span className="text-gray-500">Themes</span>
+              <span className="text-[var(--color-text-muted)]">Themes</span>
               <div className="flex flex-wrap gap-2 mt-1">
                 {episode.themes.map((theme) => (
                   <span
                     key={theme}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
                   >
                     {theme}
                   </span>
@@ -669,16 +671,16 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
 
         {episode.speakers && episode.speakers.length > 0 && (
           <div className="flex items-start col-span-2">
-            <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             <div>
-              <span className="text-gray-500">Speakers</span>
+              <span className="text-[var(--color-text-muted)]">Speakers</span>
               <div className="flex flex-wrap gap-2 mt-1">
                 {episode.speakers.map((speaker) => (
                   <span
                     key={speaker}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-success)] bg-opacity-10 text-[var(--color-success)]"
                   >
                     {speaker}
                   </span>
@@ -689,34 +691,34 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         )}
 
         {episode.description && (
-          <div className="flex items-start col-span-2 pt-3 border-t border-gray-200">
-            <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="flex items-start col-span-2 pt-3 border-t border-[var(--color-divider)]">
+            <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M4 6h16M4 12h16M4 18h7" />
             </svg>
             <div>
-              <span className="text-gray-500">Description</span>
-              <p className="text-gray-900 mt-1 whitespace-pre-wrap">{episode.description}</p>
+              <span className="text-[var(--color-text-muted)]">Description</span>
+              <p className="text-[var(--color-text-primary)] mt-1 whitespace-pre-wrap">{episode.description}</p>
             </div>
           </div>
         )}
 
         <div className="flex items-start">
-          <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
             <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <span className="text-gray-500">Created</span>
-            <p className="text-gray-900 font-medium">{formatDate(episode.createdAt)}</p>
+            <span className="text-[var(--color-text-muted)]">Created</span>
+            <p className="text-[var(--color-text-primary)] font-medium">{formatDate(episode.createdAt)}</p>
           </div>
         </div>
 
         <div className="flex items-start">
-          <svg className="w-4 h-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 mr-2 mt-0.5 text-[var(--color-text-muted)] flex-shrink-0" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
             <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <div>
-            <span className="text-gray-500">Updated</span>
-            <p className="text-gray-900 font-medium">{formatDate(episode.updatedAt)}</p>
+            <span className="text-[var(--color-text-muted)]">Updated</span>
+            <p className="text-[var(--color-text-primary)] font-medium">{formatDate(episode.updatedAt)}</p>
           </div>
         </div>
       </div>

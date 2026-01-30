@@ -36,8 +36,8 @@ export class ApiError extends Error {
   }
 }
 
-function getErrorMessage(status: number, errorData: any): string {
-  if (errorData.message) {
+function getErrorMessage(status: number, errorData: Record<string, unknown>): string {
+  if (errorData.message && typeof errorData.message === 'string') {
     return errorData.message
   }
 
@@ -49,7 +49,7 @@ function getErrorMessage(status: number, errorData: any): string {
     case 404:
       return 'The requested resource was not found.'
     case 409:
-      if (errorData.error?.includes('duplicate') || errorData.error?.includes('already')) {
+      if (typeof errorData.error === 'string' && (errorData.error.includes('duplicate') || errorData.error.includes('already'))) {
         return 'This resource already exists or you are already a member.'
       }
       return 'There was a conflict with your request. Please try again.'
@@ -139,9 +139,9 @@ export async function apiRequest<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
 
     if (response.status === 401) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorData = await response.json().catch(() => ({})) as Record<string, unknown>
 
-      if (errorData.error === 'AuthenticationError' && errorData.message?.includes('Authorization token is expired') && endpoint !== '/tokens/refresh') {
+      if (errorData.error === 'AuthenticationError' && typeof errorData.message === 'string' && errorData.message.includes('Authorization token is expired') && endpoint !== '/tokens/refresh') {
         await refreshTokenAndRetry()
         return apiRequest<T>(endpoint, options)
       }
@@ -152,12 +152,12 @@ export async function apiRequest<T>(
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorData = await response.json().catch(() => ({})) as Record<string, unknown>
       const message = getErrorMessage(response.status, errorData)
       throw new ApiError(
         response.status,
         message,
-        errorData.error,
+        typeof errorData.error === 'string' ? errorData.error : undefined,
         errorData.details
       )
     }

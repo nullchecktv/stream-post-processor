@@ -26,58 +26,58 @@ export function WelcomeStep({ onContinue }: WelcomeStepProps) {
       </div>
 
       <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+        <h2 className="font-[family-name:var(--font-editorial)] text-3xl font-bold text-[var(--color-text-primary)] mb-2">
           Welcome{profile?.name ? `, ${profile.name}` : ''}!
         </h2>
-        <p className="text-lg text-gray-600">
+        <p className="text-lg text-[var(--color-text-secondary)]">
           Let's get you set up to start transforming your livestreams into engaging clips
         </p>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-6 text-left space-y-4">
+      <div className="bg-[var(--color-surface)] rounded-lg p-6 text-left space-y-4">
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+          <div className="flex-shrink-0 w-6 h-6 bg-[var(--color-accent)] rounded-full flex items-center justify-center text-[var(--color-text-on-accent)] text-sm font-semibold">
             1
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 mb-1">Complete Your Profile</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-semibold text-[var(--color-text-primary)] mb-1">Complete Your Profile</h3>
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Add your name and preferences to personalize your experience
             </p>
           </div>
         </div>
 
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+          <div className="flex-shrink-0 w-6 h-6 bg-[var(--color-accent)] rounded-full flex items-center justify-center text-[var(--color-text-on-accent)] text-sm font-semibold">
             2
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 mb-1">Configure Brand Voice (Optional)</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-semibold text-[var(--color-text-primary)] mb-1">Configure Brand Voice (Optional)</h3>
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Define your content's tone and writing style for AI-generated blog posts
             </p>
           </div>
         </div>
 
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+          <div className="flex-shrink-0 w-6 h-6 bg-[var(--color-accent)] rounded-full flex items-center justify-center text-[var(--color-text-on-accent)] text-sm font-semibold">
             3
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 mb-1">Review Team Invitations</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-semibold text-[var(--color-text-primary)] mb-1">Review Team Invitations</h3>
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Accept or decline any pending team invitations
             </p>
           </div>
         </div>
 
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+          <div className="flex-shrink-0 w-6 h-6 bg-[var(--color-accent)] rounded-full flex items-center justify-center text-[var(--color-text-on-accent)] text-sm font-semibold">
             4
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 mb-1">Create or Join a Team</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-semibold text-[var(--color-text-primary)] mb-1">Create or Join a Team</h3>
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Collaborate with others or work individually
             </p>
           </div>
@@ -87,8 +87,7 @@ export function WelcomeStep({ onContinue }: WelcomeStepProps) {
       <button
         type="button"
         onClick={onContinue}
-        className="w-full px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-        style={{ backgroundColor: '#5B8C5A' }}
+        className="w-full px-6 py-3 bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-lg font-semibold hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors"
       >
         Get Started
       </button>

@@ -71,7 +71,7 @@ export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -81,16 +81,16 @@ export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[var(--space-6)]">
       <div>
-        <p className="text-gray-600 mb-4">
+        <p className="text-[var(--color-text-secondary)] mb-[var(--space-4)]">
           You have {invitationNotifications.length} pending team{' '}
           {invitationNotifications.length === 1 ? 'invitation' : 'invitations'}. Review and respond
           to them below.
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-[var(--space-4)]">
         {invitationNotifications.map(notification => {
           const isProcessing = processingInvitations.has(notification.id)
           const teamName = notification.data?.teamName || 'Unknown Team'
@@ -99,25 +99,24 @@ export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
           return (
             <div
               key={notification.id}
-              className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors"
+              className="border border-[var(--color-border)] bg-[var(--color-surface)] rounded-[var(--radius-lg)] p-[var(--space-4)] hover:border-[var(--color-accent)] transition-colors duration-[var(--duration-fast)]"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-[var(--space-4)]">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">{teamName}</h3>
-                  <p className="text-sm text-gray-600 mb-3">{notification.message}</p>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <h3 className="font-semibold text-[var(--color-text-primary)] mb-1">{teamName}</h3>
+                  <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)] mb-[var(--space-3)]">{notification.message}</p>
+                  <div className="flex items-center gap-[var(--space-2)] text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
                     <span>From: {inviterName}</span>
                     <span>•</span>
                     <span>{new Date(notification.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-[var(--space-2)]">
                   <button
                     type="button"
                     onClick={() => handleAccept(notification)}
                     disabled={isProcessing}
-                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: '#5B8C5A' }}
+                    className="px-[var(--space-4)] py-[var(--space-2)] bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-[var(--radius-md)] text-[length:var(--text-sm)] font-medium hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors duration-[var(--duration-fast)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? 'Processing...' : 'Accept'}
                   </button>
@@ -125,7 +124,7 @@ export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
                     type="button"
                     onClick={() => handleReject(notification)}
                     disabled={isProcessing}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-[var(--space-4)] py-[var(--space-2)] bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] rounded-[var(--radius-md)] text-[length:var(--text-sm)] font-medium hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors duration-[var(--duration-fast)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Decline
                   </button>
@@ -136,19 +135,18 @@ export function InvitationsStep({ onComplete, onSkip }: InvitationsStepProps) {
         })}
       </div>
 
-      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+      <div className="flex justify-between items-center pt-[var(--space-4)] border-t border-[var(--color-border)]">
         <button
           type="button"
           onClick={onSkip}
-          className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors duration-[var(--duration-fast)]"
         >
           I'll decide later
         </button>
         <button
           type="button"
           onClick={onComplete}
-          className="px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-          style={{ backgroundColor: '#5B8C5A' }}
+          className="px-[var(--space-6)] py-[var(--space-2)] bg-[var(--color-accent)] text-[var(--color-text-on-accent)] rounded-[var(--radius-md)] font-medium hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors duration-[var(--duration-fast)]"
         >
           Continue
         </button>

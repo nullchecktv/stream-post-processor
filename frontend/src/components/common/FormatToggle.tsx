@@ -6,16 +6,16 @@ interface FormatToggleProps {
 
 export function FormatToggle({ value, onChange, disabled = false }: FormatToggleProps) {
   return (
-    <div className="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+    <div className="inline-flex rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
       <button
         type="button"
         onClick={() => onChange('markdown')}
         disabled={disabled}
         className={`
-          px-4 py-2 text-sm font-medium rounded-md transition-all
+          px-4 py-2 text-sm font-medium rounded-md transition-colors duration-[var(--duration-fast)]
           ${value === 'markdown'
-            ? 'bg-primary text-white shadow-sm'
-            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+            ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)] shadow-sm'
+            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
@@ -27,10 +27,10 @@ export function FormatToggle({ value, onChange, disabled = false }: FormatToggle
         onClick={() => onChange('preview')}
         disabled={disabled}
         className={`
-          px-4 py-2 text-sm font-medium rounded-md transition-all
+          px-4 py-2 text-sm font-medium rounded-md transition-colors duration-[var(--duration-fast)]
           ${value === 'preview'
-            ? 'bg-primary text-white shadow-sm'
-            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+            ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)] shadow-sm'
+            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}

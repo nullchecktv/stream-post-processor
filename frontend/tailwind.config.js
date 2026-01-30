@@ -68,6 +68,10 @@ export default {
         md: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
         lg: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
         xl: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+        'flat-sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        'flat': '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+        'flat-md': '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+        'flat-lg': '0 10px 15px -3px rgb(0 0 0 / 0.1)',
       },
       borderRadius: {
         sm: '0.125rem',
@@ -77,6 +81,9 @@ export default {
         xl: '0.75rem',
         '2xl': '1rem',
         full: '9999px',
+        'flat': '0.5rem',
+        'flat-lg': '0.75rem',
+        'flat-xl': '1rem',
       },
       transitionDuration: {
         DEFAULT: '200ms',
@@ -86,6 +93,16 @@ export default {
       transitionTimingFunction: {
         DEFAULT: 'cubic-bezier(0.4, 0, 0.2, 1)',
         'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+      backgroundImage: {
+        'gradient-primary': 'linear-gradient(135deg, #5B8C5A 0%, #7BA879 100%)',
+        'gradient-primary-soft': 'linear-gradient(135deg, #E6F3D4 0%, #F9FAFB 100%)',
+        'gradient-success': 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
+        'gradient-calm': 'linear-gradient(135deg, #F9FAFB 0%, #E6F3D4 100%)',
+        'gradient-subtle': 'linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%)',
+        'gradient-card': 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 50%, #E6F3D4 100%)',
+        'gradient-hero': 'linear-gradient(135deg, #5B8C5A 0%, #4A7349 50%, #374151 100%)',
+        'gradient-overlay': 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.05) 100%)',
       },
     },
   },

@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useAuth } from '../hooks/useAuth'
-import { mapAuthError } from '../utils/authErrors'
+import { mapAuthError, type AuthError } from '../utils/authErrors'
 
 function LoginPage() {
   usePageTitle('Sign In')
@@ -81,21 +81,21 @@ function LoginPage() {
     try {
       await authSignIn(email, password)
       navigate('/')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Authentication error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-8">
+    <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center px-6 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 animate-slideDown">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-accent)] rounded-xl mb-4">
             <svg
-              className="w-10 h-10 text-white"
+              className="w-10 h-10 text-[var(--color-text-on-accent)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -108,16 +108,16 @@ function LoginPage() {
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Encore</h1>
-          <p className="text-gray-600 mt-2">Transform your livestreams into engaging clips</p>
+          <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Encore</h1>
+          <p className="text-[var(--color-text-secondary)] mt-2">Transform your livestreams into engaging clips</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-8 animate-slideUp">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Sign In</h2>
+        <div className="bg-[var(--color-surface)] rounded-xl shadow-md p-8 animate-slideUp">
+          <h2 className="text-2xl font-semibold text-[var(--color-text-primary)] mb-6">Sign In</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Email
               </label>
               <input
@@ -125,10 +125,10 @@ function LoginPage() {
                 type="email"
                 value={email}
                 onChange={handleEmailChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                   emailError
-                    ? 'border-error focus:ring-error focus:border-error'
-                    : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                 }`}
                 placeholder="you@example.com"
                 disabled={loading}
@@ -136,14 +136,14 @@ function LoginPage() {
                 aria-describedby={emailError ? 'email-error' : undefined}
               />
               {emailError && (
-                <p id="email-error" className="mt-2 text-sm text-error" role="alert">
+                <p id="email-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                   {emailError}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                 Password
               </label>
               <input
@@ -151,10 +151,10 @@ function LoginPage() {
                 type="password"
                 value={password}
                 onChange={handlePasswordChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                className={`w-full px-4 py-3 bg-[var(--color-surface)] text-[var(--color-text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--color-background)] transition-colors ${
                   passwordError
-                    ? 'border-error focus:ring-error focus:border-error'
-                    : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    ? 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]'
+                    : 'border-[var(--color-border)] focus:ring-[var(--color-focus)] focus:border-[var(--color-focus)]'
                 }`}
                 placeholder="Enter your password"
                 disabled={loading}
@@ -162,7 +162,7 @@ function LoginPage() {
                 aria-describedby={passwordError ? 'password-error' : undefined}
               />
               {passwordError && (
-                <p id="password-error" className="mt-2 text-sm text-error text-black" role="alert">
+                <p id="password-error" className="mt-2 text-sm text-[var(--color-error)]" role="alert">
                   {passwordError}
                 </p>
               )}
@@ -173,7 +173,7 @@ function LoginPage() {
                 <button
                   type="button"
                   onClick={() => navigate('/forgot-password')}
-                  className="text-primary hover:text-primary-dark font-medium transition-colors"
+                  className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors"
                 >
                   Forgot password?
                 </button>
@@ -181,8 +181,8 @@ function LoginPage() {
             </div>
 
             {error && (
-              <div className="p-4 bg-error bg-opacity-10 border border-error rounded-lg animate-slideDown">
-                <p className="text-sm text-white" role="alert">
+              <div className="p-4 bg-[var(--color-error)] bg-opacity-10 border border-[var(--color-error)] rounded-lg animate-slideDown">
+                <p className="text-sm text-[var(--color-error)]" role="alert">
                   {error}
                 </p>
               </div>
@@ -191,12 +191,11 @@ function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
-              style={{ backgroundColor: '#5B8C5A', color: '#ffffff' }}
+              className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)] font-semibold py-3 px-4 rounded-lg transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[48px]"
             >
               {loading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  <div className="w-5 h-5 border-2 border-[var(--color-text-on-accent)] border-t-transparent rounded-full animate-spin mr-2" />
                   Signing in...
                 </>
               ) : (
@@ -206,12 +205,12 @@ function LoginPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Don't have an account?{' '}
               <button
                 type="button"
                 onClick={() => navigate('/signup')}
-                className="text-primary hover:text-primary-dark font-medium transition-colors cursor-pointer"
+                className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-medium transition-colors cursor-pointer"
               >
                 Sign up
               </button>

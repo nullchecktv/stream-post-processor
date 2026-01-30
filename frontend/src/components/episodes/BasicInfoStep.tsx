@@ -72,8 +72,8 @@ export function BasicInfoStep({ formData, onChange, errors, onValidate }: BasicI
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Basic Information</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Basic Information</h3>
+        <p className="text-sm text-[var(--color-text-secondary)]">
           Enter the essential details for your episode. Title and episode number are required.
         </p>
       </div>
@@ -142,13 +142,13 @@ export function BasicInfoStep({ formData, onChange, errors, onValidate }: BasicI
                 {formData.speakers.map((speaker) => (
                   <span
                     key={speaker}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] border border-[var(--color-border)]"
                   >
                     {speaker}
                     <button
                       type="button"
                       onClick={() => handleRemoveSpeaker(speaker)}
-                      className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors"
                       aria-label={`Remove ${speaker}`}
                     >
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">

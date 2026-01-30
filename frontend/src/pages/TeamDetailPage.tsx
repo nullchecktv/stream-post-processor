@@ -75,59 +75,59 @@ function TeamDetailPage() {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
               <div className="flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{team.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)]">{team.name}</h1>
               <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium self-start ${
-                role === 'owner' ? 'bg-primary text-white' :
-                role === 'administrator' ? 'bg-blue-100 text-blue-800' :
-                'bg-gray-100 text-gray-800'
+                role === 'owner' ? 'bg-[var(--color-accent)] text-[var(--color-text-on-accent)]' :
+                role === 'administrator' ? 'bg-[var(--color-info)]/10 text-[var(--color-info)]' :
+                'bg-[var(--color-surface-raised)] text-[var(--color-text-primary)]'
               }`}>
                 {role.charAt(0).toUpperCase() + role.slice(1)}
               </span>
             </div>
             {team.description && (
-              <p className="text-sm sm:text-base text-gray-600 mt-2">{team.description}</p>
+              <p className="text-sm sm:text-base text-[var(--color-text-secondary)] mt-2">{team.description}</p>
             )}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border border-[var(--color-border)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-600">Members</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{memberCount}</p>
+              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Members</p>
+              <p className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] mt-1">{memberCount}</p>
             </div>
-            <div className="bg-primary/10 rounded-full p-2 sm:p-3">
-              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-primary" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-[var(--color-accent-subtle)] rounded-full p-2 sm:p-3">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--color-accent)]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border border-[var(--color-border)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-600">Episodes</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">0</p>
+              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Episodes</p>
+              <p className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] mt-1">0</p>
             </div>
-            <div className="bg-blue-100 rounded-full p-2 sm:p-3">
-              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-[var(--color-info)]/10 rounded-full p-2 sm:p-3">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--color-info)]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border border-[var(--color-border)]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-600">Clips</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">0</p>
+              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Clips</p>
+              <p className="text-2xl sm:text-3xl font-bold text-[var(--color-text-primary)] mt-1">0</p>
             </div>
-            <div className="bg-green-100 rounded-full p-2 sm:p-3">
-              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-[var(--color-success)]/10 rounded-full p-2 sm:p-3">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--color-success)]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
               </svg>
             </div>
@@ -136,8 +136,8 @@ function TeamDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Team Management</h2>
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border border-[var(--color-border)]">
+          <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-text-primary)] mb-4">Team Management</h2>
           <div className="space-y-3">
             <Button
               onClick={() => navigate(`/teams/${team.id}/members`)}
@@ -166,10 +166,10 @@ function TeamDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
-          <div className="text-center py-6 sm:py-8 text-gray-500">
-            <svg className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border border-[var(--color-border)]">
+          <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-text-primary)] mb-4">Recent Activity</h2>
+          <div className="text-center py-6 sm:py-8 text-[var(--color-text-muted)]">
+            <svg className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-[var(--color-text-muted)] mb-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-xs sm:text-sm">No recent activity</p>
@@ -178,9 +178,9 @@ function TeamDetailPage() {
       </div>
 
       {!isOwner && (
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Leave Team</h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-4">
+        <div className="bg-[var(--color-surface)] rounded-lg shadow-md p-4 sm:p-6 border border-[var(--color-border)]">
+          <h2 className="text-lg sm:text-xl font-semibold text-[var(--color-text-primary)] mb-4">Leave Team</h2>
+          <p className="text-sm sm:text-base text-[var(--color-text-secondary)] mb-4">
             If you leave this team, you will lose access to all team content and will need to be re-invited to rejoin.
           </p>
 
@@ -193,8 +193,8 @@ function TeamDetailPage() {
               Leave Team
             </Button>
           ) : (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm sm:text-base text-red-800 font-medium mb-3">
+            <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)] rounded-lg p-4">
+              <p className="text-sm sm:text-base text-[var(--color-error)] font-medium mb-3">
                 Are you sure you want to leave this team?
               </p>
               <div className="flex flex-col sm:flex-row gap-3">

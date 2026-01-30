@@ -14,7 +14,6 @@ import { WorkflowProgress } from '../components/episodes/WorkflowProgress'
 import { NextActionCard } from '../components/episodes/NextActionCard'
 import { ContentCardsGrid } from '../components/episodes/ContentCardsGrid'
 import { EpisodeOverviewSkeleton } from '../components/episodes/EpisodeOverviewSkeleton'
-import { TrackStatus } from '../components/episodes/TrackStatus'
 import { SpeakerGuidanceModal } from '../components/common/SpeakerGuidanceModal'
 import type { EpisodeDetail, EpisodePlan, BlogData, ClipListView, Quote, EpisodeStatus, Episode, WorkflowSteps } from '../types'
 import type { EpisodeUpdate } from '@schemas/episodes'
@@ -95,10 +94,10 @@ function EpisodeOverviewPage() {
         episodesApi.getStatus(id),
       ])
       console.log('Overview: Fetched episode data', {
-        workflowSteps: (episodeData as any).workflowSteps,
+        workflowSteps: episodeData.workflowSteps,
         statusHistory: statusData.statusHistory
       })
-      setEpisode({ ...(episodeData as any), statusHistory: statusData.statusHistory } as EpisodeDetail)
+      setEpisode({ ...episodeData, statusHistory: statusData.statusHistory } as EpisodeDetail)
       setError(null)
     } catch (err) {
       console.error('Failed to fetch episode or status history:', err)
@@ -242,16 +241,16 @@ function EpisodeOverviewPage() {
   if (error || !episode) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-error)] rounded-[var(--radius-lg)] p-[var(--space-6)]">
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-[var(--color-error)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-red-900 mb-2">Unable to Load Episode</h3>
-              <p className="text-sm text-red-700 mb-4">{error || 'Episode not found'}</p>
+              <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)] mb-2">Unable to Load Episode</h3>
+              <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)] mb-4">{error || 'Episode not found'}</p>
               <div className="flex gap-3">
                 <Button
                   onClick={() => fetchEpisode()}
@@ -287,13 +286,6 @@ function EpisodeOverviewPage() {
           episode={episode}
           onUpdate={handleUpdateEpisode}
           isUpdating={isUpdating}
-        />
-
-        <TrackStatus
-          trackCount={episode.trackCount || episode.tracks?.length || 0}
-          hasSpeakers={episode.hasSpeakers || false}
-          speakers={episode.speakers || []}
-          onShowGuidance={() => setShowSpeakerGuidance(true)}
         />
 
         {workflowState?.nextAction && (

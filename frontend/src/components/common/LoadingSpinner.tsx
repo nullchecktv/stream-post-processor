@@ -12,7 +12,7 @@ export function LoadingSpinner({ variant = 'section', size = 'md' }: LoadingSpin
 
   const spinner = (
     <div
-      className={`${sizeClasses[size]} border-primary border-t-transparent rounded-full animate-spin`}
+      className={`${sizeClasses[size]} border-[var(--color-accent)] border-t-transparent rounded-full animate-spin`}
       role="status"
       aria-label="Loading"
     />
@@ -24,10 +24,10 @@ export function LoadingSpinner({ variant = 'section', size = 'md' }: LoadingSpin
 
   if (variant === 'page') {
     return (
-      <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 animate-fadeIn">
+      <div className="absolute inset-0 bg-[var(--color-overlay)] flex items-center justify-center z-10 animate-fadeIn">
         <div className="text-center animate-slideUp">
           {spinner}
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-[var(--color-text-secondary)]">Loading...</p>
         </div>
       </div>
     )
@@ -35,7 +35,7 @@ export function LoadingSpinner({ variant = 'section', size = 'md' }: LoadingSpin
 
   if (variant === 'card') {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-8 flex items-center justify-center animate-pulse">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] p-8 flex items-center justify-center animate-pulse">
         {spinner}
       </div>
     )

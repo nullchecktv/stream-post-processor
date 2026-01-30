@@ -1,24 +1,26 @@
 import { useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import type { ClipListView } from '../../types'
+import type { ClipListView, ClipOrientation } from '../../types'
 import { ClipQualityIndicator } from './ClipQualityIndicator'
+import Card from '../common/Card'
 
 interface ClipCardProps {
   clip: ClipListView
   episodeId: string
   trackCount: number
   hasSpeakers: boolean
+  orientation?: ClipOrientation
   onPlay: (clipId: string) => void
   onRetry?: (clipId: string) => void
 }
 
 const statusConfig: Record<string, { colors: string; label: string; icon?: ReactNode }> = {
   Proposed: {
-    colors: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    colors: 'text-[var(--color-warning)] border-[var(--color-warning)]',
     label: 'Proposed'
   },
   Processing: {
-    colors: 'bg-blue-50 text-blue-700 border-blue-200',
+    colors: 'text-[var(--color-info)] border-[var(--color-info)]',
     label: 'Processing',
     icon: (
       <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -28,7 +30,7 @@ const statusConfig: Record<string, { colors: string; label: string; icon?: React
     )
   },
   Created: {
-    colors: 'bg-green-50 text-green-700 border-green-200',
+    colors: 'text-[var(--color-success)] border-[var(--color-success)]',
     label: 'Created',
     icon: (
       <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,7 +39,7 @@ const statusConfig: Record<string, { colors: string; label: string; icon?: React
     )
   },
   Failed: {
-    colors: 'bg-red-50 text-red-700 border-red-200',
+    colors: 'text-[var(--color-error)] border-[var(--color-error)]',
     label: 'Failed',
     icon: (
       <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,7 +56,7 @@ function formatDuration(seconds?: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export function ClipCard({ clip, episodeId, trackCount, hasSpeakers, onPlay, onRetry }: ClipCardProps) {
+export function ClipCard({ clip, episodeId, trackCount, hasSpeakers, orientation = 'landscape', onPlay, onRetry }: ClipCardProps) {
   const navigate = useNavigate()
   const config = statusConfig[clip.status] || statusConfig.Proposed
   const canPlay = clip.status === 'Created'
@@ -69,75 +71,100 @@ export function ClipCard({ clip, episodeId, trackCount, hasSpeakers, onPlay, onR
     action()
   }
 
+  const aspectRatio = orientation === 'landscape' ? 'landscape' : 'portrait'
+
   return (
-    <div
-      onClick={handleCardClick}
-      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-gray-900 truncate mb-1">
-            {clip.title}
-          </h3>
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {clip.summary}
-          </p>
-        </div>
-        <div className="ml-3 flex items-center gap-2">
-          <ClipQualityIndicator
-            segments={clip.segments || []}
-            trackCount={trackCount}
-            hasSpeakers={hasSpeakers}
-          />
-          <span
-            className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border ${config.colors}`}
-            title={clip.status === 'Failed' && clip.error ? clip.error : undefined}
-          >
-            {config.icon}
-            {config.label}
-          </span>
-        </div>
-      </div>
+    <Card aspectRatio={aspectRatio} hoverable onClick={handleCardClick}>
+      <div className="h-full flex flex-col">
+        {/* Video thumbnail area */}
+        <div className="flex-1 bg-gray-900 flex items-center justify-center relative">
+          {clip.status === 'Created' ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <svg className="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+              </svg>
+            </div>
+          ) : (
+            <div className="text-white text-4xl">
+              <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+              </svg>
+            </div>
+          )}
 
-      <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-        <div className="flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{formatDuration(clip.duration)}</span>
+          {/* Duration badge */}
+          {clip.duration && (
+            <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded">
+              {formatDuration(clip.duration)}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-            <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          <span>{clip.segmentCount} segment{clip.segmentCount !== 1 ? 's' : ''}</span>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-2">
-        {canRetry && onRetry && (
-          <button
-            onClick={(e) => handleButtonClick(e, () => onRetry(clip.id))}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Retry Generation
-          </button>
-        )}
-        {canPlay && (
-          <button
-            onClick={(e) => handleButtonClick(e, () => onPlay(clip.id))}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-            </svg>
-            Play
-          </button>
-        )}
+        {/* Content area */}
+        <div className="p-3 space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 flex-1">
+              {clip.title}
+            </p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <ClipQualityIndicator
+                segments={clip.segments || []}
+                trackCount={trackCount}
+                hasSpeakers={hasSpeakers}
+              />
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded border ${config.colors}`}
+                title={clip.status === 'Failed' && clip.error ? clip.error : undefined}
+              >
+                {config.icon}
+                {config.label}
+              </span>
+            </div>
+          </div>
+
+          {clip.summary && (
+            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+              {clip.summary}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span>{clip.segmentCount} segment{clip.segmentCount !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+
+          {(canPlay || canRetry) && (
+            <div className="flex items-center gap-2 pt-2">
+              {canRetry && onRetry && (
+                <button
+                  onClick={(e) => handleButtonClick(e, () => onRetry(clip.id))}
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-[var(--color-warning)] text-white text-xs font-medium rounded hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Retry
+                </button>
+              )}
+              {canPlay && (
+                <button
+                  onClick={(e) => handleButtonClick(e, () => onPlay(clip.id))}
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-[var(--color-accent)] text-white text-xs font-medium rounded hover:bg-[var(--color-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                  </svg>
+                  Play
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </Card>
   )
 }
