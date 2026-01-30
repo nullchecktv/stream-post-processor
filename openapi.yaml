@@ -575,6 +575,32 @@ paths:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateTrackFunction.Arn}/invocations
         httpMethod: POST
         type: aws_proxy
+    delete:
+      summary: Delete a video track
+      description: Deletes a video track and its associated file from S3. Updates the episode's trackCount.
+      tags: [Episodes]
+      responses:
+        204:
+          description: Track deleted successfully
+        404:
+          description: Episode or track not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Track 'main' not found"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        500:
+          $ref: "#/components/responses/InternalError"
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteTrackFunction.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy
 
   /episodes/{episodeId}/statuses:
     parameters:
@@ -2841,47 +2867,6 @@ components:
           items:
             type: string
           example: ["Alice Johnson", "Bob Smith"]
-        speakerAnalysis:
-          type: object
-          description: Speaker analysis results from transcript processing (optional, available after transcript upload)
-          properties:
-            matched:
-              type: array
-              description: Speakers from transcript that matched episode speakers
-              items:
-                type: object
-                properties:
-                  transcriptName:
-                    type: string
-                    description: Speaker name as it appears in the transcript
-                    example: "alice j"
-                  episodeName:
-                    type: string
-                    description: Matched speaker name from episode speakers list
-                    example: "Alice Johnson"
-                  confidence:
-                    type: string
-                    enum: ["high", "medium", "low"]
-                    description: Confidence level of the match
-                    example: "high"
-                required:
-                  - transcriptName
-                  - episodeName
-                  - confidence
-            unmatched:
-              type: array
-              description: Speakers from transcript that did not match any episode speakers
-              items:
-                type: string
-              example: ["Charlie"]
-            suggestion:
-              type: string
-              nullable: true
-              description: Suggestion message for unmatched speakers
-              example: "Consider adding these speakers to the episode: Charlie"
-          required:
-            - matched
-            - unmatched
         metrics:
           type: object
           description: Episode metrics and counts

@@ -57,6 +57,14 @@ export interface TranscriptInfo {
   status: string
 }
 
+export interface ClipSegment {
+  speaker?: string | null
+  startTime: string
+  endTime: string
+  order: number
+  transcript?: string
+}
+
 export interface ClipListView {
   id: string
   episodeId: string
@@ -65,6 +73,7 @@ export interface ClipListView {
   duration: number
   transcript: string
   segmentCount: number
+  segments?: ClipSegment[]
   summary?: string
   clipType?: string
   error?: string
@@ -80,6 +89,8 @@ export interface EpisodeDetail extends EpisodeListView {
   transcript?: TranscriptInfo
   clips: ClipListView[]
   workflowSteps?: WorkflowSteps
+  trackCount?: number
+  hasSpeakers?: boolean
 }
 
 export interface Episode {

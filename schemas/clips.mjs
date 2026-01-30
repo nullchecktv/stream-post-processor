@@ -27,7 +27,7 @@ export const ClipOrientation = z.enum(['landscape', 'portrait']);
 export const ClipSegmentSchema = z.object({
   startTime: TimestampSchema,
   endTime: TimestampSchema,
-  speaker: z.string().min(1).max(100),
+  speaker: z.string().min(1).max(100).nullish(),
   transcript: z.string().min(1),
   order: z.number().int().positive()
 });

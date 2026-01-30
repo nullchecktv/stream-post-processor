@@ -1,7 +1,8 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { z } from 'zod';
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { marshall } from '@aws-sdk/util-dynamodb';
+import { DynamoDBClient, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import crypto, { randomUUID } from 'crypto';
 import { incrementClipsCreated } from '../utils/statistics.mjs';
 import { initializeStatusHistory } from '../utils/status-history.mjs';
@@ -10,6 +11,7 @@ import { CLIP_STATUS } from '../../schemas/index.mjs';
 const logger = new Logger({ serviceName: 'tools' });
 
 const ddb = new DynamoDBClient();
+const eventBridge = new EventBridgeClient();
 const MAX_CLIPS_PER_REQUEST = 10;
 const MAX_SEGMENTS_PER_CLIP = 10;
 
@@ -20,7 +22,7 @@ const segmentSchema = z.object({
   endTime: z.string()
     .regex(/^\d{2}:\d{2}:\d{2}(,\d{3})?$/)
     .describe('End time in hh:mm:ss or hh:mm:ss,mmm format (required)'),
-  speaker: z.string().min(1).describe('Speaker name (required)'),
+  speaker: z.string().min(1).nullish().describe('Speaker name (optional - can be null or omitted for single-track episodes)'),
   order: z.number().int().min(1).describe('Order of segment for reassembly (required, starting from 1)'),
   transcript: z.string().min(1).describe('Transcript text for this segment (required)'),
   notes: z.string().optional().describe('Optional contextual notes for this segment')
@@ -30,7 +32,7 @@ export const createClipTool = {
   isMultiTenant: true,
   name: 'createClip',
   description:
-    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps, speaker information, and transcript text. Speaker names can be any value and will be used as provided.',
+    'Creates one or more clip recommendations for a livestream transcript, each composed of one or more segments with required timestamps and transcript text. Speaker information is optional and can be omitted if not contained in transcript. When provided, speaker names can be any value and will be used as provided.',
   schema: z.object({
     episodeId: z.string().describe('The ID of the episode for which to create clips'),
     clips: z.array(
@@ -63,7 +65,7 @@ export const createClipTool = {
           const now = new Date().toISOString();
 
           const segmentSignature = clip.segments
-            .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker}-${s.transcript}`)
+            .map((s) => `${s.order}-${s.startTime}-${s.endTime}-${s.speaker ?? 'null'}-${s.transcript}`)
             .join('|');
 
           const clipHash = crypto
@@ -138,6 +140,48 @@ export const createClipTool = {
         tenantId,
         totalRequested: clips.length
       });
+
+      if (created > 0) {
+        try {
+          const episodeResult = await ddb.send(new GetItemCommand({
+            TableName: process.env.TABLE_NAME,
+            Key: marshall({
+              pk: `${tenantId}#${episodeId}`,
+              sk: 'metadata'
+            })
+          }));
+
+          if (episodeResult.Item) {
+            const episode = unmarshall(episodeResult.Item);
+            const episodeTitle = episode.title || `Episode ${episode.episodeNumber || ''}`;
+
+            await eventBridge.send(new PutEventsCommand({
+              Entries: [{
+                Source: 'nullcheck',
+                DetailType: 'Notification',
+                Detail: JSON.stringify({
+                  type: 'clips_detected',
+                  tenantId,
+                  title: 'Clips Detected',
+                  message: `Found ${created} potential clip${created !== 1 ? 's' : ''} in ${episodeTitle}`,
+                  url: `/episodes/${episodeId}`,
+                  persist: true,
+                  metadata: {
+                    episodeId,
+                    clipCount: created
+                  }
+                })
+              }]
+            }));
+          }
+        } catch (notificationErr) {
+          logger.error('Failed to publish clips detected notification', {
+            error: notificationErr.message,
+            episodeId,
+            tenantId
+          });
+        }
+      }
 
       return `${created} clips added for episode ${episodeId}. All clips have been created with tenant isolation.`;
     } catch (err) {

@@ -14,6 +14,8 @@ import { WorkflowProgress } from '../components/episodes/WorkflowProgress'
 import { NextActionCard } from '../components/episodes/NextActionCard'
 import { ContentCardsGrid } from '../components/episodes/ContentCardsGrid'
 import { EpisodeOverviewSkeleton } from '../components/episodes/EpisodeOverviewSkeleton'
+import { TrackStatus } from '../components/episodes/TrackStatus'
+import { SpeakerGuidanceModal } from '../components/common/SpeakerGuidanceModal'
 import type { EpisodeDetail, EpisodePlan, BlogData, ClipListView, Quote, EpisodeStatus, Episode, WorkflowSteps } from '../types'
 import type { EpisodeUpdate } from '@schemas/episodes'
 
@@ -36,6 +38,7 @@ function EpisodeOverviewPage() {
     clips?: string | null
     quotes?: string | null
   }>({})
+  const [showSpeakerGuidance, setShowSpeakerGuidance] = useState(false)
 
   usePageTitle(episode ? `${episode.title} - Overview` : 'Episode Overview')
 
@@ -286,6 +289,13 @@ function EpisodeOverviewPage() {
           isUpdating={isUpdating}
         />
 
+        <TrackStatus
+          trackCount={episode.trackCount || episode.tracks?.length || 0}
+          hasSpeakers={episode.hasSpeakers || false}
+          speakers={episode.speakers || []}
+          onShowGuidance={() => setShowSpeakerGuidance(true)}
+        />
+
         {workflowState?.nextAction && (
           <NextActionCard
             action={workflowState.nextAction}
@@ -311,6 +321,11 @@ function EpisodeOverviewPage() {
           workflowSteps={workflowSteps}
         />
       </div>
+
+      <SpeakerGuidanceModal
+        isOpen={showSpeakerGuidance}
+        onClose={() => setShowSpeakerGuidance(false)}
+      />
     </ErrorBoundary>
   )
 }

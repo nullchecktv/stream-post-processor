@@ -489,7 +489,7 @@ Resources:
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
-        TranscriptAdded:
+        TranscriptCleaned:
           Type: EventBridgeRule
           Properties:
             Pattern:
@@ -503,7 +503,7 @@ Resources:
                     - !Ref TranscriptBucket
                 object:
                   key:
-                    - suffix: .srt
+                    - suffix: transcript.md
 
   BlogOutlineAgent:
     Type: AWS::Serverless::Function
@@ -564,7 +564,7 @@ Resources:
           MODEL_ID: us.amazon.nova-pro-v1:0
           BUCKET_NAME: !Ref TranscriptBucket
       Events:
-        TranscriptAdded:
+        TranscriptCleaned:
           Type: EventBridgeRule
           Properties:
             Pattern:
@@ -578,7 +578,7 @@ Resources:
                     - !Ref TranscriptBucket
                 object:
                   key:
-                    - suffix: .srt
+                    - suffix: transcript.md
 
   BlogGeneratorAgent:
     Type: AWS::Serverless::Function
@@ -659,10 +659,12 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
                 - dynamodb:DeleteItem
+                - dynamodb:Query
               Resource: !GetAtt StreamPostProcessingTable.Arn
             - Effect: Allow
               Action:
                 - s3:GetObject
+                - s3:PutObject
               Resource: !Sub ${TranscriptBucket.Arn}/*
             - Effect: Allow
               Action:
@@ -1248,6 +1250,43 @@ Resources:
             RestApiId: !Ref Api
             Path: /episodes/{episodeId}/tracks/{trackName}
             Method: PUT
+
+  DeleteTrackFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        <<: *esbuild-properties
+        EntryPoints:
+          - episodes/delete-track.mjs
+    Properties:
+      Handler: episodes/delete-track.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+                - dynamodb:UpdateItem
+                - dynamodb:Query
+              Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+              Resource: !Sub ${TranscriptBucket.Arn}/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
+      Events:
+        DeleteTrack:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /episodes/{episodeId}/tracks/{trackName}
+            Method: DELETE
 
   AddPlanFunction:
     Type: AWS::Serverless::Function

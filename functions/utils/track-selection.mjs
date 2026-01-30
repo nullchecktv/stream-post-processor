@@ -241,7 +241,7 @@ Find the best match. Return only valid JSON.`;
  * @param {boolean} options.enableLLMMatching - Enable LLM fuzzy matching (default: true)
  * @param {string} options.fallbackTrack - Fallback track name (default: 'main')
  * @param {number} options.confidenceThreshold - Minimum confidence for fuzzy match (default: 0.7)
- * @returns {Promise<Object>} Track selection result with trackName, matchType, confidence, etc.
+ * @returns {Promise<Object>} Track selection result with trackName, matchType, confidence, reasoning
  */
 export const selectTrackForSegment = async (
   episodeId,
@@ -255,91 +255,101 @@ export const selectTrackForSegment = async (
     confidenceThreshold = 0.7
   } = options;
 
-  if (!segment.speaker) {
-    return {
-      trackName: fallbackTrack,
-      matchType: 'fallback',
-      reason: 'no_speaker_specified',
-      confidence: 1.0
-    };
-  }
-
   const tracks = await getEpisodeTracks(episodeId, tenantId);
 
   if (!tracks || tracks.length === 0) {
-    logger.warn('No tracks available for episode, using fallback', {
+    logger.warn('No tracks available for episode', {
       episodeId,
-      tenantId,
-      fallbackTrack
+      tenantId
     });
     return {
       trackName: fallbackTrack,
       matchType: 'fallback',
-      reason: 'no_tracks_available',
-      confidence: 1.0
+      confidence: 0.5,
+      reasoning: 'No tracks available for episode'
     };
   }
 
-  const exactMatch = tracks.find(track =>
-    Array.isArray(track.speakers) &&
-    track.speakers.some(speaker =>
-      speaker && speaker.toLowerCase() === segment.speaker.toLowerCase()
-    )
-  );
-
-  if (exactMatch) {
-    const matchedSpeaker = exactMatch.speakers.find(speaker =>
-      speaker && speaker.toLowerCase() === segment.speaker.toLowerCase()
-    );
+  // Single-track fast path: always use the only track regardless of speaker
+  if (tracks.length === 1) {
     return {
-      trackName: exactMatch.trackName,
-      matchType: 'exact',
-      originalSpeaker: segment.speaker,
-      matchedSpeaker: matchedSpeaker,
-      confidence: 1.0
+      trackName: tracks[0].trackName,
+      matchType: 'single-track-default',
+      confidence: 1.0,
+      reasoning: 'Only one track available'
     };
   }
 
-  if (enableLLMMatching) {
-    try {
-      const trackSpeakers = tracks
-        .filter(t => Array.isArray(t.speakers) && t.speakers.length > 0)
-        .flatMap(t => t.speakers.map(speaker => ({ trackName: t.trackName, speaker })));
+  // Multi-track with speaker: attempt speaker matching
+  if (segment.speaker) {
+    // Try exact match first
+    const exactMatch = tracks.find(track =>
+      Array.isArray(track.speakers) &&
+      track.speakers.some(speaker =>
+        speaker && speaker.toLowerCase() === segment.speaker.toLowerCase()
+      )
+    );
 
-      if (trackSpeakers.length > 0) {
-        const matchResult = await matchSpeakerToTrack(
-          episodeId,
-          segment.speaker,
-          trackSpeakers
-        );
+    if (exactMatch) {
+      const matchedSpeaker = exactMatch.speakers.find(speaker =>
+        speaker && speaker.toLowerCase() === segment.speaker.toLowerCase()
+      );
+      return {
+        trackName: exactMatch.trackName,
+        matchType: 'speaker-matched',
+        matchedSpeaker: matchedSpeaker,
+        confidence: 1.0,
+        reasoning: `Exact match for speaker "${segment.speaker}"`
+      };
+    }
 
-        if (matchResult.matched && matchResult.confidence >= confidenceThreshold) {
-          return {
-            trackName: matchResult.trackName,
-            matchType: 'fuzzy',
-            originalSpeaker: segment.speaker,
-            matchedSpeaker: matchResult.matchedSpeaker,
-            confidence: matchResult.confidence,
-            reasoning: matchResult.reasoning
-          };
+    // Try LLM fuzzy matching
+    if (enableLLMMatching) {
+      try {
+        const trackSpeakers = tracks
+          .filter(t => Array.isArray(t.speakers) && t.speakers.length > 0)
+          .flatMap(t => t.speakers.map(speaker => ({ trackName: t.trackName, speaker })));
+
+        if (trackSpeakers.length > 0) {
+          const matchResult = await matchSpeakerToTrack(
+            episodeId,
+            segment.speaker,
+            trackSpeakers
+          );
+
+          if (matchResult.matched && matchResult.confidence >= confidenceThreshold) {
+            return {
+              trackName: matchResult.trackName,
+              matchType: 'speaker-matched',
+              matchedSpeaker: matchResult.matchedSpeaker,
+              confidence: matchResult.confidence,
+              reasoning: matchResult.reasoning
+            };
+          }
         }
+      } catch (error) {
+        logger.error('LLM matching failed', {
+          error: error.message,
+          stack: error.stack,
+          speaker: segment.speaker,
+          episodeId
+        });
       }
-    } catch (error) {
-      logger.error('LLM matching failed', {
-        error: error.message,
-        stack: error.stack,
-        speaker: segment.speaker,
-        episodeId
-      });
     }
   }
 
+  // Multi-track without speaker or match failed: use fallback strategy
+  const mainTrack = tracks.find(t => t.trackName === 'main');
+  const selectedTrack = mainTrack || tracks[0];
+
   return {
-    trackName: fallbackTrack,
+    trackName: selectedTrack.trackName,
     matchType: 'fallback',
-    reason: 'no_match_found',
-    originalSpeaker: segment.speaker,
-    confidence: 0.0
+    confidence: 0.5,
+    reasoning: segment.speaker
+      ? `No track match found for speaker "${segment.speaker}"`
+      : 'No speaker attribution available',
+    warning: 'Using fallback track selection - results may not be optimal'
   };
 };
 

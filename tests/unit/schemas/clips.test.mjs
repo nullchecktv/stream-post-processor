@@ -113,7 +113,16 @@ describe('Clip Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject segment with empty speaker', () => {
+    it('should accept segment with null speaker', () => {
+      const validSegmentWithNullSpeaker = { ...validSegment, speaker: null };
+      const result = ClipSegmentSchema.safeParse(validSegmentWithNullSpeaker);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.speaker).toBeNull();
+      }
+    });
+
+    it('should reject segment with empty speaker string', () => {
       const invalidSegment = { ...validSegment, speaker: '' };
       const result = ClipSegmentSchema.safeParse(invalidSegment);
       expect(result.success).toBe(false);
@@ -147,6 +156,15 @@ describe('Clip Schemas', () => {
       const invalidSegment = { ...validSegment, order: 1.5 };
       const result = ClipSegmentSchema.safeParse(invalidSegment);
       expect(result.success).toBe(false);
+    });
+
+    it('should accept segment without speaker field (undefined)', () => {
+      const { speaker, ...segmentWithoutSpeaker } = validSegment;
+      const result = ClipSegmentSchema.safeParse(segmentWithoutSpeaker);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.speaker).toBeUndefined();
+      }
     });
 
     it('should reject segment missing required fields', () => {

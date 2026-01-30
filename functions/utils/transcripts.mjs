@@ -1,9 +1,13 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { TRACK_STATUS } from '../../schemas/tracks.mjs';
 
 const logger = new Logger({ serviceName: 'utils' });
 
 const s3 = new S3Client();
+const ddb = new DynamoDBClient();
 const transcriptCache = new Map();
 
 export const loadTranscript = async (key) => {
@@ -143,4 +147,197 @@ export const loadAndPreprocessTranscript = async (key) => {
   if (!rawTranscript) return '';
 
   return preprocessTranscript(rawTranscript);
+};
+
+export const parseSrtFile = (content) => {
+  if (!content || typeof content !== 'string') {
+    return [];
+  }
+
+  const entries = content.split(/\n\s*\n/).filter(block => block.trim());
+  const parsed = [];
+
+  for (const entry of entries) {
+    const result = parseSrtEntry(entry);
+    if (result) {
+      parsed.push(result);
+    }
+  }
+
+  return parsed;
+};
+
+export const detectSpeaker = (text) => {
+  if (!text || typeof text !== 'string') {
+    return { speaker: null, dialogue: text || '' };
+  }
+
+  const speakerMatch = text.match(/^([A-Za-z][A-Za-z\s]*?):\s*(.*)$/);
+  if (speakerMatch) {
+    return {
+      speaker: speakerMatch[1].trim(),
+      dialogue: speakerMatch[2].trim()
+    };
+  }
+
+  return { speaker: null, dialogue: text };
+};
+
+const TRUE_FILLER_WORDS = ['um', 'uh', 'uhm', 'ah', 'er', 'hmm', 'hm', 'mm', 'mmm'];
+
+const CONTEXTUAL_FILLER_WORDS = [
+  'you know', 'i mean', 'like',
+  'sort of', 'kind of', 'pretty much',
+  'basically', 'essentially', 'practically',
+  'actually', 'literally', 'in fact',
+  'well', 'so', 'right', 'now', 'just', 'really',
+  'okay', 'yeah',
+  'to be honest', 'honestly', 'frankly'
+];
+
+export const removeFillerWords = (text) => {
+  if (!text || typeof text !== 'string') {
+    return text || '';
+  }
+
+  let result = text;
+
+  const trueFillerPattern = new RegExp(
+    `\\b(${TRUE_FILLER_WORDS.join('|')})\\b`,
+    'gi'
+  );
+  result = result.replace(trueFillerPattern, '');
+
+  const contextualFillerPattern = new RegExp(
+    `(^|[,;]\\s*)(${CONTEXTUAL_FILLER_WORDS.join('|')})\\b`,
+    'gi'
+  );
+  result = result.replace(contextualFillerPattern, '$1');
+
+  result = result.replace(/,\s*,/g, ',');
+  result = result.replace(/;\s*;/g, ';');
+  result = result.replace(/\s{2,}/g, ' ');
+  result = result.replace(/,\s+([.!?])/g, '$1');
+  result = result.replace(/;\s+([.!?])/g, '$1');
+  result = result.replace(/^[,;]\s*/, '');
+  result = result.replace(/\s+$/, '');
+
+  result = result.replace(/^([a-z])/, (match) => match.toUpperCase());
+
+  return result.trim();
+};
+
+export const normalizeWhitespace = (text) => {
+  if (!text || typeof text !== 'string') {
+    return text || '';
+  }
+
+  let result = text;
+
+  result = result.replace(/[ \t]+/g, ' ');
+  result = result.replace(/\n{3,}/g, '\n\n');
+  result = result.trim();
+
+  return result;
+};
+
+export const formatCleanedTranscript = (entries) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return '';
+  }
+
+  const paragraphs = [];
+  let currentSpeaker = null;
+  let currentText = '';
+  let sentenceCount = 0;
+
+  for (const entry of entries) {
+    const { speaker, dialogue } = detectSpeaker(entry.text);
+    const cleanedDialogue = normalizeWhitespace(removeFillerWords(dialogue));
+
+    if (!cleanedDialogue) continue;
+
+    const sentences = cleanedDialogue.split(/[.!?]+/).filter(s => s.trim()).length;
+
+    const shouldBreak = speaker !== currentSpeaker ||
+                       (speaker === null && currentSpeaker === null && sentenceCount >= 5);
+
+    if (shouldBreak) {
+      if (currentText) {
+        paragraphs.push(currentSpeaker ? `${currentSpeaker}: ${currentText}` : currentText);
+      }
+      currentSpeaker = speaker;
+      currentText = cleanedDialogue;
+      sentenceCount = sentences;
+    } else {
+      currentText += ' ' + cleanedDialogue;
+      sentenceCount += sentences;
+    }
+  }
+
+  if (currentText) {
+    paragraphs.push(currentSpeaker ? `${currentSpeaker}: ${currentText}` : currentText);
+  }
+
+  return paragraphs.join('\n\n');
+};
+
+export const calculateTrackCount = async (episodeId, tenantId) => {
+  try {
+    const result = await ddb.send(new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: 'pk = :pk AND begins_with(sk, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': { S: `${tenantId}#${episodeId}` },
+        ':sk': { S: 'data#track#' }
+      }
+    }));
+
+    if (!result.Items || result.Items.length === 0) {
+      return 0;
+    }
+
+    const validTracks = result.Items
+      .map(item => unmarshall(item))
+      .filter(track =>
+        track.status === TRACK_STATUS.UPLOADED ||
+        track.status === TRACK_STATUS.PROCESSED
+      );
+
+    return validTracks.length;
+  } catch (err) {
+    logger.error('Failed to calculate track count', {
+      error: err.message,
+      stack: err.stack,
+      episodeId,
+      tenantId
+    });
+    return 0;
+  }
+};
+
+export const detectSpeakersInTranscript = (transcriptContent) => {
+  if (!transcriptContent || typeof transcriptContent !== 'string') {
+    return {
+      hasSpeakers: false,
+      speakers: []
+    };
+  }
+
+  const entries = parseSrtFile(transcriptContent);
+  const speakerSet = new Set();
+  let hasSpeakerAttribution = false;
+
+  for (const entry of entries) {
+    const { speaker } = detectSpeaker(entry.text);
+    if (speaker) {
+      hasSpeakerAttribution = true;
+      speakerSet.add(speaker);
+    }
+  }
+
+  return {
+    hasSpeakers: hasSpeakerAttribution,
+    speakers: Array.from(speakerSet).sort()
+  };
 };

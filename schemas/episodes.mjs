@@ -84,7 +84,9 @@ export const EpisodeCreateSchema = z.object({
   themes: z.array(z.string()).optional(),
   seriesName: z.string().max(100).optional(),
   speakers: z.array(z.string().min(1).max(100)).optional(),
-  workflowSteps: WorkflowStepsSchema.optional()
+  workflowSteps: WorkflowStepsSchema.optional(),
+  trackCount: z.number().int().min(0).default(0).optional(),
+  hasSpeakers: z.boolean().default(false).optional()
 });
 
 export const EpisodeUpdateSchema = EpisodeCreateSchema.partial();

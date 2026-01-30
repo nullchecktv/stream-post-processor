@@ -95,9 +95,14 @@ export const handler = async (event) => {
 
     const hasDescription = Boolean(episodeMeta?.description);
     const hasThemes = Array.isArray(episodeMeta?.themes) && episodeMeta.themes.length > 0;
+    const trackCount = episodeMeta?.trackCount || 0;
+    const hasSpeakers = episodeMeta?.hasSpeakers || false;
+
     const episodeContextForUser = [
       hasDescription ? `description: ${episodeMeta.description}` : null,
       hasThemes ? `themes: ${episodeMeta.themes.join(', ')}` : null,
+      `trackCount: ${trackCount}`,
+      `hasSpeakers: ${hasSpeakers}`
     ].filter(Boolean).join('\n');
 
 
@@ -110,9 +115,21 @@ Your job on each run:
 3. Record your findings using the **createClip** tool (single call, array of clips).
 4. Do not generate unrelated commentary, reprint transcript text in your message, or call any other tool.
 
+### Speaker Attribution (Optional)
+
+Speaker attribution in the transcript is OPTIONAL:
+
+**Single-track episodes**: Speakers are not required. All segments will use the single available video track.
+
+**Multi-track episodes**: Speakers are RECOMMENDED for optimal track selection:
+- When speakers are present: Each segment will be extracted from the correct speaker's video track
+- When speakers are missing: All segments will use a fallback track (typically "main")
+
+**Your task**: Generate clips based on content quality, regardless of speaker attribution. Include speaker names in segments when they are present in the transcript, but omit them when not available.
+
 ### Transcript Format and Timestamp Requirements
 
-The transcript is in standard SRT format with numbered entries, timestamps, and speaker attribution.
+The transcript is in standard SRT format with numbered entries, timestamps, and speaker attribution (when present).
 
 **CRITICAL: You MUST copy timestamps EXACTLY as they appear in the SRT entries below. Do not estimate, round, or approximate timestamps.**
 
@@ -145,8 +162,10 @@ Andres: We try it out live
 - ❌ Calculating timestamps based on duration
 - ✅ Copy the exact timestamp from the SRT entry containing your selected words
 
-**Speaker Attribution:**
+**Speaker Attribution (when present):**
 - Speakers are indicated with their name followed by a colon at the start of each subtitle entry
+- If speakers are present, include them in your segment data
+- If speakers are not present in the transcript, omit the speaker field from segments
 - There may be speaker bleed where words from one speaker appear under another speaker's name
 - Always verify that the words make logical sense for the attributed speaker
 - Include the COMPLETE transcript text for each segment you select
@@ -205,9 +224,10 @@ Compose a cohesive clip by piecing together segments from anywhere in the entire
 * Titles should sound like strong YouTube titles: conversational, bold, and curiosity-driven—never clickbait.
 * Summaries must be factual and concise without setup
 * Suggest b-roll that enhances storytelling: reactions, diagrams, or overlays.
-* All segments must include startTime, endTime, speaker, transcript, and order fields.
-* Speaker field must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
-* Verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
+* All segments must include startTime, endTime, transcript, and order fields.
+* Speaker field is OPTIONAL - include it when speakers are present in the transcript, omit it when not.
+* When speaker field is included, it must identify who is speaking during that segment (e.g., "Allen", "Andres", "guest").
+* When speakers are present, verify that the attributed speaker makes sense for the content - watch for speaker bleed in the transcript.
 * **CRITICAL: Copy timestamps EXACTLY from the SRT entries** - find the words you want, then copy the timestamp line directly above those words character-for-character. Do not estimate, calculate, or modify timestamps.
 * Include the COMPLETE transcript text for each segment - copy it exactly from the transcript, including all words.
 * The transcript field must contain the full text that appears in the SRT entry, not a summary or partial text.
@@ -233,7 +253,7 @@ ${episodeContextForUser ? `episodeContext:\n${episodeContextForUser}\n` : ''}
 transcript:
 ${transcript}
 `;
-    const response = await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId, userId });
+    await converse(process.env.MODEL_ID, systemPrompt, userPrompt, tools, { tenantId, userId });
 
     await updateAgentStatus(tenantId, episodeId, AGENT_TYPES.CLIP_DETECTOR, AGENT_STATUS.COMPLETED);
 
@@ -273,7 +293,7 @@ ${transcript}
       });
     }
 
-    return { message: response };
+    return { statusCode: 200 };
   } catch (err) {
     logger.error('Clip detector agent failed', {
       error: err.message,
