@@ -2,7 +2,7 @@ import { useState, type FormEvent, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resetPassword, confirmResetPassword } from 'aws-amplify/auth'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { mapAuthError, getPasswordRequirements } from '../utils/authErrors'
+import { mapAuthError, getPasswordRequirements, type AuthError } from '../utils/authErrors'
 
 type Step = 'request' | 'reset'
 
@@ -127,7 +127,7 @@ function ForgotPasswordPage() {
       setStep('reset')
     } catch (err: unknown) {
       console.error('Reset password error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }
@@ -163,7 +163,7 @@ function ForgotPasswordPage() {
       }, 2000)
     } catch (err: unknown) {
       console.error('Confirm reset password error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }
@@ -179,7 +179,7 @@ function ForgotPasswordPage() {
       setSuccessMessage('Verification code resent to your email')
     } catch (err: unknown) {
       console.error('Resend code error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }

@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useAuth } from '../hooks/useAuth'
-import { mapAuthError } from '../utils/authErrors'
+import { mapAuthError, type AuthError } from '../utils/authErrors'
 
 function LoginPage() {
   usePageTitle('Sign In')
@@ -83,7 +83,7 @@ function LoginPage() {
       navigate('/')
     } catch (err: unknown) {
       console.error('Authentication error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setLoading(false)
     }

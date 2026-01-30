@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useAuth } from '../hooks/useAuth'
-import { mapAuthError } from '../utils/authErrors'
+import { mapAuthError, type AuthError } from '../utils/authErrors'
 
 function EmailVerificationPage() {
   usePageTitle('Verify Email')
@@ -75,8 +75,8 @@ function EmailVerificationPage() {
       navigate('/onboarding')
     } catch (err: unknown) {
       console.error('Verification error:', err)
-      const errorMessage = mapAuthError(err)
-      const error = err as { name?: string }
+      const error = err as AuthError
+      const errorMessage = mapAuthError(error)
 
       if (error.name === 'CodeMismatchException') {
         setCodeError('Invalid verification code. Please try again.')
@@ -104,7 +104,7 @@ function EmailVerificationPage() {
       setCode('')
     } catch (err: unknown) {
       console.error('Resend code error:', err)
-      setError(mapAuthError(err))
+      setError(mapAuthError(err as AuthError))
     } finally {
       setResending(false)
     }

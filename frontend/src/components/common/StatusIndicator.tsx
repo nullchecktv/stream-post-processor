@@ -30,9 +30,9 @@ const statusConfig: Record<BlogStatus, {
   },
   content_generated: {
     label: 'Content Generated',
-    bgColor: 'bg-[var(--color-surface-raised)]',
-    textColor: 'text-[var(--color-success)]',
-    borderColor: 'border-[var(--color-success)]',
+    bgColor: 'bg-gradient-success',
+    textColor: 'text-white',
+    borderColor: 'border-transparent',
     icon: 'success'
   },
   outline_edited: {

@@ -133,7 +133,7 @@ function PlanCardComponent({
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-base font-semibold text-[var(--color-text-primary)]">Plan</h3>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-success-bg)] text-[var(--color-text-primary)] border border-[var(--color-success)]">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-success)] border border-[var(--color-success)]">
                 Ready
               </span>
             </div>

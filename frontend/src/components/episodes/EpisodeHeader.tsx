@@ -66,7 +66,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
   const validateField = (field: string, value: unknown): string | null => {
     switch (field) {
       case 'title':
-        if (!value || value.trim().length === 0) {
+        if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return 'Title is required'
         }
         if (value.length > 200) {
@@ -78,16 +78,17 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         if (value === undefined || value === null || value === '') {
           return 'Episode number is required'
         }
-        if (value < 1) {
+        const numValue = Number(value)
+        if (numValue < 1) {
           return 'Episode number must be a positive integer'
         }
-        if (!Number.isInteger(Number(value))) {
+        if (!Number.isInteger(numValue)) {
           return 'Episode number must be an integer'
         }
         break
 
       case 'description':
-        if (value && value.length > 1000) {
+        if (value && typeof value === 'string' && value.length > 1000) {
           return 'Description must not exceed 1000 characters'
         }
         break
@@ -95,7 +96,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
       case 'airDate':
         if (value) {
           try {
-            const date = new Date(value)
+            const date = new Date(value as string | number | Date)
             if (isNaN(date.getTime())) {
               return 'Air date must be a valid date'
             }
@@ -115,13 +116,13 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         if (value && !Array.isArray(value)) {
           return 'Invalid themes'
         }
-        if (value && value.length > 10) {
+        if (value && Array.isArray(value) && value.length > 10) {
           return 'Maximum 10 themes allowed'
         }
         break
 
       case 'seriesName':
-        if (value && value.length > 100) {
+        if (value && typeof value === 'string' && value.length > 100) {
           return 'Series name must not exceed 100 characters'
         }
         break
@@ -130,10 +131,10 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
         if (value && !Array.isArray(value)) {
           return 'Invalid speakers'
         }
-        if (value && value.length > 20) {
+        if (value && Array.isArray(value) && value.length > 20) {
           return 'Maximum 20 speakers allowed'
         }
-        if (value && value.some((s: string) => s.length > 100)) {
+        if (value && Array.isArray(value) && value.some((s: unknown) => typeof s === 'string' && s.length > 100)) {
           return 'Speaker name must not exceed 100 characters'
         }
         break

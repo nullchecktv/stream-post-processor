@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { signUp } from 'aws-amplify/auth'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useAuth } from '../hooks/useAuth'
-import { mapAuthError } from '../utils/authErrors'
+import { mapAuthError, type AuthError } from '../utils/authErrors'
 
 function SignupPage() {
   usePageTitle('Sign Up')
@@ -151,11 +151,12 @@ function SignupPage() {
       navigate('/verify-email', { state: { email } })
     } catch (err: unknown) {
       console.error('Signup error:', err)
+      const error = err as AuthError
 
-      if (err.name === 'UsernameExistsException') {
+      if (error.name === 'UsernameExistsException') {
         setError('An account with this email already exists. Please sign in instead.')
       } else {
-        const errorMessage = mapAuthError(err)
+        const errorMessage = mapAuthError(error)
         setError(errorMessage)
       }
     } finally {

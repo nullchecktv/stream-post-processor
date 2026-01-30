@@ -20,7 +20,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   const baseClasses = 'font-medium rounded-flat transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer inline-flex items-center justify-center'
 
   const variantClasses = {
-    primary: 'bg-primary text-white hover:bg-primary-dark shadow-flat hover:shadow-flat-md',
+    primary: 'bg-gradient-primary text-white hover:opacity-90 shadow-flat hover:shadow-flat-md',
     secondary: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-flat-sm hover:shadow-flat',
     danger: 'bg-error text-white hover:opacity-90 shadow-flat hover:shadow-flat-md',
     ghost: 'bg-transparent border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-flat-sm hover:shadow-flat',

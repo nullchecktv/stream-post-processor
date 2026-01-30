@@ -139,12 +139,12 @@ function ProfilePage() {
             writingStyle: string
             perspective: string
           }
-        }
+        } | null
       } = {
         name: validated.name,
         preferences: {
           timezone: validated.timezone || undefined,
-          notifications: validated.notifications,
+          notifications: validated.notifications ?? false,
         },
       }
 
