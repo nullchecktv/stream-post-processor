@@ -29,7 +29,7 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({
         pk: `${tenantId}#${episodeId}`,
-        sk: `clip#${clipId}`
+        sk: `data#clip#${clipId}`
       })
     }));
 
@@ -77,6 +77,6 @@ export const handler = async (event) => {
       clipId: event.pathParameters?.clipId,
       status: event.body ? JSON.parse(event.body).status : undefined
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

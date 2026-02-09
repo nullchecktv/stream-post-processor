@@ -31,7 +31,10 @@ export const handler = async (event) => {
     const { outline, content } = bodyValidation.data;
 
     if (!outline && !content) {
-      return formatResponse(400, { message: 'At least one of outline or content must be provided' });
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'At least one of outline or content must be provided'
+      });
     }
 
     const pk = `${tenantId}#${episodeId}`;
@@ -51,7 +54,10 @@ export const handler = async (event) => {
       }));
 
       if (!outlineResult.Item) {
-        return formatResponse(404, { message: 'No blog found for episode' });
+        return formatResponse(404, {
+          error: 'NotFound',
+          message: `Blog was not found for episode '${episodeId}'`
+        });
       }
 
       await ddb.send(new UpdateItemCommand({
@@ -84,7 +90,10 @@ export const handler = async (event) => {
       }));
 
       if (!contentResult.Item) {
-        return formatResponse(404, { message: 'No blog found for episode' });
+        return formatResponse(404, {
+          error: 'NotFound',
+          message: `Blog was not found for episode '${episodeId}'`
+        });
       }
 
       const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;

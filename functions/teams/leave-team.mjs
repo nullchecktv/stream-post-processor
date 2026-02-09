@@ -28,7 +28,7 @@ export const handler = async (event) => {
     const { membership } = memberCheck;
 
     if (membership.role === 'owner') {
-      return formatResponse(403, { message: 'Team owners cannot leave their own team' });
+      return formatResponse(403, { error: 'Forbidden', message: 'Team owners cannot leave their own team' });
     }
 
     await ddb.send(new UpdateItemCommand({
@@ -99,6 +99,6 @@ export const handler = async (event) => {
       teamId: event.pathParameters?.teamId,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

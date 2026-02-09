@@ -52,7 +52,10 @@ export const handler = async (event) => {
     }));
 
     if (!invitationResponse.Item) {
-      return formatResponse(404, { message: 'Invitation not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Invitation with ID '${invitationId}' was not found`
+      });
     }
 
     const invitation = unmarshall(invitationResponse.Item);
@@ -60,7 +63,7 @@ export const handler = async (event) => {
     // Validate invitation ownership for existing users
     if (invitation.type === 'existing_user') {
       if (invitation.invitedUserId !== userId) {
-        return formatResponse(403, { message: 'Not authorized to act on this invitation' });
+        return formatResponse(403, { error: 'Forbidden', message: 'Not authorized to act on this invitation' });
       }
     } else {
       // For new users, we would need to validate by email during signup
@@ -70,7 +73,10 @@ export const handler = async (event) => {
 
     // Check if invitation is still valid
     if (invitation.status !== INVITATION_STATUS.PENDING) {
-      return formatResponse(409, { message: `Invitation has already been ${invitation.status}` });
+      return formatResponse(409, {
+        error: 'Conflict',
+        message: `Invitation has already been ${invitation.status}`
+      });
     }
 
     // Check if invitation has expired
@@ -177,7 +183,7 @@ export const handler = async (event) => {
         }));
       } catch (error) {
         if (error.name === 'ConditionalCheckFailedException') {
-          return formatResponse(409, { message: 'User is already a member of this team' });
+          return formatResponse(409, { error: 'Conflict', message: 'User is already a member of this team' });
         }
         throw error; // Re-throw other errors
       }
@@ -252,6 +258,6 @@ export const handler = async (event) => {
       stack: err.stack,
       name: err.name
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

@@ -78,7 +78,10 @@ export const validateRequest = (event, schema) => {
   if (!tenantId || !userId) {
     return {
       success: false,
-      error: formatResponse(401, { message: 'Unauthorized' })
+      error: formatResponse(401, {
+        error: 'Unauthorized',
+        message: 'Unauthorized'
+      })
     };
   }
 
@@ -87,7 +90,10 @@ export const validateRequest = (event, schema) => {
     if (payload === null) {
       return {
         success: false,
-        error: formatResponse(400, { message: 'Invalid JSON format' })
+        error: formatResponse(400, {
+          error: 'ValidationError',
+          message: 'Invalid JSON format'
+        })
       };
     }
 
@@ -105,6 +111,7 @@ export const validateRequest = (event, schema) => {
       return {
         success: false,
         error: formatResponse(400, {
+          error: 'ValidationError',
           message: 'Validation failed',
           errors: validationErrors
         })
@@ -123,7 +130,10 @@ export const validatePathParameters = async (event, schema) => {
   if (!event.pathParameters) {
     return {
       success: false,
-      error: formatResponse(400, { message: 'Missing path parameters' })
+      error: formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Missing path parameters'
+      })
     };
   }
 
@@ -140,6 +150,7 @@ export const validatePathParameters = async (event, schema) => {
       return {
         success: false,
         error: formatResponse(400, {
+          error: 'ValidationError',
           message: 'Validation failed',
           errors: validationErrors
         })
@@ -165,6 +176,7 @@ export const validateQueryParameters = async (event, schema) => {
       return {
         success: false,
         error: formatResponse(400, {
+          error: 'ValidationError',
           message: 'Validation failed',
           errors: validationErrors
         })
@@ -178,7 +190,10 @@ export const validateBody = async (event, schema) => {
   if (!event.body) {
     return {
       success: false,
-      error: formatResponse(400, { message: 'Missing request body' })
+      error: formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Missing request body'
+      })
     };
   }
 
@@ -187,7 +202,10 @@ export const validateBody = async (event, schema) => {
     if (body === null) {
       return {
         success: false,
-        error: formatResponse(400, { message: 'Invalid JSON format' })
+        error: formatResponse(400, {
+          error: 'ValidationError',
+          message: 'Invalid JSON format'
+        })
       };
     }
 
@@ -203,6 +221,7 @@ export const validateBody = async (event, schema) => {
       return {
         success: false,
         error: formatResponse(400, {
+          error: 'ValidationError',
           message: 'Validation failed',
           errors: validationErrors
         })
@@ -234,11 +253,17 @@ export const requireTeamMember = async (teamId, userId, requiredRole = null) => 
   const membership = await checkExists(`team#${teamId}`, `user#${userId}`);
 
   if (!membership) {
-    return { error: formatResponse(403, { message: 'Not a team member' }) };
+    return { error: formatResponse(403, {
+      error: 'Forbidden',
+      message: 'Not a team member'
+    }) };
   }
 
   if (membership.status !== 'Active') {
-    return { error: formatResponse(403, { message: 'Membership not active' }) };
+    return { error: formatResponse(403, {
+      error: 'Forbidden',
+      message: 'Membership not active'
+    }) };
   }
 
   if (requiredRole) {
@@ -247,7 +272,10 @@ export const requireTeamMember = async (teamId, userId, requiredRole = null) => 
     const requiredLevel = roleHierarchy[requiredRole] || 0;
 
     if (userLevel < requiredLevel) {
-      return { error: formatResponse(403, { message: `Requires ${requiredRole} role or higher` }) };
+      return { error: formatResponse(403, {
+        error: 'Forbidden',
+        message: `Requires ${requiredRole} role or higher`
+      }) };
     }
   }
 
@@ -257,7 +285,10 @@ export const requireTeamMember = async (teamId, userId, requiredRole = null) => 
 export const requireTeamExists = async (teamId) => {
   const team = await checkExists(`team#${teamId}`, 'metadata');
   if (!team) {
-    return { error: formatResponse(404, { message: 'Team not found' }) };
+    return { error: formatResponse(404, {
+      error: 'NotFound',
+      message: `Team with ID '${teamId}' was not found`
+    }) };
   }
   return { team };
 };

@@ -300,7 +300,9 @@ Andres: Another test`;
 
       loadTranscript.mockResolvedValue(null);
 
-      await expect(handler(createS3Event(srtKey))).rejects.toThrow('Could not find transcript');
+      const result = await handler(createS3Event(srtKey));
+
+      expect(result.statusCode).toBe(500);
     });
 
     it('should handle invalid S3 key format', async () => {
@@ -326,8 +328,9 @@ Andres: Another test`;
         })
       });
 
-      await expect(handler(createS3Event(srtKey))).rejects.toThrow('AI processing failed');
+      const result = await handler(createS3Event(srtKey));
 
+      expect(result.statusCode).toBe(500);
       expect(updateAgentStatus).toHaveBeenCalledWith(
         'team#team-123',
         'episode-456',

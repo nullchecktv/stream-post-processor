@@ -13,11 +13,11 @@ export const handler = async (event) => {
     const { userId, tenantId } = event.requestContext.authorizer;
 
     if (!userId) {
-      return formatResponse(401, { message: 'User ID not found in authorization context' });
+      return formatResponse(401, { error: 'Unauthorized', message: 'User ID not found in authorization context' });
     }
 
     if (!tenantId) {
-      return formatResponse(401, { message: 'Tenant ID not found in authorization context' });
+      return formatResponse(401, { error: 'Unauthorized', message: 'Tenant ID not found in authorization context' });
     }
 
     logger.info('Refreshing Momento token', {
@@ -36,7 +36,10 @@ export const handler = async (event) => {
     const momentoToken = await generateMomentoToken(tenantId, userId, teams);
 
     if (!momentoToken) {
-      return formatResponse(500, { message: 'Failed to generate Momento token' });
+      return formatResponse(500, {
+        error: 'InternalError',
+        message: 'Failed to generate Momento token'
+      });
     }
 
     const expiresAt = new Date(Date.now() + 900000).toISOString();
@@ -52,7 +55,7 @@ export const handler = async (event) => {
       userId: event.requestContext?.authorizer?.userId,
       tenantId: event.requestContext?.authorizer?.tenantId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };
 

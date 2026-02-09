@@ -76,7 +76,9 @@ export const handler = async (event) => {
     logger.error('Failed to process notification', {
       error: error.message,
       stack: error.stack,
-      notificationType: notification.type
+      notificationType: notification?.type || 'unknown',
+      tenantId: notification?.tenantId || 'unknown'
     });
+    return { statusCode: 500 };
   }
 };

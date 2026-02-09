@@ -33,7 +33,10 @@ export const handler = async (event) => {
     }));
 
     if (!planResult.Item) {
-      return formatResponse(404, { message: 'Plan not found for episode' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Plan was not found for episode '${episodeId}'`
+      });
     }
 
     const plan = unmarshall(planResult.Item);

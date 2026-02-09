@@ -36,7 +36,10 @@ export const handler = async (event) => {
     }));
 
     if (!episodeResult.Item) {
-      return formatResponse(404, { message: `Episode with ID '${episodeId}' was not found` });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Episode with ID '${episodeId}' was not found`
+      });
     }
 
     const planResult = await ddb.send(new GetItemCommand({
@@ -48,7 +51,10 @@ export const handler = async (event) => {
     }));
 
     if (!planResult.Item) {
-      return formatResponse(404, { message: 'Plan not found for episode' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Plan was not found for episode '${episodeId}'`
+      });
     }
 
     const episode = unmarshall(episodeResult.Item);
@@ -130,6 +136,6 @@ export const handler = async (event) => {
       name: err.name,
       episodeId: event.pathParameters?.episodeId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

@@ -87,7 +87,7 @@ export const handler = async (event) => {
     if (err.name === 'ConditionalCheckFailedException') {
       return formatResponse(404, {
         error: 'NotFound',
-        message: 'User profile not found'
+        message: `User profile with ID '${userId}' was not found`
       });
     }
 

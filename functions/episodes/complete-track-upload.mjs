@@ -33,9 +33,15 @@ export const handler = async (event) => {
       uploadId = (body?.uploadId || '').toString().trim();
       parts = Array.isArray(body?.parts) ? body.parts : [];
     } catch {
-      return formatResponse(400, { message: 'Invalid request' });
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Invalid request'
+      });
     }
-    if (!uploadId || !parts.length) return formatResponse(400, { message: 'uploadId and parts are required' });
+    if (!uploadId || !parts.length) return formatResponse(400, {
+      error: 'ValidationError',
+      message: 'uploadId and parts are required'
+    });
 
     const trackResponse = await ddb.send(new GetItemCommand({
       TableName: process.env.TABLE_NAME,
@@ -44,10 +50,16 @@ export const handler = async (event) => {
         sk: `track-upload:${trackName}`
       })
     }));
-    if (!trackResponse.Item) return formatResponse(404, { message: 'Upload not found' });
+    if (!trackResponse.Item) return formatResponse(404, {
+      error: 'NotFound',
+      message: `Upload session was not found for track '${trackName}' in episode '${episodeId}'`
+    });
 
     const record = unmarshall(trackResponse.Item);
-    if (record.uploadId !== uploadId) return formatResponse(400, { message: 'uploadId mismatch for this track' });
+    if (record.uploadId !== uploadId) return formatResponse(400, {
+      error: 'ValidationError',
+      message: 'uploadId mismatch for this track'
+    });
     const speakers = record.speakers || [];
 
     const key = record.key;
@@ -229,6 +241,6 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       trackName: event.pathParameters?.trackName
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

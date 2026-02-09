@@ -234,7 +234,7 @@ Please analyze this planning information and generate recommendations for the ep
           retryCount
         });
 
-        return { statusCode: 200, message: response };
+        return { statusCode: 200 };
       } catch (converseErr) {
         retryCount++;
 
@@ -272,7 +272,7 @@ Please analyze this planning information and generate recommendations for the ep
             totalRetries: retryCount - 1
           });
 
-          throw converseErr;
+          return { statusCode: 500 };
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
@@ -285,6 +285,6 @@ Please analyze this planning information and generate recommendations for the ep
       episodeId: episodeId || 'unknown',
       tenantId: tenantId || 'unknown'
     });
-    throw err;
+    return { statusCode: 500 };
   }
 };

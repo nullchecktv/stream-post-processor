@@ -32,12 +32,15 @@ export const handler = async (event) => {
     }));
 
     if (!teamResponse.Item) {
-      return formatResponse(404, { message: 'Team not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Team with ID '${teamId}' was not found`
+      });
     }
 
     const currentTeam = unmarshall(teamResponse.Item);
     if (currentTeam.ownerId !== userId) {
-      return formatResponse(403, { message: 'Only team owners can update team settings' });
+      return formatResponse(403, { error: 'Forbidden', message: 'Only team owners can update team settings' });
     }
 
     const name = data.name !== undefined ? data.name : currentTeam.name;
@@ -75,7 +78,7 @@ export const handler = async (event) => {
     return formatEmptyResponse();
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return formatResponse(409, { message: 'Team was modified by another request. Please retry.' });
+      return formatResponse(409, { error: 'Conflict', message: 'Team was modified by another request. Please retry.' });
     }
     logger.error('Error updating team', {
       error: err.message,
@@ -83,6 +86,6 @@ export const handler = async (event) => {
       teamId: event.pathParameters?.teamId,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

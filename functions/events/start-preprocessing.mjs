@@ -169,7 +169,13 @@ export const handler = async (event) => {
 
     return { statusCode: 200 };
   } catch (err) {
-    logger.error('Error creating MediaConvert job', { error: err.message, stack: err.stack });
-    throw err;
+    logger.error('Error creating MediaConvert job', {
+      error: err.message,
+      stack: err.stack,
+      episodeId: episodeId || 'unknown',
+      trackName: trackName || 'unknown',
+      tenantId: tenantId || 'unknown'
+    });
+    return { statusCode: 500 };
   }
 };

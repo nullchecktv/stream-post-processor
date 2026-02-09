@@ -37,7 +37,10 @@ export const handler = async (event) => {
     }));
 
     if (!episodeResult.Item) {
-      return formatResponse(404, { message: `Episode with ID '${episodeId}' was not found` });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Episode with ID '${episodeId}' was not found`
+      });
     }
 
     const episode = unmarshall(episodeResult.Item);
@@ -137,7 +140,7 @@ export const handler = async (event) => {
 
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return formatResponse(409, { message: 'Plan already exists for this episode' });
+      return formatResponse(409, { error: 'Conflict', message: 'Plan already exists for this episode' });
     }
 
     logger.error('Error adding plan', {
@@ -146,6 +149,6 @@ export const handler = async (event) => {
       name: err.name,
       episodeId: event.pathParameters?.episodeId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

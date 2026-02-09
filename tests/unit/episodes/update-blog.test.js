@@ -275,7 +275,7 @@ describe('Update Blog Function', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body.message).toBe('No blog found for episode');
+      expect(result.body.message).toBe("Blog was not found for episode 'episode-123'");
     });
 
     test('should return 404 when blog content does not exist', async () => {
@@ -302,7 +302,7 @@ describe('Update Blog Function', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body.message).toBe('No blog found for episode');
+      expect(result.body.message).toBe("Blog was not found for episode 'episode-123'");
     });
 
     test('should return validation error for invalid path parameters', async () => {

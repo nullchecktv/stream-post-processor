@@ -54,7 +54,10 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
     }));
-    if (!getEpisode.Item) return formatResponse(404, { message: 'Episode not found' });
+    if (!getEpisode.Item) return formatResponse(404, {
+      error: 'NotFound',
+      message: `Episode with ID '${episodeId}' was not found`
+    });
 
 
     const ext = getExt(filename);
@@ -104,7 +107,10 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       trackName: event.body ? JSON.parse(event.body)?.trackName : undefined
     });
-    return formatResponse(500, { message: 'Failed to initiate track upload' });
+    return formatResponse(500, {
+      error: 'InternalError',
+      message: 'Failed to initiate track upload'
+    });
   }
 };
 

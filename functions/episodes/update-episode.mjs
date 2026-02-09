@@ -32,7 +32,10 @@ export const handler = async (event) => {
     }));
 
     if (!episodeResponse.Item) {
-      return formatResponse(404, { message: 'Episode not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Episode with ID '${episodeId}' was not found`
+      });
     }
 
     const currentEpisode = unmarshall(episodeResponse.Item);
@@ -65,13 +68,13 @@ export const handler = async (event) => {
     return formatEmptyResponse();
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return formatResponse(409, { message: 'Episode was modified by another request. Please retry.' });
+      return formatResponse(409, { error: 'Conflict', message: 'Episode was modified by another request. Please retry.' });
     }
     logger.error('Error updating episode', {
       error: err.message,
       stack: err.stack,
       episodeId: event.pathParameters?.episodeId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

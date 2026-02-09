@@ -32,7 +32,10 @@ export const handler = async (event) => {
     }));
 
     if (!getTrackResponse.Item) {
-      return formatResponse(404, { message: `Track '${trackName}' not found` });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Track '${trackName}' was not found in episode '${episodeId}'`
+      });
     }
 
     const track = unmarshall(getTrackResponse.Item);
@@ -93,6 +96,6 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       trackName: event.pathParameters?.trackName
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

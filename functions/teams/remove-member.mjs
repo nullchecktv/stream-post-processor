@@ -41,11 +41,14 @@ export const handler = async (event) => {
 
     const targetMembership = await checkExists(`team#${teamId}`, `user#${targetUserId}`);
     if (!targetMembership) {
-      return formatResponse(404, { message: 'User is not a member of this team' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `User with ID '${targetUserId}' is not a member of team '${teamId}'`
+      });
     }
 
     if (targetMembership.role === 'owner' && targetMembership.userId === targetUserId) {
-      return formatResponse(403, { message: 'Team owners cannot remove themselves from the team' });
+      return formatResponse(403, { error: 'Forbidden', message: 'Team owners cannot remove themselves from the team' });
     }
 
     if (confirmDelete) {
@@ -130,6 +133,6 @@ export const handler = async (event) => {
       targetUserId: event.pathParameters?.userId,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

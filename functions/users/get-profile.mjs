@@ -25,7 +25,10 @@ export const handler = async (event) => {
     }));
 
     if (!profileResponse.Item) {
-      return formatResponse(404, { message: 'User profile not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `User profile with ID '${userId}' was not found`
+      });
     }
 
     const profile = unmarshall(profileResponse.Item);
@@ -103,6 +106,6 @@ export const handler = async (event) => {
       stack: err.stack,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

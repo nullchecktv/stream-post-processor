@@ -109,7 +109,7 @@ describe('Make Invitation Decision Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body.message).toBe('Invitation not found');
+      expect(result.body.message).toBe("Invitation with ID 'inv-123' was not found");
     });
   });
 
@@ -138,7 +138,7 @@ describe('Make Invitation Decision Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body.message).toBe('Invitation not found');
+      expect(result.body.message).toBe("Invitation with ID 'inv-123' was not found");
     });
 
     test('should validate invitation ownership for existing users', async () => {

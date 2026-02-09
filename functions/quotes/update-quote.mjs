@@ -136,6 +136,6 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       quoteId: event.pathParameters?.quoteId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

@@ -74,7 +74,7 @@ describe('update-episode', () => {
     const result = await handler(event);
 
     expect(result.statusCode).toBe(404);
-    expect(JSON.parse(result.body).message).toBe('Episode not found');
+    expect(JSON.parse(result.body).message).toBe("Episode with ID 'nonexistent' was not found");
   });
 
   it('should validate request body', async () => {
