@@ -134,7 +134,7 @@ describe('Delete Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body.message).toBe('Notification not found');
+      expect(result.body.message).toBe("Notification with ID 'nonexistent' was not found");
     });
 
     test('should handle delete service errors', async () => {
@@ -188,7 +188,7 @@ describe('Delete Notification Handler', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body.message).toBe('Notification not found');
+      expect(result.body.message).toBe("Notification with ID 'nonexistent' was not found");
     });
 
     test('should handle mark as read service errors', async () => {

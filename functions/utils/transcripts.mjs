@@ -174,9 +174,13 @@ export const detectSpeaker = (text) => {
 
   const speakerMatch = text.match(/^([A-Za-z][A-Za-z\s]*?):\s*(.*)$/);
   if (speakerMatch) {
+    const dialogue = speakerMatch[2].trim();
+    if (dialogue.length === 0) {
+      return { speaker: null, dialogue: text };
+    }
     return {
       speaker: speakerMatch[1].trim(),
-      dialogue: speakerMatch[2].trim()
+      dialogue
     };
   }
 

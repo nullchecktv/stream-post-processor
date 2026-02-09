@@ -63,6 +63,6 @@ export const handler = async (event) => {
       stack: err.stack,
       name: err.name
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

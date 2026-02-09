@@ -89,7 +89,7 @@ export const handler = async (event) => {
     // Check for existing pending invitations for this email and team
     const existingInvitation = await checkExistingInvitation(email, teamId);
     if (existingInvitation) {
-      return formatResponse(409, { message: 'User already has a pending invitation to this team' });
+      return formatResponse(409, { error: 'Conflict', message: 'User already has a pending invitation to this team' });
     }
 
     // Check if user exists by email
@@ -209,6 +209,6 @@ export const handler = async (event) => {
       teamId: event.pathParameters?.teamId,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

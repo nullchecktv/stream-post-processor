@@ -55,7 +55,10 @@ export const handler = async (event) => {
       Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: 'metadata' })
     }));
     if (!getEpisode.Item) {
-      return formatResponse(404, { message: 'Episode not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Episode with ID '${episodeId}' was not found`
+      });
     }
 
     const key = `${tenantId}/${episodeId}/transcript.srt`;
@@ -102,6 +105,6 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       filename: event.body ? JSON.parse(event.body)?.filename : undefined
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

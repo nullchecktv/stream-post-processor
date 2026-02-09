@@ -183,7 +183,7 @@ describe('leave-team function', () => {
 
       expect(result.statusCode).toBe(404);
       const body = JSON.parse(result.body);
-      expect(body.message).toBe('Team not found');
+      expect(body.message).toBe("Team with ID 'invalid-id' was not found");
     });
   });
 

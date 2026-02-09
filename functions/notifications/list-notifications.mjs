@@ -8,7 +8,7 @@ export const handler = async (event) => {
   try {
     const tenantId = event?.requestContext?.authorizer?.tenantId;
     if (!tenantId) {
-      return formatResponse(401, { message: 'Unauthorized' });
+      return formatResponse(401, { error: 'Unauthorized', message: 'Unauthorized' });
     }
 
     const { limit, nextToken } = getPagingParams(event);
@@ -45,6 +45,9 @@ export const handler = async (event) => {
       stack: error.stack,
       tenantId: event?.requestContext?.authorizer?.tenantId
     });
-    return formatResponse(500, { message: 'Failed to list notifications' });
+    return formatResponse(500, {
+      error: 'InternalError',
+      message: 'Failed to list notifications'
+    });
   }
 };

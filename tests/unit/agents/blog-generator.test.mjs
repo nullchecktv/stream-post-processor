@@ -106,8 +106,9 @@ describe('Blog Generator Agent', () => {
     const result = await handler(createEvent({}));
 
     expect(result.statusCode).toBe(200);
-    expect(result.message).toBe('Blog content generated successfully');
-    expect(result.wordCount).toBeGreaterThan(0);
+    const body = JSON.parse(result.body);
+    expect(body.message).toBe('Blog content generated successfully');
+    expect(body.wordCount).toBeGreaterThan(0);
     expect(converse).toHaveBeenCalled();
 
     const callArgs = converse.mock.calls[0];
@@ -123,14 +124,16 @@ describe('Blog Generator Agent', () => {
     const result = await handler(createEvent({}));
 
     expect(result.statusCode).toBe(404);
-    expect(result.message).toBe('Blog outline not found');
+    const body = JSON.parse(result.body);
+    expect(body.message).toBe('Blog outline not found');
   });
 
   it('should return 400 when required fields missing', async () => {
     const result = await handler(createEvent({ episodeId: null }));
 
     expect(result.statusCode).toBe(400);
-    expect(result.message).toBe('Missing required fields');
+    const body = JSON.parse(result.body);
+    expect(body.message).toBe('Missing required fields');
   });
 
   it('should use team brand voice settings', async () => {

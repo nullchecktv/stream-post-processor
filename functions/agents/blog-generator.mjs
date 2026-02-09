@@ -6,6 +6,7 @@ import { convertToBedrockTools } from '../utils/tools.mjs';
 import { webSearchTool } from '../tools/web-search.mjs';
 import { BLOG_STATUS } from '../../schemas/index.mjs';
 import { publishNotificationEvent } from '../utils/notifications.mjs';
+import { formatResponse } from '../utils/api.mjs';
 
 const logger = new Logger({ serviceName: 'agents' });
 const ddb = new DynamoDBClient();
@@ -26,7 +27,10 @@ export const handler = async (event) => {
         episodeId,
         tenantId
       });
-      return { statusCode: 400, message: 'Missing required fields' };
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Missing required fields'
+      });
     }
 
     const outlineResponse = await ddb.send(new GetItemCommand({
@@ -42,7 +46,10 @@ export const handler = async (event) => {
         episodeId,
         tenantId
       });
-      return { statusCode: 404, message: 'Blog outline not found' };
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: 'Blog outline not found'
+      });
     }
 
     const outlineData = unmarshall(outlineResponse.Item);
@@ -256,11 +263,10 @@ Write the complete blog post now following the outline and brand voice guideline
       }
     });
 
-    return {
-      statusCode: 200,
+    return formatResponse(200, {
       message: 'Blog content generated successfully',
       wordCount
-    };
+    });
   } catch (err) {
     logger.error('Blog generation failed', {
       error: err.message,

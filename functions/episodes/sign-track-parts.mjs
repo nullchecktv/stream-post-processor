@@ -24,7 +24,10 @@ export const handler = async (event) => {
 
     const body = parseBody(event);
     if (!body) {
-      return formatResponse(400, { message: 'Request body is required' });
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Request body is required'
+      });
     }
 
     let uploadId, partNumbers;
@@ -36,7 +39,10 @@ export const handler = async (event) => {
         error: err.message,
         body
       });
-      return formatResponse(400, { message: 'Invalid request format' });
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Invalid request format'
+      });
     }
 
     if (!uploadId) {
@@ -57,7 +63,10 @@ export const handler = async (event) => {
       TableName: process.env.TABLE_NAME,
       Key: marshall({ pk: `${tenantId}#${episodeId}`, sk: `track-upload:${trackName}` })
     }));
-    if (!trackResponse.Item) return formatResponse(404, { message: 'Upload not found' });
+    if (!trackResponse.Item) return formatResponse(404, {
+      error: 'NotFound',
+      message: `Upload session was not found for track '${trackName}' in episode '${episodeId}'`
+    });
 
     const track = unmarshall(trackResponse.Item);
     if (track.uploadId !== uploadId) {
@@ -95,6 +104,9 @@ export const handler = async (event) => {
       episodeId: event?.pathParameters?.episodeId,
       trackName: event?.pathParameters?.trackName
     });
-    return formatResponse(500, { message: 'Failed to sign part URLs' });
+    return formatResponse(500, {
+      error: 'InternalError',
+      message: 'Failed to sign part URLs'
+    });
   }
 };

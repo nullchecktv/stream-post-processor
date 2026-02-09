@@ -104,9 +104,8 @@ export const handler = async (event) => {
 
     progress.errors.push(`Critical error: ${err.message}`);
 
-    // Don't throw the error to prevent EventBridge retries for permanent failures
-    // The cleanup will be marked as failed in metrics but won't block the system
     logger.error('Team asset cleanup failed but will not retry to prevent system issues');
+    return { statusCode: 500 };
   }
 };
 

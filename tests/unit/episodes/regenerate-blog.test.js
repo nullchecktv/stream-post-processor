@@ -130,7 +130,7 @@ describe('Regenerate Blog Function', () => {
       const result = await handler(event);
 
       expect(result.statusCode).toBe(404);
-      expect(result.body.message).toBe('No blog found for episode');
+      expect(result.body.message).toBe("Blog was not found for episode 'episode-123'");
       expect(ddbMock.calls()).toHaveLength(1);
       expect(eventBridgeMock.calls()).toHaveLength(0);
     });

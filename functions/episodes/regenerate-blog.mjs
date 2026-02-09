@@ -43,7 +43,10 @@ export const handler = async (event) => {
     }));
 
     if (!existingOutline.Item) {
-      return formatResponse(404, { message: 'No blog found for episode' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Blog was not found for episode '${episodeId}'`
+      });
     }
 
     await ddb.send(new PutItemCommand({

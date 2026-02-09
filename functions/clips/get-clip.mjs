@@ -81,6 +81,6 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       clipId: event.pathParameters?.clipId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

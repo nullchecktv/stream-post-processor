@@ -84,6 +84,6 @@ export const handler = async (event) => {
       stack: err.stack,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

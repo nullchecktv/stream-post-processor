@@ -20,13 +20,19 @@ export const handler = async (event) => {
 
     const data = parseBody(event);
     if (data === null) {
-      return formatResponse(400, { message: 'Invalid request' });
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Invalid request'
+      });
     }
 
     let speakers = data?.speakers;
     if (speakers !== undefined) {
       if (!Array.isArray(speakers)) {
-        return formatResponse(400, { message: '"speakers" must be an array' });
+        return formatResponse(400, {
+          error: 'ValidationError',
+          message: '"speakers" must be an array'
+        });
       }
 
       speakers = speakers
@@ -43,7 +49,10 @@ export const handler = async (event) => {
     }));
 
     if (!getTrackResponse.Item) {
-      return formatResponse(404, { message: `Track '${trackName}' not found for episode '${episodeId}'` });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Track '${trackName}' not found for episode '${episodeId}'`
+      });
     }
 
     const now = new Date().toISOString();
@@ -67,6 +76,6 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       trackName: event.pathParameters?.trackName
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

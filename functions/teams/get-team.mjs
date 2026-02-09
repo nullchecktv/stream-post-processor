@@ -33,13 +33,13 @@ export const handler = async (event) => {
     }));
 
     if (!membershipResponse.Item) {
-      return formatResponse(403, { message: 'Access denied' });
+      return formatResponse(403, { error: 'Forbidden', message: 'Access denied' });
     }
 
     const membership = unmarshall(membershipResponse.Item);
 
     if (membership.status !== 'Active') {
-      return formatResponse(403, { message: 'Access denied' });
+      return formatResponse(403, { error: 'Forbidden', message: 'Access denied' });
     }
 
     const teamResponse = await ddb.send(new GetItemCommand({
@@ -51,7 +51,10 @@ export const handler = async (event) => {
     }));
 
     if (!teamResponse.Item) {
-      return formatResponse(404, { message: 'Team not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Team with ID '${teamId}' was not found`
+      });
     }
 
     const team = unmarshall(teamResponse.Item);
@@ -97,6 +100,6 @@ export const handler = async (event) => {
       teamId: event.pathParameters?.teamId,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

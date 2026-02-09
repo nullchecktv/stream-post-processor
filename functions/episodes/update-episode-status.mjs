@@ -165,6 +165,6 @@ export const handler = async (event) => {
       episodeId: event.pathParameters?.episodeId,
       status: event.body ? JSON.parse(event.body)?.status : undefined
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

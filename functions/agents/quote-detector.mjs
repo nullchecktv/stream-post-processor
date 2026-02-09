@@ -245,7 +245,7 @@ ${transcript}
       });
     }
 
-    return { message: response };
+    return { statusCode: 200 };
   } catch (err) {
     logger.error('Quote detector agent failed', {
       error: err.message,
@@ -271,7 +271,7 @@ ${transcript}
       }
     }
 
-    throw err;
+    return { statusCode: 500 };
   }
 };
 

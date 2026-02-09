@@ -2,7 +2,54 @@ openapi: 3.0.0
 info:
   title: Episode API
   version: 1.0.0
-  description: Management for episodes
+  description: |
+    Management API for episodes, clips, quotes, teams, and related resources.
+
+    ## Error Handling
+
+    All API endpoints follow a consistent error response format to ensure predictable error handling on the client side.
+
+    ### Standard Error Response Format
+
+    ```json
+    {
+      "error": "ErrorType",
+      "message": "Human-readable error description",
+      "details": {}  // Optional additional context
+    }
+    ```
+
+    ### Error Types and Status Codes
+
+    | Status Code | Error Type | Description |
+    |-------------|------------|-------------|
+    | 400 | ValidationError | Invalid input data, missing required fields, or validation failures |
+    | 400 | InvalidSpeakers | Speaker references don't match episode speaker list |
+    | 400 | InvalidState | Operation not allowed in current resource state |
+    | 401 | Unauthorized | Missing or invalid authentication token |
+    | 403 | Forbidden | Authenticated but insufficient permissions |
+    | 404 | NotFound | Resource doesn't exist or user doesn't have access |
+    | 409 | Conflict | Resource already exists or invalid state transition |
+    | 409 | PrerequisiteNotMet | Prerequisites not satisfied for operation |
+    | 500 | InternalError | Unexpected server error |
+
+    ### CORS Headers
+
+    All responses (including errors) include proper CORS headers:
+    - `Access-Control-Allow-Origin`
+    - `Access-Control-Allow-Methods`
+    - `Access-Control-Allow-Headers`
+    - `Content-Type: application/json`
+
+    ### 404 Error Message Format
+
+    All 404 errors follow a consistent message format:
+    - Single resource: `{ResourceType} with ID '{id}' was not found`
+    - Nested resource: `{ResourceType} with ID '{id}' was not found in {ParentType} '{parentId}'`
+
+    Examples:
+    - `Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found`
+    - `Clip with ID 'clip-123' was not found in episode '123e4567-e89b-12d3-a456-426614174000'`
 
 x-amazon-apigateway-request-validators:
   Validate All:
@@ -3600,17 +3647,65 @@ components:
 
     ErrorResponse:
       type: object
+      description: |
+        Standard error response format used across all API endpoints.
+
+        **Error Types:**
+        - `ValidationError` - Invalid input data (400)
+        - `InvalidSpeakers` - Invalid speaker references (400)
+        - `InvalidState` - Operation not allowed in current state (400)
+        - `Unauthorized` - Missing or invalid authentication (401)
+        - `Forbidden` - Insufficient permissions (403)
+        - `NotFound` - Resource doesn't exist (404)
+        - `Conflict` - Resource already exists or invalid state transition (409)
+        - `PrerequisiteNotMet` - Prerequisites not satisfied (409)
+        - `InternalError` - Unexpected server error (500)
+
+        **Response Structure:**
+        - `error` (optional): PascalCase error type identifier
+        - `message` (required): Human-readable error description
+        - `details` (optional): Additional context (field errors, missing prerequisites, etc.)
+
+        **Note:** All error responses include proper CORS headers via the `formatResponse` utility.
       required:
         - message
       properties:
         error:
           type: string
-          description: Error type identifier (optional)
+          description: |
+            Error type identifier in PascalCase format.
+            Helps clients distinguish between different error conditions programmatically.
+            Should be present in all error responses.
           example: "ValidationError"
+          enum:
+            - ValidationError
+            - InvalidSpeakers
+            - InvalidState
+            - Unauthorized
+            - Forbidden
+            - NotFound
+            - Conflict
+            - PrerequisiteNotMet
+            - InternalError
         message:
           type: string
-          description: Human-readable error message
+          description: |
+            Human-readable error message describing what went wrong.
+            Should be clear, actionable, and safe to display to end users.
+            Must not expose sensitive internal implementation details.
           example: "The request body contains invalid data"
+        details:
+          type: object
+          description: |
+            Optional additional context about the error.
+            Structure varies by error type:
+            - Validation errors: field-level error details
+            - Speaker validation: invalidSpeakers and validSpeakers arrays
+            - Prerequisites: missingPrerequisites array
+          additionalProperties: true
+          example:
+            invalidSpeakers: ["Bobby", "Chuck"]
+            validSpeakers: ["Alice Johnson", "Bob Smith"]
 
     Notification:
       type: object
@@ -3899,15 +3994,23 @@ components:
 
   responses:
     BadRequest:
-      description: Invalid request data
+      description: |
+        Invalid request data. This response is returned when:
+        - Required fields are missing
+        - Field values fail validation (type, format, length, etc.)
+        - Business logic validation fails
+
+        All 400 responses include an `error` field (error type) and `message` field (human-readable description).
+        Some responses may include additional `details` for field-specific errors.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           examples:
             validation_error:
-              summary: Validation error
+              summary: Validation error - missing required fields
               value:
+                error: "ValidationError"
                 message: "title is required, episodeNumber is required and must be a number"
             invalid_speakers:
               summary: Invalid speakers array
@@ -3924,8 +4027,9 @@ components:
               value:
                 error: "InvalidSpeakers"
                 message: "Segment speakers must exist in episode speaker list"
-                invalidSpeakers: ["Bobby", "Chuck"]
-                validSpeakers: ["Alice Johnson", "Bob Smith", "Charlie Davis"]
+                details:
+                  invalidSpeakers: ["Bobby", "Chuck"]
+                  validSpeakers: ["Alice Johnson", "Bob Smith", "Charlie Davis"]
             invalid_email:
               summary: Invalid email format
               value:
@@ -3946,19 +4050,52 @@ components:
               value:
                 error: "ValidationError"
                 message: "Role is required"
+            invalid_state:
+              summary: Invalid state for operation
+              value:
+                error: "InvalidState"
+                message: "Clip must be in 'Proposed' or 'Failed' status to be generated"
+            missing_required_fields:
+              summary: Missing required fields in request body
+              value:
+                error: "ValidationError"
+                message: "Missing required fields"
+                details:
+                  missingFields: ["outline"]
 
     Unauthorized:
-      description: Authentication required or invalid token
+      description: |
+        Authentication required or invalid token. This response is returned when:
+        - No authentication token is provided
+        - Authentication token is invalid or expired
+        - Authentication token signature is invalid
+
+        All 401 responses include an `error` field set to "Unauthorized" and a descriptive `message`.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-          example:
-            error: "Unauthorized"
-            message: "Valid JWT token required"
+          examples:
+            missing_token:
+              summary: Missing authentication token
+              value:
+                error: "Unauthorized"
+                message: "Valid JWT token required"
+            invalid_token:
+              summary: Invalid or expired token
+              value:
+                error: "Unauthorized"
+                message: "Authentication token is invalid or expired"
 
     Forbidden:
-      description: Access denied - user lacks required permissions
+      description: |
+        Access denied - user lacks required permissions. This response is returned when:
+        - User is authenticated but not authorized for the requested operation
+        - User is not a member of the team they're trying to access
+        - User's role doesn't have sufficient permissions
+        - Operation violates business rules (e.g., owner removing themselves)
+
+        All 403 responses include an `error` field set to "Forbidden" and a descriptive `message`.
       content:
         application/json:
           schema:
@@ -3996,7 +4133,20 @@ components:
                 message: "Team owners cannot leave their own team"
 
     NotFound:
-      description: Resource not found
+      description: |
+        Resource not found. This response is returned when:
+        - The requested resource doesn't exist
+        - The resource ID is invalid
+        - The resource was deleted
+        - User doesn't have access to the resource (in some cases)
+
+        All 404 responses include an `error` field set to "NotFound" and a descriptive `message` that includes:
+        - The resource type (Episode, Clip, Quote, Team, etc.)
+        - The resource ID that was not found
+        - For nested resources, the parent resource ID
+
+        **Standard message format:** `{ResourceType} with ID '{id}' was not found`
+        **Nested resource format:** `{ResourceType} with ID '{id}' was not found in {ParentType} '{parentId}'`
       content:
         application/json:
           schema:
@@ -4007,14 +4157,58 @@ components:
               value:
                 error: "NotFound"
                 message: "Episode with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+            clip_not_found:
+              summary: Clip not found in episode
+              value:
+                error: "NotFound"
+                message: "Clip with ID 'clip-123' was not found in episode '123e4567-e89b-12d3-a456-426614174000'"
+            quote_not_found:
+              summary: Quote not found in episode
+              value:
+                error: "NotFound"
+                message: "Quote with ID 'quote-456' was not found in episode '123e4567-e89b-12d3-a456-426614174000'"
             track_not_found:
-              summary: Track not found
+              summary: Track not found for episode
               value:
                 error: "NotFound"
                 message: "Track 'main' not found for episode '123e4567-e89b-12d3-a456-426614174000'"
+            team_not_found:
+              summary: Team not found
+              value:
+                error: "NotFound"
+                message: "Team with ID 'team-789' was not found"
+            user_not_found:
+              summary: User not found
+              value:
+                error: "NotFound"
+                message: "User with ID 'user-abc' was not found"
+            plan_not_found:
+              summary: Plan not found for episode
+              value:
+                error: "NotFound"
+                message: "Plan not found for episode"
+            blog_not_found:
+              summary: Blog not found for episode
+              value:
+                error: "NotFound"
+                message: "No blog found for episode"
+            invitation_not_found:
+              summary: Invitation not found
+              value:
+                error: "NotFound"
+                message: "Invitation not found"
 
     PrerequisiteNotMet:
-      description: Prerequisites not met for the requested operation
+      description: |
+        Prerequisites not met for the requested operation. This response is returned when:
+        - Episode status doesn't allow the requested operation
+        - Required resources (tracks, transcripts) are missing
+        - Resources are in invalid states for the operation
+
+        All 409 responses for prerequisite errors include:
+        - `error` field set to "PrerequisiteNotMet"
+        - `message` field with human-readable description
+        - `details` object with `missingPrerequisites` array listing specific issues
       content:
         application/json:
           schema:
@@ -4029,13 +4223,82 @@ components:
                   missingPrerequisites:
                     - "Episode has status 'Draft', expected 'Track(s) Uploaded'"
                     - "Track 'guest' has status 'Unprocessed', expected 'Processed'"
+            missing_transcript:
+              summary: Transcript required for operation
+              value:
+                error: "PrerequisiteNotMet"
+                message: "Transcript is required for this operation"
+                details:
+                  missingPrerequisites:
+                    - "No transcript uploaded for episode"
+            missing_tracks:
+              summary: Video tracks required
+              value:
+                error: "PrerequisiteNotMet"
+                message: "Video tracks are required for clip generation"
+                details:
+                  missingPrerequisites:
+                    - "No video tracks uploaded for episode"
 
-    InternalError:
-      description: Internal server error
+    Conflict:
+      description: |
+        Resource conflict or invalid state transition. This response is returned when:
+        - Resource already exists (duplicate creation)
+        - Invalid state transition attempted
+        - Concurrent modification conflict
+        - Business rule violation
+
+        All 409 responses include an `error` field set to "Conflict" and a descriptive `message`.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-          example:
-            error: "InternalError"
-            message: "Something went wrong"
+          examples:
+            resource_exists:
+              summary: Resource already exists
+              value:
+                error: "Conflict"
+                message: "Plan already exists for this episode. Use PUT to update."
+            already_member:
+              summary: User already a team member
+              value:
+                error: "Conflict"
+                message: "User is already a member of this team"
+            invitation_processed:
+              summary: Invitation already processed
+              value:
+                error: "Conflict"
+                message: "Invitation has already been accepted"
+            invalid_transition:
+              summary: Invalid status transition
+              value:
+                error: "Conflict"
+                message: "Cannot transition from 'Published' to 'Draft'"
+
+    InternalError:
+      description: |
+        Internal server error. This response is returned when:
+        - An unexpected error occurs during request processing
+        - Database operation fails unexpectedly
+        - External service (S3, Bedrock, etc.) fails
+        - Unhandled exception occurs
+
+        All 500 responses include an `error` field set to "InternalError" and a generic `message`.
+        Detailed error information is logged server-side for debugging.
+
+        **Note:** Error messages intentionally avoid exposing internal implementation details for security.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            generic_error:
+              summary: Generic internal error
+              value:
+                error: "InternalError"
+                message: "Something went wrong"
+            service_unavailable:
+              summary: Service temporarily unavailable
+              value:
+                error: "InternalError"
+                message: "Service temporarily unavailable. Please try again later."

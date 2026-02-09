@@ -32,8 +32,11 @@ export const handler = async (event) => {
   } catch (err) {
     logger.error('Error handling clip generation failure notification', {
       error: err.message,
-      stack: err.stack
+      stack: err.stack,
+      tenantId: event?.tenantId || 'unknown',
+      episodeId: event?.episodeId || 'unknown',
+      clipId: event?.clipId || 'unknown'
     });
-    throw err;
+    return { statusCode: 500 };
   }
 };

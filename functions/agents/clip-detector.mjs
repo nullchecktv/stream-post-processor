@@ -319,7 +319,7 @@ ${transcript}
       }
     }
 
-    throw err;
+    return { statusCode: 500 };
   }
 };
 

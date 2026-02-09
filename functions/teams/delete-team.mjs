@@ -33,7 +33,7 @@ export const handler = async (event) => {
     const team = unmarshall(teamResponse.Item);
 
     if (team.ownerId !== userId) {
-      return formatResponse(403, { message: 'Only team owners can delete teams' });
+      return formatResponse(403, { error: 'Forbidden', message: 'Only team owners can delete teams' });
     }
 
     const confirmParam = event.queryStringParameters?.confirm;
@@ -86,7 +86,10 @@ export const handler = async (event) => {
     return formatEmptyResponse();
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return formatResponse(404, { message: 'Team not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Team with ID '${teamId}' was not found`
+      });
     }
     logger.error('Error deleting team', {
       error: err.message,
@@ -94,6 +97,6 @@ export const handler = async (event) => {
       teamId: event.pathParameters?.teamId,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

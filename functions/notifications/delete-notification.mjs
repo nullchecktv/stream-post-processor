@@ -8,12 +8,15 @@ export const handler = async (event) => {
   try {
     const tenantId = event?.requestContext?.authorizer?.tenantId;
     if (!tenantId) {
-      return formatResponse(401, { message: 'Unauthorized' });
+      return formatResponse(401, { error: 'Unauthorized', message: 'Unauthorized' });
     }
 
     const notificationId = event?.pathParameters?.notificationId;
     if (!notificationId) {
-      return formatResponse(400, { message: 'Notification ID is required' });
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Notification ID is required'
+      });
     }
 
     const queryParams = event?.queryStringParameters || {};
@@ -24,7 +27,10 @@ export const handler = async (event) => {
       const success = await markNotificationAsRead(tenantId, notificationId);
 
       if (!success) {
-        return formatResponse(404, { message: 'Notification not found' });
+        return formatResponse(404, {
+          error: 'NotFound',
+          message: `Notification with ID '${notificationId}' was not found`
+        });
       }
 
       return formatEmptyResponse();
@@ -34,7 +40,10 @@ export const handler = async (event) => {
     const success = await deleteNotification(tenantId, notificationId);
 
     if (!success) {
-      return formatResponse(404, { message: 'Notification not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Notification with ID '${notificationId}' was not found`
+      });
     }
 
     return formatEmptyResponse();
@@ -45,6 +54,9 @@ export const handler = async (event) => {
       userId: event?.requestContext?.authorizer?.userId,
       notificationId: event?.pathParameters?.notificationId
     });
-    return formatResponse(500, { message: 'Failed to process notification' });
+    return formatResponse(500, {
+      error: 'InternalError',
+      message: 'Failed to process notification'
+    });
   }
 };

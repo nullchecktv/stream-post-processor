@@ -139,7 +139,7 @@ describe('Delete Blog Function', () => {
     const result = await handler(mockEvent);
 
     expect(result.statusCode).toBe(404);
-    expect(result.body.message).toBe('No blog found for episode');
+    expect(result.body.message).toBe("Blog was not found for episode 'episode-123'");
 
     const batchWriteCalls = ddbMock.commandCalls(BatchWriteItemCommand);
     expect(batchWriteCalls).toHaveLength(0);

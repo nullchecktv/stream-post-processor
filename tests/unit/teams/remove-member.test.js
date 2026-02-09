@@ -236,7 +236,7 @@ describe('remove-member function', () => {
 
       expect(result.statusCode).toBe(404);
       const body = JSON.parse(result.body);
-      expect(body.message).toBe('Team not found');
+      expect(body.message).toBe("Team with ID 'invalid-id' was not found");
     });
 
     test('should return 404 for non-existent user in valid team', async () => {
@@ -269,7 +269,7 @@ describe('remove-member function', () => {
 
       expect(result.statusCode).toBe(404);
       const body = JSON.parse(result.body);
-      expect(body.message).toBe('User is not a member of this team');
+      expect(body.message).toBe("User with ID 'invalid-id' is not a member of team '456e7890-e89b-12d3-a456-426614174001'");
     });
   });
 

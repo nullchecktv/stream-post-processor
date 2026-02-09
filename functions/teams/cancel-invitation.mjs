@@ -35,13 +35,19 @@ export const handler = async (event) => {
     }));
 
     if (!invitationResponse.Item) {
-      return formatResponse(404, { message: 'Invitation not found' });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Invitation for email '${email}' was not found in team '${teamId}'`
+      });
     }
 
     const invitation = unmarshall(invitationResponse.Item);
 
     if (invitation.status !== INVITATION_STATUS.PENDING) {
-      return formatResponse(400, { message: 'Only pending invitations can be cancelled' });
+      return formatResponse(400, {
+        error: 'ValidationError',
+        message: 'Only pending invitations can be cancelled'
+      });
     }
 
     try {
@@ -62,7 +68,7 @@ export const handler = async (event) => {
 
     } catch (error) {
       if (error.name === 'ConditionalCheckFailedException') {
-        return formatResponse(409, { message: 'Invitation status has changed and cannot be cancelled' });
+        return formatResponse(409, { error: 'Conflict', message: 'Invitation status has changed and cannot be cancelled' });
       }
       throw error;
     }
@@ -95,6 +101,6 @@ export const handler = async (event) => {
       email: event.pathParameters?.email,
       userId: event.requestContext?.authorizer?.userId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

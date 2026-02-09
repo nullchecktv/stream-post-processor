@@ -36,7 +36,10 @@ export const handler = async (event) => {
     }));
 
     if (!result.Item) {
-      return formatResponse(404, { message: `Episode with ID '${episodeId}' was not found` });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Episode with ID '${episodeId}' was not found`
+      });
     }
 
     const episode = unmarshall(result.Item);

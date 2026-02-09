@@ -15,7 +15,7 @@ export const handler = async (event) => {
 
     if (!tenantId) {
       logger.error('Missing tenantId in authorizer context');
-      return formatResponse(401, { message: 'Unauthorized' });
+      return formatResponse(401, { error: 'Unauthorized', message: 'Unauthorized' });
     }
 
     const pathValidation = await validatePathParameters(event, EpisodePathParamsSchema);
@@ -34,7 +34,10 @@ export const handler = async (event) => {
     }));
 
     if (!result.Item) {
-      return formatResponse(404, { message: `Episode with ID '${episodeId}' was not found` });
+      return formatResponse(404, {
+        error: 'NotFound',
+        message: `Episode with ID '${episodeId}' was not found`
+      });
     }
 
     const episode = unmarshall(result.Item);
@@ -62,6 +65,6 @@ export const handler = async (event) => {
       name: err.name,
       episodeId: event.pathParameters?.episodeId
     });
-    return formatResponse(500, { message: 'Something went wrong' });
+    return formatResponse(500, { error: 'InternalError', message: 'Something went wrong' });
   }
 };

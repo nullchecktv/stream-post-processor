@@ -206,9 +206,11 @@ export const handler = async (event) => {
     logger.error('Error handling EventBridge S3 event', {
       error: err.message,
       stack: err.stack,
-      eventDetail: event?.detail
+      eventDetail: event?.detail,
+      episodeId: episodeId || 'unknown',
+      tenantId: tenantId || 'unknown'
     });
-    throw err;
+    return { statusCode: 500 };
   }
 };
 

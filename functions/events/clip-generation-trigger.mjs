@@ -107,18 +107,17 @@ export const handler = async (event) => {
     };
 
   } catch (error) {
-    logger.error('Error in clip generation trigger', { error: error.message, stack: error.stack });
+    logger.error('Error in clip generation trigger', {
+      error: error.message,
+      stack: error.stack,
+      tenantId: event?.detail?.tenantId || 'unknown',
+      episodeId: event?.detail?.episodeId || 'unknown'
+    });
 
-    // For malformed events or validation errors, return success to avoid retries
     if (error.message.includes('Missing required fields')) {
-      return {
-        statusCode: 200,
-        message: 'Event validation failed',
-        error: error.message
-      };
+      return { statusCode: 200 };
     }
 
-    // For other errors (DynamoDB, Step Functions), throw to trigger retries
-    throw error;
+    return { statusCode: 500 };
   }
 };
