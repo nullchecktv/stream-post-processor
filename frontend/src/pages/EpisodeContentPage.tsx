@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
-// Removed uploads list duplication; dialog handles active uploads
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { Breadcrumb } from '../components/common/Breadcrumb'
+import { Badge } from '../components/common/Badge'
 import { TranscriptUploader } from '../components/episodes/TranscriptUploader'
 import { TrackUploader } from '../components/episodes/TrackUploader'
 import { TrackCard } from '../components/episodes/TrackCard'
@@ -21,7 +21,7 @@ function EpisodeContentPage() {
 
   usePageTitle(episode ? `${episode.title} - Uploads` : 'Episode Uploads')
 
-  const fetchEpisode = async () => {
+  const fetchEpisode = useCallback(async () => {
     if (!id) {
       setError('Episode ID is required')
       setLoading(false)
@@ -38,11 +38,11 @@ function EpisodeContentPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     fetchEpisode()
-  }, [id, refreshKey])
+  }, [fetchEpisode, refreshKey])
 
   useEffect(() => {
     const handleRefresh = () => {
@@ -92,12 +92,17 @@ function EpisodeContentPage() {
         <div className="flex items-center justify-between mb-[var(--space-6)]">
           <h2 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)]">Transcript</h2>
           {episode.transcript && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-full)] text-[length:var(--text-xs)] font-medium bg-[var(--color-success)] text-white">
-              <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <Badge
+              variant="success"
+              size="md"
+              icon={
+                <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            >
               Uploaded
-            </span>
+            </Badge>
           )}
         </div>
 
@@ -119,9 +124,9 @@ function EpisodeContentPage() {
                   Uploaded {formatDate(episode.transcript.uploadedAt)}
                 </p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-full)] text-[length:var(--text-xs)] font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)] capitalize flex-shrink-0">
+              <Badge variant="neutral" size="sm" className="capitalize">
                 {episode.transcript.status}
-              </span>
+              </Badge>
             </div>
           </div>
         ) : (
@@ -144,12 +149,17 @@ function EpisodeContentPage() {
         <div className="flex items-center justify-between mb-[var(--space-6)]">
           <h2 className="text-[length:var(--text-lg)] font-semibold text-[var(--color-text-primary)]">Video Tracks</h2>
           {episode.tracks && episode.tracks.length > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-full)] text-[length:var(--text-xs)] font-medium bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
-              <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
+            <Badge
+              variant="accent"
+              size="md"
+              icon={
+                <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              }
+            >
               {episode.tracks.length} {episode.tracks.length === 1 ? 'Track' : 'Tracks'}
-            </span>
+            </Badge>
           )}
         </div>
 

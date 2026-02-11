@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -21,7 +21,7 @@ function EpisodeClipsPage() {
 
   usePageTitle(episode ? `${episode.title} - Clips` : 'Episode Clips')
 
-  const fetchEpisode = async () => {
+  const fetchEpisode = useCallback(async () => {
     if (!id) {
       setError('Episode ID is required')
       setLoading(false)
@@ -38,26 +38,20 @@ function EpisodeClipsPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const fetchEpisodeRef = useRef(fetchEpisode)
-
-  useEffect(() => {
-    fetchEpisodeRef.current = fetchEpisode
-  })
-
-  useEffect(() => {
-    fetchEpisode()
   }, [id])
 
   useEffect(() => {
+    fetchEpisode()
+  }, [fetchEpisode])
+
+  useEffect(() => {
     const handleRefresh = () => {
-      fetchEpisodeRef.current()
+      fetchEpisode()
     }
 
     window.addEventListener('refreshPageContent', handleRefresh)
     return () => window.removeEventListener('refreshPageContent', handleRefresh)
-  }, [])
+  }, [fetchEpisode])
 
   const handleGenerateClips = async () => {
     if (!id) return

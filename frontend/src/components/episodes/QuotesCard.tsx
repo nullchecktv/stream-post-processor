@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Quote } from '../../types'
+import { Badge } from '../common/Badge'
 
 interface QuotesCardProps {
   readonly episodeId: string
@@ -131,12 +132,12 @@ function QuotesCardComponent({
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-[length:var(--text-base)] font-semibold text-[var(--color-text-primary)]">Quotes</h3>
-              <span className="inline-flex items-center px-[var(--space-2)] py-[var(--space-1)] rounded-[var(--radius-full)] text-[length:var(--text-xs)] font-medium bg-[var(--color-accent-subtle)] text-[var(--color-warning)]">
+              <Badge variant="warning" size="sm">
                 {totalQuotes} {totalQuotes === 1 ? 'quote' : 'quotes'}
-              </span>
+              </Badge>
             </div>
 
-            <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">
+            <p className="text-[length:var(--text-sm)] text-[var(--color-text-secondary)] mt-2">
               {totalQuotes} {totalQuotes === 1 ? 'quote' : 'quotes'} ready to share
             </p>
           </div>

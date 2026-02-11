@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
+import { Badge } from '../components/common/Badge'
 import { useToast } from '../contexts/ToastContext'
 import { ChevronRight, Home, Clock, Tag, Sparkles, Trash2 } from 'lucide-react'
 import type { ClipListView, Episode } from '../types'
@@ -30,7 +31,7 @@ function ClipDetailPage() {
     insight: { colors: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-border)]', label: 'Insight' },
   }
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!episodeId || !clipId) {
       setError('Episode ID and Clip ID are required')
       setLoading(false)
@@ -62,11 +63,11 @@ function ClipDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [episodeId, clipId])
 
   useEffect(() => {
     fetchData()
-  }, [episodeId, clipId])
+  }, [fetchData])
 
   const handleGenerate = async () => {
     if (!episodeId || !clipId) return
@@ -110,19 +111,19 @@ function ClipDetailPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-      Proposed: { bg: 'bg-[var(--color-warning)]', text: 'text-[var(--color-text-on-accent)]', label: 'Proposed' },
-      Processing: { bg: 'bg-[var(--color-info)]', text: 'text-[var(--color-text-on-accent)]', label: 'Processing' },
-      Created: { bg: 'bg-[var(--color-success)]', text: 'text-[var(--color-text-on-accent)]', label: 'Created' },
-      Failed: { bg: 'bg-[var(--color-error)]', text: 'text-[var(--color-text-on-accent)]', label: 'Failed' }
+    const statusMap: Record<string, { variant: 'warning' | 'info' | 'success' | 'error'; label: string }> = {
+      Proposed: { variant: 'warning', label: 'Proposed' },
+      Processing: { variant: 'info', label: 'Processing' },
+      Created: { variant: 'success', label: 'Created' },
+      Failed: { variant: 'error', label: 'Failed' }
     }
 
-    const config = statusConfig[status] || statusConfig.Proposed
+    const config = statusMap[status] || statusMap.Proposed
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <Badge variant={config.variant} size="sm">
         {config.label}
-      </span>
+      </Badge>
     )
   }
 
@@ -177,10 +178,13 @@ function ClipDetailPage() {
                 {clip.clipType && (() => {
                   const cfg = clipTypeConfig[clip.clipType] || { colors: 'bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] border-[var(--color-border)]', label: clip.clipType }
                   return (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-flat border ${cfg.colors}`}>
-                      <Tag className="w-3.5 h-3.5 mr-1" />
+                    <Badge
+                      variant="accent"
+                      size="sm"
+                      icon={<Tag className="w-3.5 h-3.5" />}
+                    >
                       {cfg.label}
-                    </span>
+                    </Badge>
                   )
                 })()}
               </div>

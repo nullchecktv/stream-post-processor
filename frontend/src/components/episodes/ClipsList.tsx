@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ClipListView, EpisodeDetail } from '../../types'
 import { episodesApi } from '../../api/episodes'
 import { ClipCard } from './ClipCard'
@@ -27,7 +27,7 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
 
   const fetchClipsRef = useRef<(() => Promise<void>) | null>(null)
 
-  const fetchClips = async () => {
+  const fetchClips = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -53,15 +53,11 @@ export function ClipsList({ episodeId, onClipsLoaded }: ClipsListProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchClipsRef.current = fetchClips
-  })
+  }, [episodeId, onClipsLoaded])
 
   useEffect(() => {
     fetchClips()
-  }, [episodeId])
+  }, [fetchClips])
 
   useEffect(() => {
     const handleRefresh = () => {

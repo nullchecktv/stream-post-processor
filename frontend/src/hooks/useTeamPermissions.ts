@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useUser } from './useUser'
-import { useTeams } from './useTeams'
 
 interface TeamPermissions {
   canInviteMembers: boolean
@@ -13,7 +12,6 @@ interface TeamPermissions {
 
 export function useTeamPermissions(teamId: string): TeamPermissions {
   const { profile } = useUser()
-  const { teams } = useTeams()
 
   return useMemo(() => {
     const membership = profile?.teams.find(m => m.teamId === teamId)
@@ -30,5 +28,5 @@ export function useTeamPermissions(teamId: string): TeamPermissions {
       canDeleteTeam: isOwner,
       canCancelInvitations: isOwner || isAdmin,
     }
-  }, [teamId, teams, profile?.teams])
+  }, [teamId, profile?.teams])
 }

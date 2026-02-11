@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { episodesApi } from '../../api/episodes'
 import { LoadingSpinner } from '../common/LoadingSpinner'
 
@@ -26,11 +26,7 @@ export function ClipPlayer({
   const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  useEffect(() => {
-    fetchVideoUrl()
-  }, [clipId, episodeId])
-
-  const fetchVideoUrl = async () => {
+  const fetchVideoUrl = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -42,7 +38,11 @@ export function ClipPlayer({
     } finally {
       setLoading(false)
     }
-  }
+  }, [episodeId, clipId])
+
+  useEffect(() => {
+    fetchVideoUrl()
+  }, [clipId, episodeId, fetchVideoUrl])
 
   const handlePlay = () => {
     onPlaybackStart?.()

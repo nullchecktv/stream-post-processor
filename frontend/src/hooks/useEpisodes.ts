@@ -40,7 +40,7 @@ export function useEpisodes() {
 
   useEffect(() => {
     fetchEpisodes(true)
-  }, [])
+  }, [fetchEpisodes])
 
   useEffect(() => {
     const handleTeamSwitch = () => {

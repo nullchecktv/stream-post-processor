@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import type { WorkflowSteps } from '../../types'
 import { episodesApi } from '../../api/episodes'
 import { useToast } from '../../hooks/useToast'
+import { Badge } from '../common/Badge'
 
 interface WorkflowProgressProps {
   readonly episodeId: string
@@ -189,50 +190,48 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
 
     if (disabled) {
       return (
-        <span
-          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface)] text-[var(--color-text-disabled)] cursor-help"
-          title={getDisabledTooltip()}
-        >
-          Locked
+        <span title={getDisabledTooltip()}>
+          <Badge variant="neutral" size="sm" className="cursor-help">
+            Locked
+          </Badge>
         </span>
       )
     }
 
     if (state === 'complete') {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-success)] border border-[var(--color-success)]">
+        <Badge variant="success" size="sm">
           Complete
-        </span>
+        </Badge>
       )
     }
     if (state === 'in-progress') {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-info)] border border-[var(--color-info)]">
+        <Badge variant="info" size="sm">
           In Progress
-        </span>
+        </Badge>
       )
     }
     if (state === 'failed') {
       return (
-        <span
-          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-error)] border border-[var(--color-error)] cursor-help"
-          title={step?.error || 'Processing failed'}
-        >
-          Failed
+        <span title={step?.error || 'Processing failed'}>
+          <Badge variant="error" size="sm" className="cursor-help">
+            Failed
+          </Badge>
         </span>
       )
     }
     if (state === 'skipped') {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+        <Badge variant="neutral" size="sm">
           Skipped
-        </span>
+        </Badge>
       )
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+      <Badge variant="neutral" size="sm">
         Not Started
-        </span>
+      </Badge>
     )
   }
 

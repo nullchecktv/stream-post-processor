@@ -494,13 +494,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     };
 
     initializeSubscriptions();
-  }, [isAuthenticated, user?.tenantId, profile?.activeTeamId]);
+  }, [isAuthenticated, user?.tenantId, profile?.activeTeamId, currentTenantId, isSubscribed, momentoToken, subscribe, unsubscribe, updateMomentoToken]);
 
   useEffect(() => {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [unsubscribe]);
 
   return (
     <NotificationContext.Provider

@@ -1,4 +1,5 @@
 export { Button } from './Button'
+export { Badge } from './Badge'
 export { default as Card } from './Card'
 export { default as ContentGrid } from './ContentGrid'
 export { Input } from './Input'

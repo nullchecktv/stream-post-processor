@@ -1,6 +1,7 @@
 import { useState, memo } from 'react'
 import { Users, Calendar, Clock, Check, X } from 'lucide-react'
 import { Button } from '../common/Button'
+import { Badge } from '../common/Badge'
 
 interface InvitationCardProps {
   invitation: {
@@ -71,9 +72,9 @@ export const InvitationCard = memo(function InvitationCard({ invitation, onAccep
               )}
             </div>
 
-            <span className="inline-flex items-center px-[var(--space-2)] py-1 rounded-full text-[length:var(--text-xs)] font-medium bg-[var(--color-accent-subtle)] text-[var(--color-accent)] flex-shrink-0">
+            <Badge variant="accent" size="sm">
               {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
-            </span>
+            </Badge>
           </div>
 
           <div className="flex flex-wrap items-center gap-[var(--space-4)] text-[length:var(--text-sm)] text-[var(--color-text-muted)] mb-[var(--space-4)]">

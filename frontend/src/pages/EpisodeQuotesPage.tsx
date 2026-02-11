@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { episodesApi } from '../api/episodes'
 import { quotesApi } from '../api/quotes'
@@ -23,7 +23,7 @@ function EpisodeQuotesPage() {
 
   usePageTitle(episode ? `${episode.title} - Quotes` : 'Episode Quotes')
 
-  const fetchEpisode = async () => {
+  const fetchEpisode = useCallback(async () => {
     if (!id) {
       setError('Episode ID is required')
       setLoading(false)
@@ -40,9 +40,9 @@ function EpisodeQuotesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
-  const fetchQuotes = async (cursor?: string) => {
+  const fetchQuotes = useCallback(async (cursor?: string) => {
     if (!id) return
 
     try {
@@ -63,28 +63,22 @@ function EpisodeQuotesPage() {
     } finally {
       setLoadingQuotes(false)
     }
-  }
+  }, [id, showToast])
 
   useEffect(() => {
     fetchEpisode()
-  }, [id])
-
-  const fetchQuotesRef = useRef(fetchQuotes)
-
-  useEffect(() => {
-    fetchQuotesRef.current = fetchQuotes
-  })
+  }, [fetchEpisode])
 
   useEffect(() => {
     if (id) {
       fetchQuotes()
     }
-  }, [id])
+  }, [id, fetchQuotes])
 
   useEffect(() => {
     const handleRefresh = () => {
       if (id) {
-        fetchQuotesRef.current()
+        fetchQuotes()
       }
     }
 
@@ -113,7 +107,7 @@ function EpisodeQuotesPage() {
       window.removeEventListener('refreshPageContent', handleRefresh)
       window.removeEventListener('contentItemStatusUpdated', handleContentItemStatusUpdate as EventListener)
     }
-  }, [])
+  }, [id, fetchQuotes])
 
   const handleDelete = async (quoteId: string) => {
     if (!id) return
