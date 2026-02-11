@@ -87,7 +87,6 @@ export function BasicInfoStep({ formData, onChange, errors, onValidate }: BasicI
           error={errors.title}
           placeholder="e.g., Tech Talk: Building Scalable APIs"
           required
-          autoFocus
         />
 
         <Input
