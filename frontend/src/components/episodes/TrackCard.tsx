@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { episodesApi } from '../../api/episodes'
 import { useToast } from '../../hooks/useToast'
 import { MultiSelect } from '../common/MultiSelect'
+import { Badge } from '../common/Badge'
 import { formatDate } from '../../utils/date'
 
 interface Track {
@@ -65,23 +66,23 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
 
   if (isEditing) {
     return (
-      <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+      <div className="p-4 bg-[var(--color-warning)]/10 border border-[var(--color-warning)] rounded-lg">
         <div className="flex items-start gap-3 mb-4">
-          <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-purple-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="flex-shrink-0 w-10 h-10 bg-[var(--color-accent)]/20 rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-[var(--color-accent)]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
               <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-900 capitalize">{track.name}</p>
+            <p className="font-medium text-[var(--color-text-primary)] capitalize">{track.name}</p>
             {track.filename && (
-              <p className="text-sm text-gray-600 truncate mt-1">{track.filename}</p>
+              <p className="text-sm text-[var(--color-text-secondary)] truncate mt-1">{track.filename}</p>
             )}
           </div>
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
             Speakers
           </label>
           <MultiSelect
@@ -92,7 +93,7 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
             disabled={episodeSpeakers.length === 0}
           />
           {episodeSpeakers.length === 0 && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
               Add speakers to the episode first to enable speaker selection.
             </p>
           )}
@@ -102,14 +103,14 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 bg-[var(--color-accent)] text-white text-sm rounded-md hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? 'Saving...' : 'Save'}
           </button>
           <button
             onClick={handleCancel}
             disabled={isSaving}
-            className="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-md hover:bg-[var(--color-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -119,19 +120,19 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
   }
 
   return (
-    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors group">
+    <div className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg hover:border-[var(--color-border-hover)] transition-colors group">
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-          <svg className="w-5 h-5 text-purple-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex-shrink-0 w-10 h-10 bg-[var(--color-accent)]/20 rounded-lg flex items-center justify-center">
+          <svg className="w-5 h-5 text-[var(--color-accent)]" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
             <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-gray-900 capitalize">{track.name}</p>
+          <p className="font-medium text-[var(--color-text-primary)] capitalize">{track.name}</p>
           {track.filename && (
-            <p className="text-sm text-gray-600 truncate mt-1">{track.filename}</p>
+            <p className="text-sm text-[var(--color-text-secondary)] truncate mt-1">{track.filename}</p>
           )}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-[var(--color-text-muted)]">
             {track.uploadedAt && (
               <span className="flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,13 +152,13 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-accent)] text-white capitalize flex-shrink-0">
+          <Badge variant="accent" size="sm" className="capitalize">
             {track.status}
-          </span>
+          </Badge>
           <button
             onClick={() => setIsEditing(true)}
             disabled={isDeleting}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Edit track speakers"
           >
             <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
@@ -167,7 +168,7 @@ export function TrackCard({ track, episodeId, episodeSpeakers, onUpdate }: Track
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Delete track"
           >
             {isDeleting ? (

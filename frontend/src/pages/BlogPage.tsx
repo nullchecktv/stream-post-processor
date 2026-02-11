@@ -11,7 +11,6 @@ import { ViewToggle } from '../components/common/ViewToggle'
 import { FormatToggle } from '../components/common/FormatToggle'
 import { MarkdownPreview } from '../components/common/MarkdownPreview'
 import { RegenerateButton } from '../components/common/RegenerateButton'
-import { StatusIndicator } from '../components/common/StatusIndicator'
 import { InlineError } from '../components/common/InlineError'
 import { ApiError } from '../api/client'
 import type { BlogData } from '../types'
@@ -212,7 +211,7 @@ function BlogPage() {
         pollingIntervalRef.current = null
       }
     }
-  }, [blogData?.status, id, showToast])
+  }, [blogData, id])
 
   const handleOutlineChange = (value: string) => {
     setEditedOutline(value)
@@ -400,21 +399,18 @@ function BlogPage() {
         <div className="mb-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-[length:var(--text-2xl)] font-bold text-[var(--color-text-primary)] mb-2">
+              <h1 className="text-[length:var(--text-2xl)] font-bold text-[var(--color-text-primary)]">
                 Blog Post
               </h1>
-              <div className="flex items-center gap-3">
-                <StatusIndicator status={blogData.status} size="md" />
-                {isSaving && (
-                  <span className="text-[length:var(--text-sm)] text-[var(--color-text-muted)] flex items-center gap-1">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Saving...
-                  </span>
-                )}
-              </div>
+              {isSaving && (
+                <span className="text-[length:var(--text-sm)] text-[var(--color-text-muted)] flex items-center gap-1 mt-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Saving...
+                </span>
+              )}
             </div>
             {viewMode === 'outline' && blogData.outline && (
               <RegenerateButton
@@ -483,16 +479,13 @@ function BlogPage() {
             </div>
           ) : hasContent ? (
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--color-text-primary)]">
-                  {viewMode === 'outline' ? 'Outline' : 'Content'}
-                </h2>
-                {viewMode === 'outline' && lastSavedAt && (
+              {viewMode === 'outline' && lastSavedAt && (
+                <div className="flex items-center justify-end mb-3">
                   <span className="text-[length:var(--text-sm)] text-[var(--color-text-muted)]">
                     Last saved {lastSavedAt.toLocaleTimeString()}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
               <div className="bg-[var(--color-surface-raised)] rounded-[var(--radius-lg)] p-[var(--space-4)]">
                 {viewMode === 'outline' && formatMode === 'markdown' ? (
                   <textarea

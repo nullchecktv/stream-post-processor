@@ -1,5 +1,6 @@
 import { useState, useEffect, memo, useCallback } from 'react'
 import { Button } from '../common/Button'
+import { Badge } from '../common/Badge'
 import { formatDate } from '../../utils/date'
 import type { EpisodeDetail, Platform } from '../../types'
 import type { EpisodeUpdate } from '@schemas/episodes'
@@ -434,10 +435,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {(editedData.themes || []).map((theme: string) => (
-                <span
-                  key={theme}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                >
+                <Badge key={theme} variant="accent" size="sm">
                   {theme}
                   <button
                     type="button"
@@ -447,7 +445,7 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
                   >
                     ×
                   </button>
-                </span>
+                </Badge>
               ))}
             </div>
             <input
@@ -485,20 +483,17 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {(editedData.speakers || []).map((speaker: string) => (
-                <span
-                  key={speaker}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-success)] bg-opacity-10 text-[var(--color-success)]"
-                >
+                <Badge key={speaker} variant="success" size="sm">
                   {speaker}
                   <button
                     type="button"
                     onClick={() => handleSpeakerRemove(speaker)}
-                    className="ml-1 text-[var(--color-success)] hover:opacity-80"
+                    className="ml-1 text-[var(--badge-success-text)] hover:opacity-80"
                     aria-label={`Remove ${speaker} speaker`}
                   >
                     ×
                   </button>
-                </span>
+                </Badge>
               ))}
             </div>
             <input
@@ -657,12 +652,9 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
               <span className="text-[var(--color-text-muted)]">Themes</span>
               <div className="flex flex-wrap gap-2 mt-1">
                 {episode.themes.map((theme) => (
-                  <span
-                    key={theme}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                  >
+                  <Badge key={theme} variant="accent" size="sm">
                     {theme}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -678,12 +670,9 @@ function EpisodeHeaderComponent({ episode, onUpdate, isUpdating = false }: Episo
               <span className="text-[var(--color-text-muted)]">Speakers</span>
               <div className="flex flex-wrap gap-2 mt-1">
                 {episode.speakers.map((speaker) => (
-                  <span
-                    key={speaker}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-success)] bg-opacity-10 text-[var(--color-success)]"
-                  >
+                  <Badge key={speaker} variant="success" size="sm">
                     {speaker}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </div>

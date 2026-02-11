@@ -1,6 +1,7 @@
 import { useState, memo } from 'react'
 import { Crown, Trash2, Calendar } from 'lucide-react'
 import { Button } from '../common/Button'
+import { Badge } from '../common/Badge'
 import type { TeamMember } from '../../types'
 
 interface MemberListItemProps {
@@ -80,14 +81,14 @@ export const MemberListItem = memo(function MemberListItem({
     return '??'
   }
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeVariant = (role: string): 'accent' | 'info' | 'neutral' => {
     switch (role) {
       case 'owner':
-        return 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)]'
+        return 'accent'
       case 'administrator':
-        return 'bg-[var(--color-info)]/10 text-[var(--color-info)]'
+        return 'info'
       default:
-        return 'bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)]'
+        return 'neutral'
     }
   }
 
@@ -136,9 +137,9 @@ export const MemberListItem = memo(function MemberListItem({
             <option value="member">Member</option>
           </select>
         ) : (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(member.role)}`}>
+          <Badge variant={getRoleBadgeVariant(member.role)} size="sm">
             {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-          </span>
+          </Badge>
         )}
 
         {canRemove && onRemove && (

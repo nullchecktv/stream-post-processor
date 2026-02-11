@@ -5,30 +5,16 @@ import { episodesApi } from '../api/episodes'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../contexts/ToastContext'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
+import { Badge } from '../components/common/Badge'
 import { ChevronRight, Home, Download, Trash2 } from 'lucide-react'
 import type { QuoteDetail, Episode } from '../types'
 
-const statusConfig: Record<string, { colors: string; label: string }> = {
-  Proposed: {
-    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-warning)] border-[var(--color-warning)]',
-    label: 'Proposed'
-  },
-  Processing: {
-    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-info)] border-[var(--color-info)]',
-    label: 'Processing'
-  },
-  Created: {
-    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-success)] border-[var(--color-success)]',
-    label: 'Created'
-  },
-  Failed: {
-    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-error)] border-[var(--color-error)]',
-    label: 'Failed'
-  },
-  Edited: {
-    colors: 'bg-[var(--color-surface-raised)] text-[var(--color-accent)] border-[var(--color-accent)]',
-    label: 'Edited'
-  }
+const statusConfig: Record<string, { variant: 'warning' | 'info' | 'success' | 'error' | 'accent'; label: string }> = {
+  Proposed: { variant: 'warning', label: 'Proposed' },
+  Processing: { variant: 'info', label: 'Processing' },
+  Created: { variant: 'success', label: 'Created' },
+  Failed: { variant: 'error', label: 'Failed' },
+  Edited: { variant: 'accent', label: 'Edited' }
 }
 
 function QuoteDetailPage() {
@@ -272,9 +258,9 @@ function QuoteDetailPage() {
             <div className="flex-1">
               <h1 className="text-[length:var(--text-2xl)] font-bold text-[var(--color-text-primary)] mb-2">Quote by {quote.speaker}</h1>
               <div className="flex items-center gap-4 text-sm text-[var(--color-text-muted)]">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.colors}`}>
+                <Badge variant={config.variant} size="sm">
                   {config.label}
-                </span>
+                </Badge>
                 <span>{quote.timestamp}</span>
               </div>
             </div>

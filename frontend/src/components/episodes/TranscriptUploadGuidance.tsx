@@ -60,9 +60,9 @@ export function TranscriptUploadGuidance({ trackCount }: TranscriptUploadGuidanc
           </button>
 
           {isExampleExpanded && (
-            <div className="mt-3 bg-white border border-amber-200 rounded p-3">
-              <p className="text-xs font-medium text-gray-700 mb-2">Example SRT format with speakers:</p>
-              <pre className="text-xs text-gray-800 font-mono bg-gray-50 p-2 rounded overflow-x-auto">
+            <div className="mt-3 bg-[var(--color-surface)] border border-amber-200 rounded p-3">
+              <p className="text-xs font-medium text-[var(--color-text-primary)] mb-2">Example SRT format with speakers:</p>
+              <pre className="text-xs text-[var(--color-text-primary)] font-mono bg-[var(--color-background)] p-2 rounded overflow-x-auto">
 {`1
 00:00:20,925 --> 00:00:27,104
 Allen: Sometimes it's a breakthrough

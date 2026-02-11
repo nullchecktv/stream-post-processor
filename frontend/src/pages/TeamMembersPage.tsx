@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTeams } from '../hooks/useTeams'
 import { useUser } from '../hooks/useUser'
@@ -42,19 +42,7 @@ function TeamMembersPage() {
 
   usePageTitle(team ? `${team.name} - Members` : 'Team Members')
 
-  useEffect(() => {
-    if (!teamsLoading && teamId) {
-      const foundTeam = teams.find(t => t.id === teamId)
-      if (foundTeam) {
-        setTeam(foundTeam)
-        loadMembers(teamId)
-      } else {
-        navigate('/teams')
-      }
-    }
-  }, [teamId, teams, teamsLoading, navigate])
-
-  const loadMembers = async (id: string) => {
+  const loadMembers = useCallback(async (id: string) => {
     try {
       setLoading(true)
       const data = await fetchMembers(id)
@@ -66,7 +54,19 @@ function TeamMembersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchMembers, showToast])
+
+  useEffect(() => {
+    if (!teamsLoading && teamId) {
+      const foundTeam = teams.find(t => t.id === teamId)
+      if (foundTeam) {
+        setTeam(foundTeam)
+        loadMembers(teamId)
+      } else {
+        navigate('/teams')
+      }
+    }
+  }, [teamId, teams, teamsLoading, navigate, loadMembers])
 
   const getUserRole = (): string => {
     if (!team || !profile) return 'member'

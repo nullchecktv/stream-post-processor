@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { episodesApi } from '../../api/episodes'
 import { LoadingSpinner } from '../common/LoadingSpinner'
 
@@ -14,6 +14,20 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchPlaybackUrl = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await episodesApi.playClip(episodeId, clipId)
+      setPlaybackUrl(response.downloadUrl)
+    } catch (err) {
+      console.error('Failed to fetch playback URL:', err)
+      setError('Failed to load video. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [episodeId, clipId])
+
   useEffect(() => {
     if (isOpen && clipId && episodeId) {
       fetchPlaybackUrl()
@@ -23,7 +37,7 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
       setPlaybackUrl(null)
       setError(null)
     }
-  }, [isOpen, clipId, episodeId])
+  }, [isOpen, clipId, episodeId, fetchPlaybackUrl])
 
   useEffect(() => {
     if (!isOpen) return
@@ -43,20 +57,6 @@ export function ClipModal({ clipId, episodeId, isOpen, onClose }: ClipModalProps
       document.removeEventListener('keydown', handleEscape)
     }
   }, [isOpen, onClose])
-
-  const fetchPlaybackUrl = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await episodesApi.playClip(episodeId, clipId)
-      setPlaybackUrl(response.downloadUrl)
-    } catch (err) {
-      console.error('Failed to fetch playback URL:', err)
-      setError('Failed to load video. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {

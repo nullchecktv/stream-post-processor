@@ -202,7 +202,7 @@ export function EpisodeCreationWizard({ isOpen, onClose, onComplete }: EpisodeCr
         size="md"
       >
         <div className="space-y-4">
-          <p className="text-gray-600">
+          <p className="text-[var(--color-text-secondary)]">
             You have an unfinished episode draft. Would you like to resume where you left off or start fresh?
           </p>
           <div className="flex justify-end space-x-3">
@@ -298,10 +298,10 @@ function WizardProgress({ currentStep, steps }: WizardProgressProps) {
                 transition-colors duration-200
                 ${
                   step.id === currentStep
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[var(--color-accent)] text-white'
                     : step.id < currentStep
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-200 text-gray-500'
+                    ? 'bg-[var(--color-success)] text-white'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
                 }
               `}
             >
@@ -320,7 +320,7 @@ function WizardProgress({ currentStep, steps }: WizardProgressProps) {
             <span
               className={`
                 mt-2 text-xs font-medium text-center
-                ${step.id === currentStep ? 'text-blue-600' : 'text-gray-500'}
+                ${step.id === currentStep ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)]'}
               `}
             >
               {step.name}
@@ -330,7 +330,7 @@ function WizardProgress({ currentStep, steps }: WizardProgressProps) {
             <div
               className={`
                 h-0.5 flex-1 mx-2 transition-colors duration-200
-                ${step.id < currentStep ? 'bg-green-600' : 'bg-gray-200'}
+                ${step.id < currentStep ? 'bg-[var(--color-success)]' : 'bg-[var(--color-border)]'}
               `}
             />
           )}
@@ -363,7 +363,7 @@ function WizardNavigation({
   const isLastStep = currentStep === totalSteps
 
   return (
-    <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+    <div className="flex justify-between items-center pt-4 border-t border-[var(--color-border)]">
       <Button
         type="button"
         variant="ghost"

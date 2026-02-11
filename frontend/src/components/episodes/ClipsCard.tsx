@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ClipListView } from '../../types'
+import { Badge } from '../common/Badge'
 
 interface ClipsCardProps {
   readonly episodeId: string
@@ -148,33 +149,33 @@ function ClipsCardComponent({
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <h3 className="text-base font-semibold text-[var(--color-text-primary)]">Clips</h3>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-success)] bg-opacity-10 text-[var(--color-success)]">
+              <Badge variant="success" size="sm">
                 {totalClips} {totalClips === 1 ? 'clip' : 'clips'}
-              </span>
+              </Badge>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               {statusBreakdown.proposed > 0 && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-[var(--radius-md)] text-xs font-medium bg-[var(--color-info)] bg-opacity-10 text-[var(--color-info)]">
+                <Badge variant="info" size="sm">
                   {statusBreakdown.proposed} Proposed
-                </span>
+                </Badge>
               )}
               {statusBreakdown.processing > 0 && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-[var(--radius-md)] text-xs font-medium bg-[var(--color-warning)] bg-opacity-10 text-[var(--color-warning)]">
+                <Badge variant="warning" size="sm">
                   {statusBreakdown.processing} Processing
-                </span>
+                </Badge>
               )}
               {statusBreakdown.created > 0 && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-[var(--radius-md)] text-xs font-medium bg-[var(--color-success)] bg-opacity-10 text-[var(--color-success)]">
+                <Badge variant="success" size="sm">
                   {statusBreakdown.created} Created
-                </span>
+                </Badge>
               )}
               {statusBreakdown.failed > 0 && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-[var(--radius-md)] text-xs font-medium bg-[var(--color-error)] bg-opacity-10 text-[var(--color-error)]">
+                <Badge variant="error" size="sm">
                   {statusBreakdown.failed} Failed
-                </span>
+                </Badge>
               )}
             </div>
           </div>
