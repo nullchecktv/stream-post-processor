@@ -12,6 +12,7 @@ interface ModalProps {
 export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
 
   const sizeClasses = {
     sm: 'max-w-md',
@@ -21,12 +22,12 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   }
 
   useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  useEffect(() => {
     if (isOpen) {
       previousActiveElement.current = document.activeElement as HTMLElement
-
-      const focusableElements = modalRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
 
       const firstInput = modalRef.current?.querySelector('input, textarea') as HTMLElement
       if (firstInput) {
@@ -35,19 +36,24 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
 
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
-          onClose()
+          onCloseRef.current()
         }
 
-        if (e.key === 'Tab' && focusableElements) {
-          const firstElement = focusableElements[0] as HTMLElement
-          const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+        if (e.key === 'Tab') {
+          const focusableElements = modalRef.current?.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+          if (focusableElements) {
+            const firstElement = focusableElements[0] as HTMLElement
+            const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
 
-          if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault()
-            lastElement.focus()
-          } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault()
-            firstElement.focus()
+            if (e.shiftKey && document.activeElement === firstElement) {
+              e.preventDefault()
+              lastElement.focus()
+            } else if (!e.shiftKey && document.activeElement === lastElement) {
+              e.preventDefault()
+              firstElement.focus()
+            }
           }
         }
       }
@@ -61,7 +67,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         previousActiveElement.current?.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) return null
 
