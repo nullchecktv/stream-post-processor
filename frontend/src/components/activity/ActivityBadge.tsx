@@ -1,4 +1,5 @@
 import { Activity } from 'lucide-react'
+import { useCircuitBreaker } from '../../hooks/useCircuitBreaker'
 
 interface ActivityBadgeProps {
   count: number
@@ -6,6 +7,8 @@ interface ActivityBadgeProps {
 }
 
 export function ActivityBadge({ count, onClick }: ActivityBadgeProps) {
+  const { isCircuitOpen } = useCircuitBreaker()
+
   if (count === 0) {
     return (
       <button
@@ -14,6 +17,12 @@ export function ActivityBadge({ count, onClick }: ActivityBadgeProps) {
         aria-label="Activity"
       >
         <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
+        {isCircuitOpen && (
+          <span
+            className="absolute bottom-1 right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-[var(--color-background)]"
+            aria-label="Real-time updates unavailable"
+          />
+        )}
       </button>
     )
   }
@@ -28,6 +37,12 @@ export function ActivityBadge({ count, onClick }: ActivityBadgeProps) {
       <span className="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 min-w-[18px] text-xs font-bold leading-none text-[var(--color-text-on-accent)] bg-[var(--color-error)] rounded-full animate-pop">
         {count > 99 ? '99+' : count}
       </span>
+      {isCircuitOpen && (
+        <span
+          className="absolute bottom-1 right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-[var(--color-background)]"
+          aria-label="Real-time updates unavailable"
+        />
+      )}
     </button>
   )
 }

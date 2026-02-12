@@ -232,7 +232,7 @@ function WorkflowProgressComponent({ episodeId, workflowSteps, onSkipPlan }: Wor
       <Badge variant="neutral" size="sm">
         Not Started
       </Badge>
-    )
+    ) 
   }
 
   const completedCount = Object.values(workflowSteps).filter(step => step.status === 'Completed').length

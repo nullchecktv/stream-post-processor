@@ -8,6 +8,7 @@ import { apiRequest } from '../api/client';
 import { refreshMomentoToken } from '../api/tokens';
 import { refreshCognitoToken } from '../api/auth';
 import { tokenStorage } from '../utils/tokenStorage';
+import { MomentoCircuitBreaker, type CircuitBreakerStatus } from '../utils/circuitBreaker';
 
 let momentoModule: typeof import('@gomomento/sdk-web') | null = null;
 
@@ -33,6 +34,8 @@ interface NotificationContextValue {
   unsubscribe: () => Promise<void>;
   refreshToken: () => Promise<void>;
   handleTeamSwitch: (newTenantId: string) => Promise<void>;
+  circuitStatus: CircuitBreakerStatus;
+  retryConnection: () => Promise<void>;
 }
 
 export const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
@@ -48,14 +51,30 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const circuitBreakerRef = useRef<MomentoCircuitBreaker>(
+    new MomentoCircuitBreaker({
+      failureThreshold: 3,
+      cooldownMs: 5 * 60 * 1000,
+      maxAutoRecoveryAttempts: 3
+    })
+  );
+
   const [unreadCount, setUnreadCount] = useState(0);
   const [topicClient, setTopicClient] = useState<TopicClient | null>(null);
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [proactiveRefreshTimer, setProactiveRefreshTimer] = useState<NodeJS.Timeout | null>(null);
+  const [circuitStatus, setCircuitStatus] = useState<CircuitBreakerStatus>(
+    circuitBreakerRef.current.getStatus()
+  );
 
   const subscriptionRef = useRef<TopicSubscribe.Subscription | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const subscribeTenantRef = useRef<((tenantId: string, client: TopicClient, token: string, retryCount?: number) => Promise<void>) | null>(null);
+  const unsubscribeFromTopicsRef = useRef<(() => void) | null>(null);
+  const subscribeRef = useRef<((tenantId: string, token: string) => Promise<void>) | null>(null);
+  const unsubscribeRef = useRef<(() => Promise<void>) | null>(null);
 
   const isValidMessage = (msg: unknown): msg is MomentoMessage => {
     if (typeof msg !== 'object' || msg === null) return false;
@@ -148,6 +167,42 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, [location.pathname, navigate, showToast]);
 
+  const refreshTokenWithCircuitBreaker = useCallback(async (): Promise<string | null> => {
+    if (!circuitBreakerRef.current.shouldAttempt()) {
+      console.log('[CircuitBreaker] Token refresh blocked - circuit is open (degraded mode)');
+      return null;
+    }
+
+    try {
+      console.log('[CircuitBreaker] Attempting token refresh');
+      const response = await refreshMomentoToken();
+
+      circuitBreakerRef.current.recordSuccess();
+      setCircuitStatus(circuitBreakerRef.current.getStatus());
+      console.log('[CircuitBreaker] Token refresh successful, circuit breaker recorded success');
+
+      return response.momentoToken;
+    } catch (error) {
+      console.error('[CircuitBreaker] Token refresh failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorType: error?.constructor?.name || 'unknown'
+      });
+
+      const shouldNotify = circuitBreakerRef.current.recordFailure(error);
+      setCircuitStatus(circuitBreakerRef.current.getStatus());
+
+      if (shouldNotify) {
+        console.log('[CircuitBreaker] Circuit opened - showing user notification');
+        showToast(
+          'Real-time notifications unavailable',
+          'error'
+        );
+      }
+
+      throw error;
+    }
+  }, [showToast]);
+
   const subscribeTenant = useCallback(async (tenantId: string, client: TopicClient, token: string, retryCount = 0) => {
     const MAX_RETRIES = 1;
 
@@ -205,29 +260,58 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         isAuthError = false;
       }
 
-      if (isAuthError && retryCount < MAX_RETRIES) {
-        console.log(`Auth error detected, refreshing token and retrying (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      if (isAuthError) {
+        console.log('[CircuitBreaker] Auth error detected in subscription', {
+          errorCode: subscribeError.errorCode?.(),
+          retryCount,
+          maxRetries: MAX_RETRIES
+        });
 
-        try {
-          const response = await refreshMomentoToken();
-          const newToken = response.momentoToken;
-          tokenStorage.save(newToken);
+        if (!circuitBreakerRef.current.shouldAttempt()) {
+          console.log('[CircuitBreaker] Circuit is open - skipping subscription retry (degraded mode)');
+          throw error;
+        }
 
-          const newClient = await initializeClient(newToken);
-          if (!newClient) {
-            throw new Error('Failed to initialize client with new token');
+        if (retryCount < MAX_RETRIES) {
+          console.log('[CircuitBreaker] Attempting token refresh and subscription retry', {
+            attempt: retryCount + 1,
+            maxRetries: MAX_RETRIES
+          });
+
+          try {
+            const freshToken = await refreshTokenWithCircuitBreaker();
+
+            if (!freshToken) {
+              console.log('[CircuitBreaker] Token refresh returned null - circuit opened, entering degraded mode');
+              throw new Error('Circuit breaker prevented token refresh');
+            }
+
+            const newClient = await initializeClient(freshToken);
+            if (!newClient) {
+              throw new Error('Failed to initialize client with new token');
+            }
+
+            return await subscribeTenant(tenantId, newClient, freshToken, retryCount + 1);
+          } catch (refreshError) {
+            console.error('[CircuitBreaker] Token refresh failed during subscription retry', {
+              error: refreshError instanceof Error ? refreshError.message : 'Unknown error',
+              retryCount
+            });
+            throw refreshError;
           }
-
-          return await subscribeTenant(tenantId, newClient, newToken, retryCount + 1);
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          throw refreshError;
+        } else {
+          console.log('[CircuitBreaker] Max subscription retries reached', {
+            retryCount,
+            maxRetries: MAX_RETRIES
+          });
         }
       }
 
       throw error;
     }
-  }, [handleMessage, initializeClient]);
+  }, [handleMessage, initializeClient, refreshTokenWithCircuitBreaker]);
+
+  subscribeTenantRef.current = subscribeTenant;
 
   const setupProactiveRefreshRef = useRef<(() => void) | null>(null);
 
@@ -240,20 +324,26 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setIsSubscribed(false);
   }, []);
 
+  unsubscribeFromTopicsRef.current = unsubscribeFromTopics;
+
   const reestablishSubscriptions = useCallback(async (newToken: string) => {
     if (!isSubscribed || !currentTenantId) {
       return;
     }
 
-    unsubscribeFromTopics();
+    if (unsubscribeFromTopicsRef.current) {
+      unsubscribeFromTopicsRef.current();
+    }
 
     const newClient = await initializeClient(newToken);
     if (!newClient) {
       throw new Error('Failed to initialize client with new token');
     }
 
-    await subscribeTenant(currentTenantId, newClient, newToken);
-  }, [isSubscribed, currentTenantId, unsubscribeFromTopics, initializeClient, subscribeTenant]);
+    if (subscribeTenantRef.current) {
+      await subscribeTenantRef.current(currentTenantId, newClient, newToken);
+    }
+  }, [isSubscribed, currentTenantId, initializeClient]);
 
   const setupProactiveRefresh = useCallback(() => {
     if (proactiveRefreshTimer) {
@@ -292,7 +382,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       return;
     }
 
-    unsubscribeFromTopics();
+    if (unsubscribeFromTopicsRef.current) {
+      unsubscribeFromTopicsRef.current();
+    }
 
     console.log('Initializing Momento client...');
     const client = topicClient || await initializeClient(token);
@@ -301,15 +393,21 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
     console.log('Momento client initialized successfully');
 
-    await subscribeTenant(tenantId, client, token);
+    if (subscribeTenantRef.current) {
+      await subscribeTenantRef.current(tenantId, client, token);
+    }
 
     if (setupProactiveRefreshRef.current) {
       setupProactiveRefreshRef.current();
     }
-  }, [currentTenantId, topicClient, initializeClient, subscribeTenant, unsubscribeFromTopics]);
+  }, [currentTenantId, topicClient, initializeClient]);
+
+  subscribeRef.current = subscribe;
 
   const unsubscribe = useCallback(async () => {
-    unsubscribeFromTopics();
+    if (unsubscribeFromTopicsRef.current) {
+      unsubscribeFromTopicsRef.current();
+    }
     setTopicClient(null);
     tokenStorage.clear();
 
@@ -317,7 +415,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       clearTimeout(proactiveRefreshTimer);
       setProactiveRefreshTimer(null);
     }
-  }, [unsubscribeFromTopics, proactiveRefreshTimer]);
+  }, [proactiveRefreshTimer]);
+
+  unsubscribeRef.current = unsubscribe;
 
   const refreshToken = useCallback(async () => {
     try {
@@ -351,8 +451,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       tokenStorage.save(newMomentoToken);
 
-      if (previousTenantId) {
-        unsubscribeFromTopics();
+      if (previousTenantId && unsubscribeFromTopicsRef.current) {
+        unsubscribeFromTopicsRef.current();
       }
 
       const client = topicClient || await initializeClient(newMomentoToken);
@@ -360,7 +460,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         throw new Error('Failed to initialize Momento client');
       }
 
-      await subscribeTenant(newTenantId, client, newMomentoToken);
+      if (subscribeTenantRef.current) {
+        await subscribeTenantRef.current(newTenantId, client, newMomentoToken);
+      }
 
       if (setupProactiveRefreshRef.current) {
         setupProactiveRefreshRef.current();
@@ -379,15 +481,68 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       throw error;
     }
-  }, [currentTenantId, topicClient, unsubscribeFromTopics, initializeClient, subscribeTenant, showToast]);
+  }, [currentTenantId, topicClient, initializeClient, showToast]);
+
+  const retryConnection = useCallback(async () => {
+    console.log('[CircuitBreaker] Manual retry initiated by user', {
+      currentState: circuitBreakerRef.current.getStatus().state,
+      failureCount: circuitBreakerRef.current.getStatus().failureCount,
+      autoRecoveryAttempts: circuitBreakerRef.current.getStatus().autoRecoveryAttempts
+    });
+
+    try {
+      circuitBreakerRef.current.manualReset();
+      setCircuitStatus(circuitBreakerRef.current.getStatus());
+      console.log('[CircuitBreaker] Circuit breaker manually reset to half-open state');
+
+      const tenantId = user?.tenantId;
+      if (!tenantId) {
+        console.error('[CircuitBreaker] Manual retry aborted - no tenant ID available');
+        throw new Error('No tenant ID available');
+      }
+
+      console.log('[CircuitBreaker] Attempting token refresh via circuit breaker wrapper');
+      const freshToken = await refreshTokenWithCircuitBreaker();
+
+      if (!freshToken) {
+        console.error('[CircuitBreaker] Manual retry failed - token refresh returned null (circuit may have reopened)');
+        throw new Error('Token refresh failed');
+      }
+
+      console.log('[CircuitBreaker] Token refresh successful, updating token storage and auth context');
+      tokenStorage.save(freshToken);
+      updateMomentoToken(freshToken);
+
+      console.log('[CircuitBreaker] Initializing Momento client with fresh token');
+      const client = topicClient || await initializeClient(freshToken);
+      if (!client) {
+        console.error('[CircuitBreaker] Manual retry failed - could not initialize Momento client');
+        throw new Error('Failed to initialize Momento client');
+      }
+
+      console.log('[CircuitBreaker] Resubscribing to tenant topic', { tenantId });
+      if (subscribeTenantRef.current) {
+        await subscribeTenantRef.current(tenantId, client, freshToken);
+      }
+
+      console.log('[CircuitBreaker] Manual retry completed successfully - real-time connection restored');
+      showToast('Real-time notifications restored', 'success');
+    } catch (error) {
+      console.error('[CircuitBreaker] Manual retry failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorType: error?.constructor?.name || 'unknown'
+      });
+      showToast('Failed to restore connection', 'error');
+    }
+  }, [user?.tenantId, topicClient, initializeClient, showToast, updateMomentoToken, refreshTokenWithCircuitBreaker]);
 
   const reconnect = useCallback(async (attempt = 1) => {
     const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
 
     reconnectTimeoutRef.current = setTimeout(async () => {
       try {
-        if (currentTenantId && topicClient && momentoToken) {
-          await subscribeTenant(currentTenantId, topicClient, momentoToken);
+        if (currentTenantId && topicClient && momentoToken && subscribeTenantRef.current) {
+          await subscribeTenantRef.current(currentTenantId, topicClient, momentoToken);
         }
       } catch (_error) {
         if (attempt < 5) {
@@ -397,7 +552,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         }
       }
     }, delay);
-  }, [currentTenantId, topicClient, momentoToken, subscribeTenant, showToast]);
+  }, [currentTenantId, topicClient, momentoToken, showToast]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -412,28 +567,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
     };
 
-    const handleTokenRefreshed = async () => {
-      console.log('Momento token refreshed via API call, resubscribing...');
-      try {
-        await refreshToken();
-      } catch (error) {
-        console.error('Failed to resubscribe after token refresh:', error);
-      }
-    };
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    window.addEventListener('momento-token-refreshed', handleTokenRefreshed);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('momento-token-refreshed', handleTokenRefreshed);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [currentTenantId, topicClient, reconnect, refreshToken]);
+  }, [currentTenantId, topicClient, reconnect]);
 
   useEffect(() => {
     const initializeSubscriptions = async () => {
@@ -454,8 +598,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           isAuthenticated,
           hasTenantId: !!tenantId
         });
-        if (isSubscribed) {
-          await unsubscribe();
+        if (isSubscribed && unsubscribeRef.current) {
+          await unsubscribeRef.current();
         }
         setUnreadCount(0);
         return;
@@ -478,15 +622,23 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
         if (!tokenToUse || !tokenStorage.isValid()) {
           console.log('NotificationContext: Token missing or expired, fetching fresh token...');
-          const response = await refreshMomentoToken();
-          tokenToUse = response.momentoToken;
+          const freshToken = await refreshTokenWithCircuitBreaker();
+
+          if (!freshToken) {
+            console.log('[CircuitBreaker] Circuit is open - entering degraded mode, skipping subscription initialization');
+            return;
+          }
+
+          tokenToUse = freshToken;
           updateMomentoToken(tokenToUse);
           tokenStorage.save(tokenToUse);
-          console.log('NotificationContext: Fresh token obtained');
+          console.log('NotificationContext: Fresh token obtained and stored');
         }
 
         console.log('NotificationContext: Attempting to subscribe...');
-        await subscribe(tenantId, tokenToUse);
+        if (subscribeRef.current) {
+          await subscribeRef.current(tenantId, tokenToUse);
+        }
         console.log('NotificationContext: Subscription successful');
       } catch (error) {
         console.error('Failed to initialize subscriptions:', error);
@@ -494,13 +646,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     };
 
     initializeSubscriptions();
-  }, [isAuthenticated, user?.tenantId, profile?.activeTeamId, currentTenantId, isSubscribed, momentoToken, subscribe, unsubscribe, updateMomentoToken]);
+  }, [isAuthenticated, user?.tenantId, profile?.activeTeamId, currentTenantId, isSubscribed, momentoToken, updateMomentoToken, refreshTokenWithCircuitBreaker]);
 
   useEffect(() => {
     return () => {
-      unsubscribe();
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
     };
-  }, [unsubscribe]);
+  }, []);
 
   return (
     <NotificationContext.Provider
@@ -509,10 +663,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         subscribe,
         unsubscribe,
         refreshToken,
-        handleTeamSwitch
+        handleTeamSwitch,
+        circuitStatus,
+        retryConnection
       }}
     >
       {children}
     </NotificationContext.Provider>
   );
 }
+
+export const getCircuitBreakerForTesting = (provider: React.ComponentType<{ children: React.ReactNode }>) => {
+  return (provider as unknown as { circuitBreakerRef?: React.RefObject<MomentoCircuitBreaker> }).circuitBreakerRef?.current;
+};
