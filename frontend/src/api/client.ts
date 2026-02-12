@@ -88,9 +88,6 @@ async function refreshTokenAndRetry(): Promise<void> {
       if (!response.ok) {
         throw new Error('Token refresh failed')
       }
-
-      const event = new CustomEvent('momento-token-refreshed')
-      window.dispatchEvent(event)
     } finally {
       isRefreshingToken = false
       refreshPromise = null

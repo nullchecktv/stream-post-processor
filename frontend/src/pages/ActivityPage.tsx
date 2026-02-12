@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Activity as ActivityIcon } from 'lucide-react'
+import { Activity as ActivityIcon, AlertTriangle } from 'lucide-react'
 import { useActivity } from '../hooks/useActivity'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { ActivityItem } from '../components/activity/ActivityItem'
+import { useCircuitBreaker } from '../hooks/useCircuitBreaker'
 
 type FilterTab = 'all' | 'unread'
 
@@ -16,6 +17,8 @@ export default function ActivityPage() {
     acceptInvitation,
     rejectInvitation,
   } = useActivity()
+
+  const { isCircuitOpen } = useCircuitBreaker()
 
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all')
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
@@ -85,6 +88,20 @@ export default function ActivityPage() {
       {error && (
         <div className="mb-6 p-4 bg-[var(--color-error)]/10 border border-[var(--color-error)] rounded-lg">
           <p className="text-[var(--color-error)]">{error}</p>
+        </div>
+      )}
+
+      {isCircuitOpen && (
+        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">Real-time updates paused</h3>
+              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                Activity feed will update when you refresh the page.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

@@ -2,7 +2,8 @@ import { memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useActivity } from '../../hooks/useActivity'
 import { ActivityDropdownItem } from './ActivityDropdownItem'
-import { Activity as ActivityIcon } from 'lucide-react'
+import { Activity as ActivityIcon, AlertTriangle } from 'lucide-react'
+import { useCircuitBreaker } from '../../hooks/useCircuitBreaker'
 
 interface ActivityDropdownProps {
   onClose: () => void
@@ -11,6 +12,7 @@ interface ActivityDropdownProps {
 export const ActivityDropdown = memo(function ActivityDropdown({ onClose }: ActivityDropdownProps) {
   const navigate = useNavigate()
   const { notifications, markAsRead } = useActivity()
+  const { isCircuitOpen, canRetry, retryConnection } = useCircuitBreaker()
 
   const allItems = [...notifications]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -38,6 +40,25 @@ export const ActivityDropdown = memo(function ActivityDropdown({ onClose }: Acti
         <div className="p-[var(--space-4)] border-b border-[var(--color-divider)]">
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Activities</h3>
         </div>
+
+        {isCircuitOpen && (
+          <div className="px-[var(--space-4)] py-[var(--space-3)] bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-center justify-between gap-[var(--space-3)]">
+              <div className="flex items-center gap-[var(--space-2)] text-sm text-yellow-800 dark:text-yellow-200">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>Real-time updates unavailable</span>
+              </div>
+              {canRetry && (
+                <button
+                  onClick={retryConnection}
+                  className="text-xs px-[var(--space-2)] py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="p-[var(--space-8)] text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-surface)] rounded-full mb-[var(--space-4)] text-[var(--color-text-muted)]">
@@ -67,6 +88,25 @@ export const ActivityDropdown = memo(function ActivityDropdown({ onClose }: Acti
           </button>
         )}
       </div>
+
+      {isCircuitOpen && (
+        <div className="px-[var(--space-4)] py-[var(--space-3)] bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
+          <div className="flex items-center justify-between gap-[var(--space-3)]">
+            <div className="flex items-center gap-[var(--space-2)] text-sm text-yellow-800 dark:text-yellow-200">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>Real-time updates unavailable</span>
+            </div>
+            {canRetry && (
+              <button
+                onClick={retryConnection}
+                className="text-xs px-[var(--space-2)] py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors duration-[var(--duration-fast)] focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="max-h-96 overflow-y-auto">
         {allItems.map(item => (

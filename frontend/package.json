@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@gomomento/sdk-web": "^1.116.0",
@@ -15,7 +18,7 @@
     "autoprefixer": "^10.4.21",
     "aws-amplify": "^6.15.8",
     "lucide-react": "^0.553.0",
-    "mermaid": "^11.12.1",
+    "mermaid": "^10.9.5",
     "postcss": "^8.5.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -36,6 +39,7 @@
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
     "@vitest/ui": "^4.0.8",
+    "baseline-browser-mapping": "^2.9.19",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
