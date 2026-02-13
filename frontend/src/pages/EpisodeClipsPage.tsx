@@ -113,10 +113,10 @@ function EpisodeClipsPage() {
     }
   }
 
-  const handleClipsLoaded = (counts: { total: number; proposed: number; processing: number; processed: number }, allClips: ClipListView[]) => {
+  const handleClipsLoaded = useCallback((counts: { total: number; proposed: number; processing: number; processed: number }, allClips: ClipListView[]) => {
     setClipCounts(counts)
     setClips(allClips)
-  }
+  }, [])
 
   if (loading) {
     return <LoadingSpinner variant="page" />
