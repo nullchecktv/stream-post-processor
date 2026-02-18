@@ -38,7 +38,7 @@ export const parseSrtEntry = (entry) => {
   const lines = entry.trim().split('\n');
   if (lines.length < 3) return null;
 
-  const sequenceNumber = parseInt(lines[0]);
+  const sequenceNumber = parseInt(lines[0], 10);
   if (isNaN(sequenceNumber)) return null;
 
   const timeMatch = lines[1].match(/(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})/);
@@ -70,7 +70,7 @@ export const extractSpeakerFromText = (text) => {
 export const timeToSeconds = (timeStr) => {
   const [time, ms] = timeStr.split(',');
   const [hours, minutes, seconds] = time.split(':').map(Number);
-  return hours * 3600 + minutes * 60 + seconds + (ms ? parseInt(ms) / 1000 : 0);
+  return hours * 3600 + minutes * 60 + seconds + (ms ? parseInt(ms, 10) / 1000 : 0);
 };
 
 export const secondsToTime = (totalSeconds) => {
