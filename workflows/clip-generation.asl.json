@@ -231,12 +231,7 @@
                 "episodeId.$": "$$.Execution.Input.episodeId",
                 "clipId.$": "$$.Execution.Input.clipId",
                 "order.$": "$.order",
-                "segment": {
-                  "startTime.$": "$.startTime",
-                  "endTime.$": "$.endTime",
-                  "speaker.$": "$.speaker",
-                  "order.$": "$.order"
-                }
+                "segment.$": "States.JsonMerge(States.StringToJson('{\"speaker\":null}'), $, false)"
               }
             },
             "Retry": [
