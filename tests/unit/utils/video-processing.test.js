@@ -8,14 +8,16 @@ describe('Video Processing Utilities', () => {
       throw new Error('Invalid time string');
     }
 
-    const parts = timeStr.split(':').map(part => parseInt(part, 10));
+    const [timePart, msPart] = timeStr.split(',');
+    const parts = timePart.split(':').map(Number);
+    const milliseconds = msPart ? parseInt(msPart) / 1000 : 0;
 
     if (parts.length === 2) {
       const [minutes, seconds] = parts;
-      return minutes * 60 + seconds;
+      return minutes * 60 + seconds + milliseconds;
     } else if (parts.length === 3) {
       const [hours, minutes, seconds] = parts;
-      return hours * 3600 + minutes * 60 + seconds;
+      return hours * 3600 + minutes * 60 + seconds + milliseconds;
     } else {
       throw new Error('Time string must be in HH:MM:SS or MM:SS format');
     }
@@ -85,6 +87,20 @@ describe('Video Processing Utilities', () => {
     test('should handle edge cases', () => {
       expect(timeToSeconds('00:00')).toBe(0);
       expect(timeToSeconds('00:00:00')).toBe(0);
+    });
+
+    test('should convert HH:MM:SS,mmm format with milliseconds correctly', () => {
+      expect(timeToSeconds('00:00:00,000')).toBe(0);
+      expect(timeToSeconds('01:30:45,500')).toBe(5445.5);
+      expect(timeToSeconds('00:00:01,100')).toBe(1.1);
+      expect(timeToSeconds('02:15:30,250')).toBe(8130.25);
+    });
+
+    test('should convert MM:SS,mmm format with milliseconds correctly', () => {
+      expect(timeToSeconds('00:00,000')).toBe(0);
+      expect(timeToSeconds('10:00,100')).toBe(600.1);
+      expect(timeToSeconds('01:30,500')).toBe(90.5);
+      expect(timeToSeconds('05:45,750')).toBe(345.75);
     });
 
     test('should throw error for invalid input', () => {
