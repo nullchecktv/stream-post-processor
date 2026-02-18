@@ -11,6 +11,7 @@ const ddb = new DynamoDBClient();
 // Cache for parsed and indexed SRT entries with LRU eviction
 const srtIndexCache = new Map();
 const MAX_CACHE_SIZE = 50; // Limit cache to 50 transcripts
+const BUCKET_SIZE = 10; // seconds - time bucket size for indexing
 
 /**
  * Add an entry to the cache with LRU eviction.
@@ -51,7 +52,6 @@ const cacheGet = (key) => {
  * @returns {Object} Index structure with buckets and entries
  */
 const buildSrtIndex = (entries) => {
-  const BUCKET_SIZE = 10; // seconds
   const buckets = new Map();
   
   for (const entry of entries) {
