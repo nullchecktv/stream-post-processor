@@ -8,8 +8,41 @@ import { loadTranscript, parseSrtFile, timeToSeconds } from '../utils/transcript
 const logger = new Logger({ serviceName: 'clips' });
 const ddb = new DynamoDBClient();
 
-// Cache for parsed and indexed SRT entries
+// Cache for parsed and indexed SRT entries with LRU eviction
 const srtIndexCache = new Map();
+const MAX_CACHE_SIZE = 50; // Limit cache to 50 transcripts
+
+/**
+ * Add an entry to the cache with LRU eviction.
+ * @param {string} key - Cache key
+ * @param {Object} value - Value to cache
+ */
+const cacheSet = (key, value) => {
+  // If cache is at max size, remove the oldest entry (first entry in Map)
+  if (srtIndexCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = srtIndexCache.keys().next().value;
+    srtIndexCache.delete(firstKey);
+  }
+  
+  // Delete and re-add to move to end (most recently used)
+  srtIndexCache.delete(key);
+  srtIndexCache.set(key, value);
+};
+
+/**
+ * Get an entry from the cache and mark as recently used.
+ * @param {string} key - Cache key
+ * @returns {Object|undefined} Cached value or undefined
+ */
+const cacheGet = (key) => {
+  const value = srtIndexCache.get(key);
+  if (value) {
+    // Move to end to mark as recently used
+    srtIndexCache.delete(key);
+    srtIndexCache.set(key, value);
+  }
+  return value;
+};
 
 /**
  * Build a time-based index for efficient SRT entry lookup.
@@ -77,7 +110,7 @@ const findRelevantEntries = (index, segStart, segEnd) => {
  */
 const loadAndIndexSrt = async (transcriptKey) => {
   // Check cache first
-  const cached = srtIndexCache.get(transcriptKey);
+  const cached = cacheGet(transcriptKey);
   if (cached) {
     return cached;
   }
@@ -97,11 +130,11 @@ const loadAndIndexSrt = async (transcriptKey) => {
     const indexedData = { entries, index };
     
     // Cache the indexed data
-    srtIndexCache.set(transcriptKey, indexedData);
+    cacheSet(transcriptKey, indexedData);
     
     return indexedData;
   } catch (err) {
-    logger.warn('Could not load SRT for transcript extraction', {
+    logger.warn('Could not load SRT for transcript extraction, falling back to stored text', {
       error: err.message,
       transcriptKey
     });
