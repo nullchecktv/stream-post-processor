@@ -232,6 +232,15 @@ describe('Common Schemas', () => {
       });
     });
 
+    it('should validate timestamp format with milliseconds HH:MM:SS,MMM', () => {
+      const validTimestamps = ['00:00:00,000', '12:34:56,789', '23:59:59,999', '01:02:03,125'];
+
+      validTimestamps.forEach(timestamp => {
+        const result = TimestampSchema.safeParse(timestamp);
+        expect(result.success).toBe(true);
+      });
+    });
+
     it('should reject timestamp without seconds', () => {
       const result = TimestampSchema.safeParse('12:34');
       expect(result.success).toBe(false);
@@ -257,8 +266,18 @@ describe('Common Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject timestamp with milliseconds', () => {
+    it('should reject timestamp with dot notation milliseconds', () => {
       const result = TimestampSchema.safeParse('12:34:56.789');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject timestamp with incomplete milliseconds', () => {
+      const result = TimestampSchema.safeParse('12:34:56,12');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject timestamp with too many millisecond digits', () => {
+      const result = TimestampSchema.safeParse('12:34:56,1234');
       expect(result.success).toBe(false);
     });
 
