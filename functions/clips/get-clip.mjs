@@ -20,7 +20,7 @@ const BUCKET_SIZE = 10; // seconds - time bucket size for indexing
  */
 const cacheSet = (key, value) => {
   // If cache is at max size, remove the oldest entry (first entry in Map)
-  if (srtIndexCache.size >= MAX_CACHE_SIZE) {
+  if (srtIndexCache.size === MAX_CACHE_SIZE) {
     const firstKey = srtIndexCache.keys().next().value;
     srtIndexCache.delete(firstKey);
   }
@@ -134,7 +134,7 @@ const loadAndIndexSrt = async (transcriptKey) => {
     
     return indexedData;
   } catch (err) {
-    logger.warn('Could not load SRT for transcript extraction, falling back to stored text', {
+    logger.warn('Could not load or parse SRT for transcript extraction', {
       error: err.message,
       transcriptKey
     });
