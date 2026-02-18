@@ -70,7 +70,7 @@ export const extractSpeakerFromText = (text) => {
 export const timeToSeconds = (timeStr) => {
   const [time, ms] = timeStr.split(',');
   const [hours, minutes, seconds] = time.split(':').map(Number);
-  return hours * 3600 + minutes * 60 + seconds + parseInt(ms) / 1000;
+  return hours * 3600 + minutes * 60 + seconds + (ms ? parseInt(ms) / 1000 : 0);
 };
 
 export const secondsToTime = (totalSeconds) => {

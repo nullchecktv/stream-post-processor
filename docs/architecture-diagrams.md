@@ -1,5 +1,73 @@
 # Architecture Diagrams
 
+## Simplified Architecture (Presentation View)
+
+```mermaid
+graph LR
+    subgraph Client
+        React[React App<br/>TypeScript + Vite]
+    end
+
+    subgraph Auth
+        Cognito[Cognito<br/>User Pool]
+    end
+
+    subgraph API
+        Gateway[API Gateway<br/>REST API]
+        Auth[Lambda<br/>Authorizer]
+    end
+
+    subgraph Core
+        Lambda[Lambda Functions<br/>Episodes, Clips, Teams]
+    end
+
+    subgraph AI
+        Bedrock[AWS Bedrock<br/>Nova Pro Agent]
+    end
+
+    subgraph Processing
+        MediaConvert[MediaConvert<br/>Video Chunks]
+        StepFn[Step Functions<br/>Clip Workflow]
+    end
+
+    subgraph Storage
+        DynamoDB[(DynamoDB<br/>Single Table)]
+        S3[(S3<br/>Videos/Transcripts)]
+    end
+
+    subgraph Events
+        EventBridge[EventBridge<br/>Event Bus]
+        Momento[Momento<br/>Real-time]
+    end
+
+    React -->|HTTPS| Gateway
+    React -.->|Auth| Cognito
+    Gateway --> Auth
+    Auth --> Lambda
+    Lambda --> DynamoDB
+    Lambda --> S3
+    S3 --> EventBridge
+    EventBridge --> Bedrock
+    EventBridge --> MediaConvert
+    EventBridge --> StepFn
+    Bedrock --> DynamoDB
+    StepFn --> S3
+    EventBridge --> Momento
+    Momento -.->|Subscribe| React
+
+    style React fill:#61dafb,stroke:#333,stroke-width:2px
+    style Cognito fill:#ff9900,stroke:#333,stroke-width:2px
+    style Gateway fill:#ff9900,stroke:#333,stroke-width:2px
+    style Lambda fill:#ff9900,stroke:#333,stroke-width:2px
+    style Bedrock fill:#ff9900,stroke:#333,stroke-width:2px
+    style DynamoDB fill:#4053d6,stroke:#333,stroke-width:2px
+    style S3 fill:#569a31,stroke:#333,stroke-width:2px
+    style EventBridge fill:#ff4081,stroke:#333,stroke-width:2px
+    style Momento fill:#00d4ff,stroke:#333,stroke-width:2px
+    style MediaConvert fill:#ff9900,stroke:#333,stroke-width:2px
+    style StepFn fill:#ff9900,stroke:#333,stroke-width:2px
+```
+
 ## 1. Backend Architecture Diagram
 
 ```mermaid

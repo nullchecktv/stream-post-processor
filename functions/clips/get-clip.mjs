@@ -1,11 +1,14 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { getCurrentClipStatus } from '../utils/clips.mjs';
+import { parseSrtFile, timeToSeconds } from '../utils/transcripts.mjs';
 
 const logger = new Logger({ serviceName: 'clips' });
 const ddb = new DynamoDBClient();
+const s3 = new S3Client();
 
 export const handler = async (event) => {
   try {
@@ -46,12 +49,51 @@ export const handler = async (event) => {
     const segments = clip.segments || [];
     const segmentCount = segments.length;
 
+    // Attempt to extract accurate transcript text from the source SRT by matching
+    // each segment's time range. Falls back to the AI-stored text if the SRT is
+    // unavailable or yields no matching entries.
+    let srtEntries = [];
+    try {
+      const transcriptKey = `${tenantId}/${episodeId}/transcript.srt`;
+      const s3Response = await s3.send(new GetObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: transcriptKey
+      }));
+      const srtContent = await s3Response.Body.transformToString();
+      srtEntries = parseSrtFile(srtContent);
+    } catch (err) {
+      logger.warn('Could not load SRT for transcript extraction, falling back to stored text', {
+        error: err.message,
+        episodeId,
+        tenantId
+      });
+    }
+
     const transcript = segments
       .sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(segment => {
-        const speaker = segment.speaker || 'unknown';
+        const speakerLabel = segment.speaker ? `[${segment.speaker}]: ` : '';
+
+        if (srtEntries.length > 0) {
+          const segStart = timeToSeconds(segment.startTime);
+          const segEnd = timeToSeconds(segment.endTime);
+
+          const relevantEntries = srtEntries.filter(entry => {
+            const entryStart = timeToSeconds(entry.startTime);
+            const entryEnd = timeToSeconds(entry.endTime);
+            return entryStart < segEnd && entryEnd > segStart;
+          });
+
+          if (relevantEntries.length > 0) {
+            // Use the full SRT text (preserves per-entry speaker labels where present)
+            const text = relevantEntries.map(e => e.text).join(' ');
+            return text;
+          }
+        }
+
+        // Fallback: use what the AI stored
         const text = segment.transcript || '';
-        return `[${speaker}]: ${text}`;
+        return `${speakerLabel}${text}`;
       })
       .join('\n\n');
 

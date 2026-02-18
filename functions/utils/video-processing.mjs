@@ -9,14 +9,16 @@ export const timeToSeconds = (timeStr) => {
     throw new Error('Invalid time string');
   }
 
-  const parts = timeStr.split(':').map(part => parseInt(part, 10));
+  const [timePart, msPart] = timeStr.split(',');
+  const parts = timePart.split(':').map(Number);
+  const milliseconds = msPart ? parseInt(msPart) / 1000 : 0;
 
   if (parts.length === 2) {
     const [minutes, seconds] = parts;
-    return minutes * 60 + seconds;
+    return minutes * 60 + seconds + milliseconds;
   } else if (parts.length === 3) {
     const [hours, minutes, seconds] = parts;
-    return hours * 3600 + minutes * 60 + seconds;
+    return hours * 3600 + minutes * 60 + seconds + milliseconds;
   } else {
     throw new Error('Time string must be in HH:MM:SS or MM:SS format');
   }
