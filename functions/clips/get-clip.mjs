@@ -4,7 +4,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { formatResponse } from '../utils/api.mjs';
 import { getCurrentClipStatus } from '../utils/clips.mjs';
-import { parseSrtFile, timeToSeconds } from '../utils/transcripts.mjs';
+import { parseSrtFile, timeToSeconds, detectSpeaker } from '../utils/transcripts.mjs';
 
 const logger = new Logger({ serviceName: 'clips' });
 const ddb = new DynamoDBClient();
@@ -72,8 +72,6 @@ export const handler = async (event) => {
     const transcript = segments
       .sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(segment => {
-        const speakerLabel = segment.speaker ? `[${segment.speaker}]: ` : '';
-
         if (srtEntries.length > 0) {
           const segStart = timeToSeconds(segment.startTime);
           const segEnd = timeToSeconds(segment.endTime);
@@ -85,13 +83,37 @@ export const handler = async (event) => {
           });
 
           if (relevantEntries.length > 0) {
-            // Use the full SRT text
-            const text = relevantEntries.map(e => e.text).join(' ');
-            return `${speakerLabel}${text}`;
+            // Strip the inline "Speaker: " prefix from each SRT entry, then
+            // group consecutive entries by speaker into clean labelled blocks.
+            const blocks = [];
+            let currentSpeaker = null;
+            let currentLines = [];
+
+            for (const entry of relevantEntries) {
+              const { speaker, dialogue } = detectSpeaker(entry.text);
+              const entrySpeaker = speaker || currentSpeaker;
+
+              if (entrySpeaker !== currentSpeaker && currentLines.length > 0) {
+                const label = currentSpeaker ? `[${currentSpeaker}]: ` : '';
+                blocks.push(`${label}${currentLines.join(' ')}`);
+                currentLines = [];
+              }
+
+              currentSpeaker = entrySpeaker;
+              if (dialogue.trim()) currentLines.push(dialogue);
+            }
+
+            if (currentLines.length > 0) {
+              const label = currentSpeaker ? `[${currentSpeaker}]: ` : '';
+              blocks.push(`${label}${currentLines.join(' ')}`);
+            }
+
+            return blocks.join('\n\n');
           }
         }
 
         // Fallback: use what the AI stored
+        const speakerLabel = segment.speaker ? `[${segment.speaker}]: ` : '';
         const text = segment.transcript || '';
         return `${speakerLabel}${text}`;
       })
