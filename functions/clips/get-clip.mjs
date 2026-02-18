@@ -85,9 +85,9 @@ export const handler = async (event) => {
           });
 
           if (relevantEntries.length > 0) {
-            // Use the full SRT text (preserves per-entry speaker labels where present)
+            // Use the full SRT text
             const text = relevantEntries.map(e => e.text).join(' ');
-            return text;
+            return `${speakerLabel}${text}`;
           }
         }
 
