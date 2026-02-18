@@ -70,7 +70,7 @@ const buildSrtIndex = (entries) => {
     }
   }
   
-  return { buckets, BUCKET_SIZE };
+  return { buckets };
 };
 
 /**
@@ -81,7 +81,7 @@ const buildSrtIndex = (entries) => {
  * @returns {Array} Matching SRT entries
  */
 const findRelevantEntries = (index, segStart, segEnd) => {
-  const { buckets, BUCKET_SIZE } = index;
+  const { buckets } = index;
   const startBucket = Math.floor(segStart / BUCKET_SIZE);
   const endBucket = Math.floor(segEnd / BUCKET_SIZE);
   
