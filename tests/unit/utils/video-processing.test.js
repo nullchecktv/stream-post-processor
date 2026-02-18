@@ -10,7 +10,7 @@ describe('Video Processing Utilities', () => {
 
     const [timePart, msPart] = timeStr.split(',');
     const parts = timePart.split(':').map(Number);
-    const milliseconds = msPart ? parseInt(msPart) / 1000 : 0;
+    const milliseconds = msPart ? parseInt(msPart, 10) / 1000 : 0;
 
     if (parts.length === 2) {
       const [minutes, seconds] = parts;
