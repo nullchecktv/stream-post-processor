@@ -929,9 +929,14 @@ Resources:
               Action:
                 - dynamodb:GetItem
               Resource: !GetAtt StreamPostProcessingTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${TranscriptBucket}/*
       Environment:
         Variables:
           TABLE_NAME: !Ref StreamPostProcessingTable
+          BUCKET_NAME: !Ref TranscriptBucket
       Events:
         Get:
           Type: Api

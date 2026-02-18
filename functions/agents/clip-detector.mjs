@@ -197,8 +197,20 @@ Each clip you pass to **createClip** must contain the schema:
 
 {
   "segments": [
-    { "startTime": "00:14:32", "endTime": "00:15:18", "speaker": "Allen", "order": 1, "transcript": "Did you know agents could do this?" }
-    { "startTime": "00:41:01", "endTime": "00:41:05", "speaker": "Andres": "order": 2, "transcript": "No I didn't, but now we can use it" }
+    {
+      "startTime": "00:14:32,000",
+      "endTime": "00:15:18,500",
+      "speaker": "Allen",
+      "order": 1,
+      "transcript": "Did you know agents could do this? I was blown away the first time I saw it work end-to-end. You basically hand it a tool and it figures out the rest — no scaffolding, no hand-holding. It just goes. And the crazy part is it gets it right most of the time."
+    },
+    {
+      "startTime": "00:41:01,000",
+      "endTime": "00:41:05,200",
+      "speaker": "Andres",
+      "order": 2,
+      "transcript": "No I didn't, but now we can use it in production."
+    }
   ],
   "title": "Why we let our AI agent go rogue (on purpose)",
   "summary": "Allen and Andres debate what happens when you remove safety guardrails from an agent and whether chaos teaches more than control.",
