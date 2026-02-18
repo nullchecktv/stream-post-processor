@@ -55,17 +55,21 @@ export const handler = async (event) => {
     let srtEntries = [];
     try {
       const transcriptKey = `${tenantId}/${episodeId}/transcript.srt`;
+      logger.info('Loading SRT for transcript extraction', { transcriptKey, bucket: process.env.BUCKET_NAME });
       const s3Response = await s3.send(new GetObjectCommand({
         Bucket: process.env.BUCKET_NAME,
         Key: transcriptKey
       }));
       const srtContent = await s3Response.Body.transformToString();
       srtEntries = parseSrtFile(srtContent);
+      logger.info('SRT loaded and parsed', { entryCount: srtEntries.length, episodeId });
     } catch (err) {
       logger.warn('Could not load SRT for transcript extraction, falling back to stored text', {
         error: err.message,
+        errorName: err.name,
         episodeId,
-        tenantId
+        tenantId,
+        bucketNameSet: !!process.env.BUCKET_NAME
       });
     }
 
@@ -82,11 +86,38 @@ export const handler = async (event) => {
             return entryStart < segEnd && entryEnd > segStart;
           });
 
+          logger.info('SRT entry match result', {
+            segmentOrder: segment.order,
+            startTime: segment.startTime,
+            endTime: segment.endTime,
+            matchedEntries: relevantEntries.length
+          });
+
           if (relevantEntries.length > 0) {
             // Strip the inline "Speaker: " prefix from each SRT entry, then
             // group consecutive entries by speaker into clean labelled blocks.
+            //
+            // Speaker labels only appear on the FIRST line of each speaker's
+            // turn in the SRT — continuation lines have no prefix. To correctly
+            // attribute unlabelled entries at the start of a segment we scan
+            // backwards through all entries that precede segStart to find the
+            // last explicit speaker label. Fall back to segment.speaker if no
+            // earlier label exists.
+            let initialSpeaker = segment.speaker || null;
+            for (const entry of srtEntries) {
+              if (timeToSeconds(entry.startTime) >= segStart) break;
+              const { speaker } = detectSpeaker(entry.text);
+              if (speaker) initialSpeaker = speaker;
+            }
+
+            logger.info('Initial speaker for segment', {
+              segmentOrder: segment.order,
+              initialSpeaker,
+              segmentSpeaker: segment.speaker
+            });
+
             const blocks = [];
-            let currentSpeaker = null;
+            let currentSpeaker = initialSpeaker;
             let currentLines = [];
 
             for (const entry of relevantEntries) {
@@ -101,6 +132,8 @@ export const handler = async (event) => {
 
               currentSpeaker = entrySpeaker;
               if (dialogue.trim()) currentLines.push(dialogue);
+
+              logger.info('Entry Speaker', entrySpeaker);
             }
 
             if (currentLines.length > 0) {
@@ -108,11 +141,21 @@ export const handler = async (event) => {
               blocks.push(`${label}${currentLines.join(' ')}`);
             }
 
+            logger.info('Transcript built from SRT', {
+              segmentOrder: segment.order,
+              blockCount: blocks.length ,
+              speaker: currentSpeaker
+            });
             return blocks.join('\n\n');
           }
         }
 
         // Fallback: use what the AI stored
+        logger.info('Using AI-stored transcript fallback', {
+          segmentOrder: segment.order,
+          segmentSpeaker: segment.speaker ?? 'no speaker',
+          reason: srtEntries.length === 0 ? 'no-srt-entries' : 'no-matching-entries'
+        });
         const speakerLabel = segment.speaker ? `[${segment.speaker}]: ` : '';
         const text = segment.transcript || '';
         return `${speakerLabel}${text}`;
